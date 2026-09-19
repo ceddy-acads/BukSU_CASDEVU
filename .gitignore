@@ -1,0 +1,19 @@
+# Local configuration with real credentials
+includes/config.local.php
+
+# Uploaded files — never commit student documents.
+# The directories are kept (via .gitkeep); their contents are not.
+storage/uploads/**
+!storage/uploads/
+!storage/uploads/requirements/
+!storage/uploads/**/.gitkeep
+
+# Tooling caches
+.impeccable/
+
+# Editor and OS noise
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+*.log
