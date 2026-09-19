@@ -182,29 +182,107 @@ require __DIR__ . '/../../includes/layout/header.php';
         </section>
 
         <?php if (current_role() === 'student'): ?>
+            <?php
+            $student        = current_user();
+            $eligibility    = can_register($activity, $student);
+            $isActiveReg    = $myRegistration
+                              && !in_array($myRegistration['status'], ['withdrawn'], true);
+            $regProgress    = $isActiveReg
+                              ? requirement_progress((int) $myRegistration['registration_id'])
+                              : null;
+            ?>
             <section class="card">
                 <div class="card-head"><h2>Your participation</h2></div>
 
-                <?php if ($myRegistration): ?>
-                    <p>Your registration is <?= status_badge($myRegistration['status']) ?></p>
+                <?php if ($isActiveReg): ?>
+                    <p style="margin-top:0;">
+                        <?= status_badge($myRegistration['status']) ?>
+                    </p>
+                    <p style="font-size:.9rem;">
+                        <?= e(registration_stage_label($myRegistration['status'])) ?>
+                    </p>
+
                     <?php if ($myRegistration['review_remarks']): ?>
-                        <p class="hint">Office remarks: <?= e($myRegistration['review_remarks']) ?></p>
+                        <div class="alert alert-<?= $myRegistration['status'] === 'rejected' ? 'error' : 'info' ?>">
+                            <strong>Office remarks:</strong> <?= e($myRegistration['review_remarks']) ?>
+                        </div>
                     <?php endif; ?>
+
+                    <?php if ($regProgress && $regProgress['total'] > 0): ?>
+                        <p class="hint">
+                            Requirements verified: <?= $regProgress['satisfied'] ?> of <?= $regProgress['total'] ?>
+                        </p>
+                        <a class="btn <?= $regProgress['complete'] ? 'btn-outline' : 'btn-gold' ?> btn-block"
+                           href="<?= url('requirements/submit.php?activity_id=' . $activityId) ?>">
+                            <?= $regProgress['complete'] ? 'View my documents' : 'Submit requirements' ?>
+                        </a>
+                    <?php endif; ?>
+
+                    <?php if ($myRegistration['status'] === 'pending'): ?>
+                        <form method="post" action="<?= url('participation/register.php') ?>"
+                              style="margin-top:.6rem;"
+                              onsubmit="return confirm('Withdraw your registration for this activity?');">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="action" value="withdraw">
+                            <input type="hidden" name="activity_id" value="<?= $activityId ?>">
+                            <button type="submit" class="btn btn-outline btn-block">Withdraw registration</button>
+                        </form>
+                    <?php endif; ?>
+
+                <?php elseif ($eligibility['ok']): ?>
+                    <form method="post" action="<?= url('participation/register.php') ?>">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="action" value="register">
+                        <input type="hidden" name="activity_id" value="<?= $activityId ?>">
+
+                        <div class="form-row">
+                            <label for="team_name">Team or group name (optional)</label>
+                            <input type="text" id="team_name" name="team_name"
+                                   placeholder="e.g. College of Technologies">
+                        </div>
+                        <div class="form-row">
+                            <label for="remarks">Anything the office should know (optional)</label>
+                            <input type="text" id="remarks" name="remarks">
+                        </div>
+
+                        <button type="submit" class="btn btn-gold btn-block">Register for this activity</button>
+                    </form>
                 <?php else: ?>
-                    <p class="hint">You have not registered for this activity.</p>
-                    <button class="btn btn-gold btn-block is-disabled" disabled>
-                        Register — available in Week 2
-                    </button>
+                    <div class="alert alert-warning" style="margin:0;">
+                        <?= e($eligibility['reason']) ?>
+                    </div>
                 <?php endif; ?>
             </section>
         <?php endif; ?>
 
         <?php if (can_manage_activity($activityId)): ?>
+            <?php
+            $pendingRegistrations = (int) fetch_value(
+                "SELECT COUNT(*) FROM registrations WHERE activity_id = ? AND status = 'pending'",
+                [$activityId]
+            );
+            $pendingSubmissions = (int) fetch_value(
+                "SELECT COUNT(*) FROM requirement_submissions rs
+                   JOIN activity_requirements ar ON ar.requirement_id = rs.requirement_id
+                  WHERE ar.activity_id = ? AND rs.status = 'pending'",
+                [$activityId]
+            );
+            ?>
             <section class="card">
                 <div class="card-head"><h2>Manage</h2></div>
                 <div class="btn-row">
-                    <a class="btn btn-outline btn-sm is-disabled">Participants — Week 2</a>
-                    <a class="btn btn-outline btn-sm is-disabled">Requirements — Week 2</a>
+                    <a class="btn btn-outline btn-sm"
+                       href="<?= url('participation/participants.php?activity_id=' . $activityId) ?>">
+                        Participants<?= $pendingRegistrations > 0 ? ' (' . $pendingRegistrations . ' to review)' : '' ?>
+                    </a>
+                    <a class="btn btn-outline btn-sm"
+                       href="<?= url('requirements/manage.php?activity_id=' . $activityId) ?>">
+                        Requirements (<?= count($requirements) ?>)
+                    </a>
+                    <a class="btn btn-outline btn-sm"
+                       href="<?= url('requirements/verify.php?activity_id=' . $activityId) ?>">
+                        Verify<?= $pendingSubmissions > 0 ? ' (' . $pendingSubmissions . ')' : '' ?>
+                    </a>
                 </div>
             </section>
         <?php endif; ?>

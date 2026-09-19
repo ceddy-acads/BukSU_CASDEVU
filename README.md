@@ -13,8 +13,17 @@ Native PHP 8 + MySQL (XAMPP)
 C:\xampp\htdocs\casms\
 ```
 
-If the folder is named differently, update `BASE_URL` in `includes/config.php`
-to match — it must be the URL path to `public/`.
+The folder may be named anything — `BASE_URL` is detected automatically, so
+the same code runs under XAMPP, under a virtual host pointed at `public/`, and
+under `php -S`. Override it in `includes/config.php` only if detection fails.
+
+To run without touching XAMPP's htdocs at all:
+
+```bash
+cd public
+C:\xampp\php\php.exe -S 127.0.0.1:8080 -t .
+# then open http://127.0.0.1:8080/login.php
+```
 
 **2. Create the database**
 
@@ -53,12 +62,16 @@ BukSU CASDEVU/
 │   ├── csrf.php             CSRF tokens
 │   ├── helpers.php          Escaping, URLs, flash messages, formatting
 │   ├── notifications.php    In-app notifications
+│   ├── participation.php    Registration eligibility and requirement progress
+│   ├── uploads.php          Upload validation and safe storage
 │   └── layout/              header.php, footer.php
 ├── public/                  Web root — point the browser here
 │   ├── login.php  logout.php  register.php
 │   ├── index.php            Role-specific dashboard
 │   ├── profile.php  notifications.php
 │   ├── activities/          index.php, view.php, manage.php
+│   ├── participation/       register.php, my-activities.php, participants.php
+│   ├── requirements/        manage.php, submit.php, verify.php, download.php
 │   ├── admin/users.php      Account activation and user management
 │   └── assets/css/style.css
 └── storage/uploads/         Uploaded files — NOT web-accessible
@@ -70,33 +83,48 @@ the web root entirely.
 
 ---
 
-## Status — Week 1 complete
+## Status — Weeks 1–2 complete
 
-**Built and tested**
+**Week 1 — foundation**
 
 - Login, logout, session handling with idle timeout
 - Student self-registration; accounts start `pending` and need office approval
 - Role gate (`require_role`) and ownership gate (`require_activity_access`)
 - Profile editing and password change
 - Activity list with search, category/status filters, and pagination
-- Activity detail page
-- Activity create and edit, with venue double-booking warning
+- Activity detail, create and edit, with venue double-booking warning
 - User management: activate, deactivate, change role (admin only)
-- In-app notifications and inbox
-- Audit logging on login, account changes, and activity changes
+- In-app notifications and audit logging
 
-**Verified end to end against XAMPP** — login flow, activity creation,
-account activation, CSRF rejection (419), role denial (403), missing record
-(404), and draft activities staying invisible to students.
+**Week 2 — participation and requirements**
 
-**Stubbed, marked in the UI as "Week 2"**
+- Student registers for an activity, with team name and remarks
+- Guards: duplicate, capacity, registration window, activity status, and the
+  year-level / course eligibility whitelist
+- Withdraw, allowed only while still awaiting review
+- "My activities" with per-activity requirement progress
+- Staff participant list: search, status and year-level filters, approval,
+  rejection with a reason, attendance marking
+- Staff define requirements per activity (mandatory/optional, file or
+  acknowledgement, deadline)
+- Student uploads documents; missing-requirements checklist
+- Staff verify or reject submissions, with the reason shown to the student
+- Re-upload after rejection; a verified submission is locked
+- Authenticated download route for files stored outside the web root
 
-- Registering for an activity
-- Participant lists and approval
-- Requirements definition, upload, and verification
-- Inventory (nav link present, module not yet built)
+**Verified end to end against XAMPP.** Beyond the Week 1 checks, Week 2 was
+tested for: a PHP script renamed `.pdf` being rejected by content sniffing,
+one student being unable to open another's document (403), the storage folder
+being unreachable by URL (404), replaced files not leaving orphans on disk,
+rejection without a reason being refused, and every capacity / window /
+eligibility guard blocking with the correct message.
 
----
+**Not yet built**
+
+- Inventory (nav link present, module is Week 3)
+- Announcements management screen
+- Reports and CSV export
+- Deadline reminder notifications
 
 ## Conventions to keep
 
@@ -113,6 +141,10 @@ These are what make the security checklist pass at the end of Week 4.
    parameters — never string concatenation
 8. Values that cannot be bound (ORDER BY, LIMIT) are cast to `int` or matched
    against a whitelist array
+9. Uploads go through `store_upload()` — never `move_uploaded_file()` directly.
+   It checks the real MIME type, not the extension, and renames the file
+10. Stored files are reached only through `requirements/download.php`, which
+    authorizes the request first. Never link into `storage/` directly
 
 ---
 
