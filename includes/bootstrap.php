@@ -16,5 +16,6 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/notifications.php';
 require_once __DIR__ . '/participation.php';
 require_once __DIR__ . '/uploads.php';
+require_once __DIR__ . '/inventory.php';
 
 start_session();

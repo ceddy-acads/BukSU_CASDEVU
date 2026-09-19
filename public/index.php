@@ -91,6 +91,17 @@ require __DIR__ . '/../includes/layout/header.php';
     </div>
 <?php endif; ?>
 
+<?php if (is_office_staff()): ?>
+    <?php $overdueItems = overdue_borrowing_count(); ?>
+    <?php if ($overdueItems > 0): ?>
+        <div class="alert alert-error">
+            <strong><?= $overdueItems ?></strong> borrowed item<?= $overdueItems === 1 ? ' is' : 's are' ?>
+            past the expected return date.
+            <a href="<?= url('inventory/borrowings.php?filter=overdue') ?>">Review now</a>
+        </div>
+    <?php endif; ?>
+<?php endif; ?>
+
 <div class="grid grid-4" style="margin-bottom:1.5rem;">
     <?php foreach ($stats as $stat): ?>
         <div class="stat <?= e($stat['class']) ?>">
@@ -155,6 +166,9 @@ require __DIR__ . '/../includes/layout/header.php';
                     </p>
                 </article>
             <?php endforeach; ?>
+            <div class="btn-row" style="margin-top:1rem;">
+                <a class="btn btn-outline btn-sm" href="<?= url('announcements/index.php') ?>">All announcements</a>
+            </div>
         <?php endif; ?>
     </section>
 </div>

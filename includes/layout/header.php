@@ -44,6 +44,7 @@ function nav_active(string $section, string $currentDir, string $currentFile): s
             <nav class="topnav">
                 <a href="<?= url('index.php') ?>"<?= nav_active('dashboard', $currentDir, $currentFile) ?>>Dashboard</a>
                 <a href="<?= url('activities/index.php') ?>"<?= nav_active('activities', $currentDir, $currentFile) ?>>Activities</a>
+                <a href="<?= url('announcements/index.php') ?>"<?= nav_active('announcements', $currentDir, $currentFile) ?>>Announcements</a>
 
                 <?php if ($role === 'student'): ?>
                     <a href="<?= url('participation/my-activities.php') ?>"<?= nav_active('participation', $currentDir, $currentFile) ?>>My Activities</a>

@@ -64,6 +64,7 @@ BukSU CASDEVU/
 │   ├── notifications.php    In-app notifications
 │   ├── participation.php    Registration eligibility and requirement progress
 │   ├── uploads.php          Upload validation and safe storage
+│   ├── inventory.php        Availability maths, reservations, borrowing
 │   └── layout/              header.php, footer.php
 ├── public/                  Web root — point the browser here
 │   ├── login.php  logout.php  register.php
@@ -72,6 +73,9 @@ BukSU CASDEVU/
 │   ├── activities/          index.php, view.php, manage.php
 │   ├── participation/       register.php, my-activities.php, participants.php
 │   ├── requirements/        manage.php, submit.php, verify.php, download.php
+│   ├── inventory/           index.php, manage.php, reserve.php,
+│   │                        reservations.php, borrowings.php
+│   ├── announcements/       index.php, manage.php
 │   ├── admin/users.php      Account activation and user management
 │   └── assets/css/style.css
 └── storage/uploads/         Uploaded files — NOT web-accessible
@@ -83,7 +87,7 @@ the web root entirely.
 
 ---
 
-## Status — Weeks 1–2 complete
+## Status — Weeks 1–3 complete
 
 **Week 1 — foundation**
 
@@ -119,12 +123,29 @@ being unreachable by URL (404), replaced files not leaving orphans on disk,
 rejection without a reason being refused, and every capacity / window /
 eligibility guard blocking with the correct message.
 
+**Week 3 — inventory, reservations, announcements**
+
+- Inventory catalog with search, category and status filters, live availability
+- Item create, edit, delete; deletion refused for items with borrowing history
+- Availability is derived, never stored: total owned, minus open loans, minus
+  approved reservations overlapping the requested window
+- Reservation requests with per-item quantities, reviewed by the office
+- Availability re-checked at approval, not only at request time
+- Borrowing ledger: release, expected return, actual return, condition
+- Returns marked good, damaged, or lost; damaged flags the item, lost reduces
+  the owned quantity
+- Overdue loans highlighted on the dashboard and the inventory screens
+- Item status (available / reserved / borrowed) recalculated as items move;
+  damaged, under maintenance and unavailable stay under office control
+- Announcements with drafts, publishing, and pinning; publishing notifies every
+  active student exactly once, and re-saving does not notify again
+
 **Not yet built**
 
-- Inventory (nav link present, module is Week 3)
-- Announcements management screen
-- Reports and CSV export
-- Deadline reminder notifications
+- Reports and CSV export (Week 4)
+- Deadline reminder notifications (Week 4)
+- Activity calendar view
+- Backup and restore
 
 ## Conventions to keep
 
