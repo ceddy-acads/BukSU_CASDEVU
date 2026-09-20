@@ -38,8 +38,14 @@ C:\xampp\mysql\bin\mysql.exe -u root casms < database/demo-data.sql
 ```
 
 Adds 37 accounts, 6 activities, 36 registrations, 20 inventory items,
-reservations, loans and announcements — enough to walk through every
-screen. All demo accounts use the password `demo1234`. Safe to re-run.
+6 venues, reservations, loans and announcements — enough to walk through
+every screen. The dataset is deliberately mixed: activities in every status,
+registrations pending/approved/rejected/completed, two accounts awaiting
+approval, one overdue loan, one damaged item and one under maintenance.
+
+All demo accounts use the password `demo1234`; the administrator seeded by
+`schema.sql` keeps its own password and is left untouched. The script is
+idempotent — re-running it adds nothing.
 
 **3. Start Apache and MySQL in the XAMPP Control Panel**
 
@@ -56,6 +62,43 @@ http://localhost/casms/public/login.php
 | Email | `admin@buksu.edu.ph` |
 | Password | `admin123` |
 
+**6. Optional — schedule the deadline reminders**
+
+Reminders can be sent by hand from **Admin > Reminders**. To send them
+unattended, point Windows Task Scheduler (or cron) at the runner once a day:
+
+```bash
+C:\xampp\php\php.exe "C:\path\to\CASMS\bin\send-reminders.php"
+```
+
+It accepts `--dry-run` to report what would be sent without sending, and
+`--quiet` for the summary line only. The script refuses to run over HTTP.
+
+---
+
+## Configuration
+
+All settings live in `includes/config.php`. The defaults suit a local XAMPP
+install; the ones worth knowing about:
+
+| Constant | Default | What it controls |
+|----------|---------|------------------|
+| `APP_ENV` | `production` | `development` shows error detail on screen. Either way the detail is written to `storage/logs/php-error.log` and the user sees a reference code |
+| `BASE_URL` | auto-detected | URL path to `public/`. Override only if detection fails |
+| `MAIL_TRANSPORT` | `log` | `log` writes messages to `storage/logs/mail.log`; `mail` hands them to PHP's `mail()` |
+| `MAIL_NOTIFICATIONS_ENABLED` | `true` | Whether reminders are emailed as well as shown in-app |
+| `LOGIN_MAX_ATTEMPTS` | `8` | Failed sign-ins per IP address before a lockout |
+| `LOGIN_LOCKOUT_MINUTES` | `15` | How long that lockout lasts |
+| `PASSWORD_RESET_TTL_MINUTES` | `60` | Lifetime of a reset link |
+| `MAX_UPLOAD_BYTES` | 5 MB | Largest accepted requirement file |
+| `MYSQL_BIN_PATH` | `C:/xampp/mysql/bin` | Where `mysqldump.exe` and `mysql.exe` live, used by Backup |
+
+**Email delivery.** `MAIL_TRANSPORT` ships as `log`, so nothing is actually
+sent — messages are appended to `storage/logs/mail.log`, which is enough to
+demonstrate password reset and reminders end to end without an SMTP account.
+Set it to `mail` only on a server that has a working mail transport; XAMPP
+does not provide one by default.
+
 ---
 
 ## Project layout
@@ -66,6 +109,7 @@ BukSU CASDEVU/
 │   ├── schema.sql           Clean installer: 22 tables, 3 views, seed data
 │   └── demo-data.sql        Optional realistic dataset for a walkthrough
 ├── docs/                    Requirements, DB design, role matrix, build plan
+├── bin/send-reminders.php   Deadline reminder runner (command line only)
 ├── includes/                Application code — NOT web-accessible
 │   ├── config.php           Credentials and settings
 │   ├── bootstrap.php        Loaded first by every page
@@ -79,12 +123,15 @@ BukSU CASDEVU/
 │   ├── inventory.php        Availability maths, reservations, borrowing
 │   ├── reports.php          Report queries and CSV export
 │   ├── errors.php           Global exception and fatal-error handling
+│   ├── mailer.php           Outgoing email (log or mail transport)
+│   ├── reminders.php        Deadline reminder rules
+│   ├── backup.php           Database dump, restore, and file guards
 │   └── layout/              header.php, footer.php
 ├── public/                  Web root — point the browser here
 │   ├── login.php  logout.php  register.php
 │   ├── index.php            Role-specific dashboard
 │   ├── profile.php  notifications.php
-│   ├── activities/          index.php, view.php, manage.php,
+│   ├── activities/          index.php, view.php, manage.php, calendar.php,
 │   │                        coordinators.php, eligibility.php
 │   ├── participation/       register.php, my-activities.php, participants.php
 │   ├── requirements/        manage.php, submit.php, verify.php, download.php
@@ -93,9 +140,14 @@ BukSU CASDEVU/
 │   ├── announcements/       index.php, manage.php
 │   ├── reports/             index.php, participation.php, inventory.php,
 │   │                        students.php
-│   ├── admin/               users.php, venues.php, categories.php, audit.php
+│   ├── admin/               users.php, venues.php, categories.php,
+│   │                        audit.php, backup.php, reminders.php
+│   ├── forgot-password.php  reset-password.php
 │   └── assets/css/style.css
-└── storage/uploads/         Uploaded files — NOT web-accessible
+└── storage/                 NOT web-accessible
+    ├── uploads/             Submitted requirement files
+    ├── backups/             Database dumps (git-ignored)
+    └── logs/                php-error.log, mail.log (git-ignored)
 ```
 
 `includes/` and `storage/` each carry an `.htaccess` denying direct web access.
@@ -195,12 +247,109 @@ eligibility guard blocking with the correct message.
   out after 8 failures within 15 minutes
 - Optional demonstration dataset (`database/demo-data.sql`)
 
-**Not yet built**
+## Requirements status
 
-- Deadline reminder notifications (needs a scheduled task)
-- Activity calendar view
-- Email notifications and password reset
-- Backup and restore from the interface
+Measured against the 58 functional requirements in
+`docs/01-requirements-spec.md`, at commit `d4101c4`.
+
+| Priority | Implemented | Total |
+|----------|-------------|-------|
+| **MUST** | **39** | 39 |
+| **SHOULD** | **14** | 16 |
+| **COULD** | 2 full, 1 partial | 3 |
+
+**Not implemented (2)**
+
+| Requirement | Priority | Status |
+|-------------|----------|--------|
+| FR-2.5 — activity status moves from `upcoming` to `ongoing` to `completed` automatically | SHOULD | **Not implemented.** Status is changed by hand on the activity form. No scheduled job updates it |
+| FR-7.5 — staff see the venue and equipment needed for an activity in one view | SHOULD | **Not implemented.** Venue is on the activity page and equipment on the reservations page; there is no combined screen |
+
+**Partially implemented (1)**
+
+| Requirement | Priority | Status |
+|-------------|----------|--------|
+| FR-3.6 — notifications are also sent by email | COULD | **Partial.** Password reset and deadline reminders send email. Registration approvals and rejections, requirement verification and reservation decisions are in-app only — `notify_and_email()` exists in `includes/mailer.php` but no caller uses it yet |
+
+Everything else in the specification is implemented and was exercised during
+testing.
+
+---
+
+## Testing
+
+A full evaluation was run against the demo dataset at commit `d4101c4`:
+roughly **290 checks**, covering every page, all four roles, and anonymous
+access.
+
+| Area | Checks | Result |
+|------|--------|--------|
+| Authentication, including negative cases | 7 | Pass |
+| Access control — 31 pages · 5 identities | 155 | Pass, matching `docs/03-role-matrix.md` |
+| Coordinator per-activity scoping | 18 | Pass |
+| Core workflows (activity, registration, requirements, approval) | ~25 | Pass |
+| Inventory, reservations, borrow and return | ~20 | Pass |
+| Calendar, reminders, reports, password reset, backup | ~25 | Pass |
+| Security probes | ~40 | No vulnerabilities found |
+
+**No critical or high-severity defects were found.** No HTTP 500 responses, no
+fatal errors, and nothing written to the application error log during the run.
+
+**Security probes and what they showed**
+
+- SQL injection payloads against 7 endpoints and 12 parameters: no effect.
+  Every query uses bound parameters
+- Stored XSS: a script payload saved through the announcement form was
+  rendered escaped, with no live tag in the output
+- CSRF: 17 write endpoints rejected a forged or absent token
+- Insecure direct object reference: one student could not open another
+  student's document, or their participation history
+- Path traversal: 8 payloads against the backup download and direct requests
+  for `includes/`, `storage/` and `bin/` all failed to return a file
+- File upload: a PHP script renamed `.pdf` was rejected by content-type
+  sniffing
+
+**What this testing did not cover.** These are limits of the method, not
+statements that the system fails them:
+
+- Tested over HTTP with a command-line client, **not a real browser**. Page
+  layout, JavaScript confirmation dialogs, mobile rendering and printed output
+  are unverified
+- **No concurrency testing.** Reservation approval re-checks availability but
+  takes no row lock, so two simultaneous approvals are untested
+- **No real email delivery tested.** `MAIL_TRANSPORT` was `log` throughout;
+  messages were verified in `storage/logs/mail.log`, not in an inbox
+- No load or performance testing beyond the 25-row pagination in ordinary use
+- No automated test suite exists; all testing was manual and must be repeated
+  by hand after changes
+
+---
+
+## Known limitations
+
+1. **Email is partly wired.** See FR-3.6 above. Approvals and rejections reach
+   the student in-app but not by email
+2. **Activity status is manual.** An activity whose start date has passed stays
+   `upcoming` until someone edits it
+3. **No combined venue-and-equipment view.** The two live on separate screens
+4. **Sign-in throttling is per IP address.** On a shared or NAT'd campus
+   connection, one person's repeated failures can lock out others from the same
+   address for `LOGIN_LOCKOUT_MINUTES`
+5. **A restore cannot be undone.** `admin/backup.php` takes a safety copy of
+   the current data first and requires the filename to be typed, but the
+   replacement itself is immediate and irreversible
+6. **Students cannot borrow equipment directly.** They can view the catalog and
+   availability; requesting a reservation is restricted to coordinators and
+   office staff, as specified in `docs/03-role-matrix.md`. This is a
+   documented decision, recorded as open assumption A-3 in
+   `docs/01-requirements-spec.md`, pending confirmation with the office
+7. **No scheduled task is installed by default.** Deadline reminders only go
+   out when the runner is invoked — see setup step 6
+8. **Default credentials ship in the repository.** `admin123` for the seeded
+   administrator and `demo1234` for demo accounts. Change them before the
+   system is used with real data
+
+---
 
 ## Conventions to keep
 
