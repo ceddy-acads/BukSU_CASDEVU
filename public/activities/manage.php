@@ -46,6 +46,41 @@ $errors = [];
 if (is_post()) {
     csrf_verify();
 
+    // ---------------------------------------------------------------- Delete
+    // Administrators only (role matrix). Deleting cascades to registrations,
+    // requirements and submitted files, so the uploads are removed from disk
+    // first — the database cascade would otherwise orphan them.
+    if (post('action') === 'delete' && $isEdit) {
+        if (!has_role('admin')) {
+            http_response_code(403);
+            exit('403 — Only an administrator may delete an activity.');
+        }
+
+        $files = fetch_all(
+            'SELECT rs.file_path
+               FROM requirement_submissions rs
+               JOIN registrations r ON r.registration_id = rs.registration_id
+              WHERE r.activity_id = ?',
+            [$activityId]
+        );
+        foreach ($files as $file) {
+            delete_upload($file['file_path']);
+        }
+
+        $participantCount = (int) fetch_value(
+            'SELECT COUNT(*) FROM registrations WHERE activity_id = ?', [$activityId]
+        );
+
+        query('DELETE FROM activities WHERE activity_id = ?', [$activityId]);
+        audit_log('delete', 'activity', $activityId,
+                  'Deleted activity: ' . $activity['title']
+                  . ' (' . $participantCount . ' registration(s), ' . count($files) . ' file(s))');
+
+        flash('success', '"' . $activity['title'] . '" was deleted, along with '
+            . $participantCount . ' registration(s) and ' . count($files) . ' submitted file(s).');
+        redirect('activities/index.php');
+    }
+
     $title          = post('title');
     $categoryIdIn   = post('category_id');
     $venueIdIn      = post('venue_id');
@@ -358,6 +393,30 @@ require __DIR__ . '/../../includes/layout/header.php';
         </a>
     </div>
 </form>
+
+<?php if ($isEdit && has_role('admin')): ?>
+    <?php
+    $registrationCount = (int) fetch_value(
+        'SELECT COUNT(*) FROM registrations WHERE activity_id = ?', [$activityId]
+    );
+    ?>
+    <section class="card" style="margin-top:1.5rem;">
+        <div class="card-head"><h2>Delete this activity</h2></div>
+        <p style="font-size:.9rem;margin-top:0;">
+            Deleting removes the activity permanently, together with its
+            <strong><?= $registrationCount ?></strong> registration<?= $registrationCount === 1 ? '' : 's' ?>,
+            its requirements, and every document students submitted for it.
+            To take an activity down without losing the records, set its status
+            to <em>Cancelled</em> instead.
+        </p>
+        <form method="post"
+              onsubmit="return confirm('Delete this activity and all <?= $registrationCount ?> registration(s) permanently? This cannot be undone.');">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="delete">
+            <button type="submit" class="btn btn-danger">Delete permanently</button>
+        </form>
+    </section>
+<?php endif; ?>
 
 <?php
 require __DIR__ . '/../../includes/layout/footer.php';

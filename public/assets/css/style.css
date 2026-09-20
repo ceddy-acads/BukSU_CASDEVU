@@ -309,10 +309,107 @@ table.data td.actions { white-space: nowrap; }
 .footer p { margin: .2rem 0; }
 .footer-meta { font-size: .75rem; }
 
+/* ------------------------------------------------------------- Calendar */
+
+.cal-legend {
+    display: flex; flex-wrap: wrap; gap: .25rem 1rem;
+    margin-bottom: 1rem; font-size: .8rem; color: var(--ink-soft);
+}
+.cal-legend-item { display: inline-flex; align-items: center; gap: .35rem; }
+.cal-swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+/* The grid keeps its shape on a phone by scrolling sideways rather than
+   collapsing columns — a week has to read as a week. */
+.cal-wrap { overflow-x: auto; }
+
+table.calendar { width: 100%; border-collapse: collapse; min-width: 700px; table-layout: fixed; }
+
+table.calendar th {
+    background: #f7f9fc; color: var(--ink-soft);
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .5px;
+    padding: .5rem .4rem; text-align: left;
+    border-bottom: 1px solid var(--line);
+}
+
+table.calendar td {
+    border: 1px solid var(--line);
+    vertical-align: top;
+    height: 108px; width: 14.28%;
+    padding: .3rem;
+}
+
+.cal-blank { background: #fafbfd; }
+.cal-today { background: #fffaf0; box-shadow: inset 0 0 0 2px var(--gold); }
+
+.cal-daynum { font-size: .78rem; font-weight: 700; color: var(--ink-soft); margin-bottom: .2rem; }
+.cal-today .cal-daynum { color: var(--gold-dark); }
+
+.cal-event {
+    display: block;
+    border-left: 3px solid var(--navy);
+    background: #f2f5fa;
+    padding: .18rem .35rem;
+    margin-bottom: .18rem;
+    border-radius: 3px;
+    font-size: .74rem;
+    line-height: 1.25;
+    color: var(--ink);
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.cal-event:hover { background: #e6ecf5; }
+.cal-time { display: block; font-size: .66rem; color: var(--ink-soft); }
+
+@media (max-width: 640px) {
+    table.calendar td { height: 88px; }
+}
+
+/* -------------------------------------------------------- Report header */
+/* Hidden on screen; becomes the letterhead on a printed report. */
+
+.report-meta {
+    display: none;
+    font-size: .85rem;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
 /* --------------------------------------------------------------- Print */
 
 @media print {
-    .topbar, .footer, .btn, .filter-bar, .pagination { display: none !important; }
-    body { background: #fff; }
-    .card { box-shadow: none; border: 1px solid #ccc; }
+    .topbar, .footer, .btn, .btn-row, .filter-bar, .pagination,
+    .alert-info, td.actions, th:last-child:empty { display: none !important; }
+
+    body { background: #fff; font-size: 11pt; }
+    .page { max-width: none; padding: 0; }
+
+    /* The letterhead only exists on paper. */
+    .report-meta {
+        display: block;
+        border-bottom: 2px solid #000;
+        padding-bottom: .5rem;
+    }
+
+    .card {
+        box-shadow: none;
+        border: 1px solid #999;
+        break-inside: avoid;
+        margin-bottom: 1rem;
+    }
+
+    /* Keep stat tiles on one row and readable in grayscale. */
+    .grid-3, .grid-4 { display: flex; gap: .5rem; }
+    .stat { flex: 1; padding: .5rem; border: 1px solid #999; }
+    .stat-value { font-size: 1.3rem; color: #000; }
+
+    /* Repeat table headings across page breaks. */
+    table.data thead { display: table-header-group; }
+    table.data tfoot { display: table-footer-group; }
+    table.data th { background: #eee !important; color: #000; }
+    table.data tr { break-inside: avoid; }
+
+    .badge { border: 1px solid #666; color: #000 !important; background: none !important; }
+    a { text-decoration: none; color: #000; }
 }

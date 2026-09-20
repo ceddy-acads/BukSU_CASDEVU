@@ -17,3 +17,12 @@ storage/uploads/**
 Thumbs.db
 desktop.ini
 *.log
+
+# Database backups - contain every password hash, never commit them
+storage/backups/**
+!storage/backups/
+!storage/backups/.gitkeep
+!storage/backups/.htaccess
+
+# Mail log written by the 'log' mail transport
+storage/logs/

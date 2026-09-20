@@ -43,7 +43,8 @@ function nav_active(string $section, string $currentDir, string $currentFile): s
         <?php if ($user): ?>
             <nav class="topnav">
                 <a href="<?= url('index.php') ?>"<?= nav_active('dashboard', $currentDir, $currentFile) ?>>Dashboard</a>
-                <a href="<?= url('activities/index.php') ?>"<?= nav_active('activities', $currentDir, $currentFile) ?>>Activities</a>
+                <a href="<?= url('activities/index.php') ?>"<?= $currentDir === 'activities' && $currentFile !== 'calendar.php' ? ' class="active"' : '' ?>>Activities</a>
+                <a href="<?= url('activities/calendar.php') ?>"<?= $currentFile === 'calendar.php' ? ' class="active"' : '' ?>>Calendar</a>
                 <a href="<?= url('announcements/index.php') ?>"<?= nav_active('announcements', $currentDir, $currentFile) ?>>Announcements</a>
 
                 <?php if ($role === 'student'): ?>
@@ -54,11 +55,22 @@ function nav_active(string $section, string $currentDir, string $currentFile): s
                     <a href="<?= url('inventory/index.php') ?>"<?= nav_active('inventory', $currentDir, $currentFile) ?>>Inventory</a>
                 <?php endif; ?>
 
+                <?php if (has_role('staff', 'admin', 'coordinator')): ?>
+                    <a href="<?= url('reports/index.php') ?>"<?= nav_active('reports', $currentDir, $currentFile) ?>>Reports</a>
+                <?php endif; ?>
+
                 <?php if (has_role('staff', 'admin')): ?>
                     <a href="<?= url('admin/users.php') ?>"<?= $currentFile === 'users.php' ? ' class="active"' : '' ?>>
                         <?= has_role('admin') ? 'Users' : 'Accounts' ?>
                     </a>
                     <a href="<?= url('admin/venues.php') ?>"<?= $currentFile === 'venues.php' ? ' class="active"' : '' ?>>Venues</a>
+                    <a href="<?= url('admin/reminders.php') ?>"<?= $currentFile === 'reminders.php' ? ' class="active"' : '' ?>>Reminders</a>
+                <?php endif; ?>
+
+                <?php if (has_role('admin')): ?>
+                    <a href="<?= url('admin/categories.php') ?>"<?= $currentFile === 'categories.php' ? ' class="active"' : '' ?>>Categories</a>
+                    <a href="<?= url('admin/audit.php') ?>"<?= $currentFile === 'audit.php' ? ' class="active"' : '' ?>>Audit</a>
+                    <a href="<?= url('admin/backup.php') ?>"<?= $currentFile === 'backup.php' ? ' class="active"' : '' ?>>Backup</a>
                 <?php endif; ?>
             </nav>
 

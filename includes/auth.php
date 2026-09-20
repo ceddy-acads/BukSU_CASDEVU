@@ -116,12 +116,36 @@ function is_office_staff(): bool
 // =====================================================================
 
 /**
+ * Recent failed sign-in attempts from this address, within the lockout window.
+ * Counted from audit_logs so no extra table is needed.
+ */
+function recent_failed_logins(string $ipAddress): int
+{
+    return (int) fetch_value(
+        "SELECT COUNT(*) FROM audit_logs
+          WHERE action = 'login_failed'
+            AND ip_address = ?
+            AND created_at > DATE_SUB(NOW(), INTERVAL ? MINUTE)",
+        [$ipAddress, LOGIN_LOCKOUT_MINUTES]
+    );
+}
+
+/**
  * Verify credentials and open a session.
  *
  * @return array{ok: bool, error?: string}
  */
 function login_user(string $email, string $password): array
 {
+    $ipAddress = (string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+
+    // Throttle by address before touching the password, so a brute-force run
+    // cannot keep guessing indefinitely.
+    if (recent_failed_logins($ipAddress) >= LOGIN_MAX_ATTEMPTS) {
+        return ['ok' => false, 'error' => 'Too many failed sign-in attempts. '
+            . 'Please wait ' . LOGIN_LOCKOUT_MINUTES . ' minutes and try again.'];
+    }
+
     $user = fetch_one(
         'SELECT u.user_id, u.email, u.password_hash, u.status, r.name AS role_name
            FROM users u
@@ -133,6 +157,11 @@ function login_user(string $email, string $password): array
     // Same message whether the email is unknown or the password is wrong —
     // a distinct message would let an attacker enumerate valid accounts.
     if ($user === null || !password_verify($password, $user['password_hash'])) {
+        // Record the attempt. The email is kept so the office can see which
+        // account was targeted; the id is null when no such account exists.
+        audit_log('login_failed', 'user',
+                  $user !== null ? (int) $user['user_id'] : null,
+                  'Failed sign-in for ' . $email);
         return ['ok' => false, 'error' => 'Incorrect email or password.'];
     }
 

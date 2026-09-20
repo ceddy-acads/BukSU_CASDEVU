@@ -9,7 +9,11 @@
 declare(strict_types=1);
 
 // ---------------------------------------------------------------- Environment
-define('APP_ENV', 'development');          // 'development' | 'production'
+// Ships as 'production' so a deployed copy never prints an error, a file path,
+// or a fragment of SQL to a visitor. Switch to 'development' while working on
+// the code to see the detail on screen; either way everything is written to
+// storage/logs/php-error.log.
+define('APP_ENV', 'production');           // 'development' | 'production'
 define('APP_DEBUG', APP_ENV === 'development');
 
 // ---------------------------------------------------------------- Application
@@ -88,6 +92,34 @@ define('ALLOWED_UPLOAD_MIME', [
 define('SESSION_NAME',          'casms_session');
 define('SESSION_IDLE_TIMEOUT',  60 * 60);              // 1 hour of inactivity
 
+// --------------------------------------------------------- Sign-in throttling
+// Failed attempts are counted per IP address from the audit log.
+define('LOGIN_MAX_ATTEMPTS',    8);
+define('LOGIN_LOCKOUT_MINUTES', 15);
+
+// ------------------------------------------------------------------- Email
+// 'log'  — write messages to storage/logs/mail.log (default; XAMPP has no
+//          mail server, and every flow still works end to end)
+// 'mail' — hand messages to PHP's mail() on a server that has one
+define('MAIL_TRANSPORT',      'log');          // 'log' | 'mail'
+define('MAIL_FROM_ADDRESS',   'no-reply@buksu.edu.ph');
+define('MAIL_FROM_NAME',      'BukSU Office of Culture, Arts, and Sports');
+define('APP_HOSTNAME',        'localhost');    // used to build links inside emails
+
+// Whether approvals, rejections and reminders are also emailed. The in-app
+// notification is always sent either way.
+define('MAIL_NOTIFICATIONS_ENABLED', true);
+
+// ------------------------------------------------------------ Password reset
+define('PASSWORD_RESET_TTL_MINUTES', 60);
+define('PASSWORD_RESET_MAX_PER_HOUR', 5);      // per account, to stop mail flooding
+
+// ------------------------------------------------------------------ Backups
+// mysqldump / mysql live beside each other in the XAMPP install.
+define('MYSQL_BIN_PATH', 'C:/xampp/mysql/bin');
+define('BACKUP_PATH',    STORAGE_PATH . '/backups');
+define('BACKUP_KEEP',    20);                  // newest N kept; older ones listed for deletion
+
 // ---------------------------------------------------------------- Pagination
 define('PER_PAGE', 25);                                // NFR-6
 
@@ -96,5 +128,12 @@ define('PER_PAGE', 25);                                // NFR-6
 error_reporting(E_ALL);
 ini_set('display_errors', APP_DEBUG ? '1' : '0');
 ini_set('log_errors', '1');
+
+// Keep the log inside the project (and outside the web root) so it is easy to
+// find when something goes wrong during a demo.
+if (!is_dir(STORAGE_PATH . '/logs')) {
+    @mkdir(STORAGE_PATH . '/logs', 0775, true);
+}
+ini_set('error_log', STORAGE_PATH . '/logs/php-error.log');
 
 date_default_timezone_set('Asia/Manila');

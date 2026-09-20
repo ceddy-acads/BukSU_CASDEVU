@@ -31,6 +31,16 @@ C:\xampp\php\php.exe -S 127.0.0.1:8080 -t .
 C:\xampp\mysql\bin\mysql.exe -u root < database/schema.sql
 ```
 
+**2b. Optional — load the demonstration dataset**
+
+```bash
+C:\xampp\mysql\bin\mysql.exe -u root casms < database/demo-data.sql
+```
+
+Adds 37 accounts, 6 activities, 36 registrations, 20 inventory items,
+reservations, loans and announcements — enough to walk through every
+screen. All demo accounts use the password `demo1234`. Safe to re-run.
+
 **3. Start Apache and MySQL in the XAMPP Control Panel**
 
 **4. Open the system**
@@ -52,7 +62,9 @@ http://localhost/casms/public/login.php
 
 ```
 BukSU CASDEVU/
-├── database/schema.sql      Clean installer: 22 tables, 3 views, seed data
+├── database/
+│   ├── schema.sql           Clean installer: 22 tables, 3 views, seed data
+│   └── demo-data.sql        Optional realistic dataset for a walkthrough
 ├── docs/                    Requirements, DB design, role matrix, build plan
 ├── includes/                Application code — NOT web-accessible
 │   ├── config.php           Credentials and settings
@@ -65,6 +77,8 @@ BukSU CASDEVU/
 │   ├── participation.php    Registration eligibility and requirement progress
 │   ├── uploads.php          Upload validation and safe storage
 │   ├── inventory.php        Availability maths, reservations, borrowing
+│   ├── reports.php          Report queries and CSV export
+│   ├── errors.php           Global exception and fatal-error handling
 │   └── layout/              header.php, footer.php
 ├── public/                  Web root — point the browser here
 │   ├── login.php  logout.php  register.php
@@ -77,7 +91,9 @@ BukSU CASDEVU/
 │   ├── inventory/           index.php, manage.php, reserve.php,
 │   │                        reservations.php, borrowings.php
 │   ├── announcements/       index.php, manage.php
-│   ├── admin/                users.php (accounts), venues.php
+│   ├── reports/             index.php, participation.php, inventory.php,
+│   │                        students.php
+│   ├── admin/               users.php, venues.php, categories.php, audit.php
 │   └── assets/css/style.css
 └── storage/uploads/         Uploaded files — NOT web-accessible
 ```
@@ -88,7 +104,7 @@ the web root entirely.
 
 ---
 
-## Status — Weeks 1–3 complete
+## Status — Weeks 1–4 complete
 
 **Week 1 — foundation**
 
@@ -157,16 +173,34 @@ eligibility guard blocking with the correct message.
 - Coordinators can only post announcements for activities they coordinate
 - Requirement submission is refused once an activity is cancelled or completed
 
+**Week 4 — reporting, hardening, and demo data**
+
+- Participation report: totals per activity, plus a breakdown by year level
+  and course; coordinators see only the activities assigned to them
+- Inventory report: owned, on loan, available, damaged and unavailable, with
+  the full borrowing log
+- Student and player records: search, and a per-student participation history
+- CSV export on every report, carrying the filters currently applied; cells
+  that a spreadsheet could execute as a formula are neutralised
+- Print layout with a letterhead, repeated table headings, and no navigation
+- Audit trail viewer for administrators, filterable by action, record type,
+  person, date range and keyword
+- Category management for both activity and inventory categories
+- Activity deletion (administrators only), which also removes the submitted
+  files from disk rather than orphaning them
+- Global exception handler: no error, file path, or SQL reaches the browser.
+  `APP_ENV` ships as `production`; detail goes to
+  `storage/logs/php-error.log` and the user sees a reference code
+- Sign-in throttling: failed attempts are recorded, and an address is locked
+  out after 8 failures within 15 minutes
+- Optional demonstration dataset (`database/demo-data.sql`)
+
 **Not yet built**
 
-- Reports and CSV export (Week 4)
-- Deadline reminder notifications (Week 4)
+- Deadline reminder notifications (needs a scheduled task)
 - Activity calendar view
-- Backup and restore
-- Activity deletion (create/edit only)
-- Category management UI (categories are seeded)
-- Audit trail viewer (entries are written but not displayed)
-- Login rate limiting
+- Email notifications and password reset
+- Backup and restore from the interface
 
 ## Conventions to keep
 
@@ -187,6 +221,10 @@ These are what make the security checklist pass at the end of Week 4.
    It checks the real MIME type, not the extension, and renames the file
 10. Stored files are reached only through `requirements/download.php`, which
     authorizes the request first. Never link into `storage/` directly
+11. Report queries live in `includes/reports.php` so a screen and its CSV
+    export always return the same rows
+12. Values written to CSV pass through `csv_cell()`, which neutralises a cell
+    a spreadsheet would otherwise execute as a formula
 
 ---
 

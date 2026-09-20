@@ -83,6 +83,8 @@ $pageTitle = 'Sign in';
         </form>
 
         <div class="auth-foot">
+            <a href="<?= url('forgot-password.php') ?>">Forgot your password?</a>
+            <br>
             No account yet? <a href="<?= url('register.php') ?>">Register as a student</a>
         </div>
     </div>

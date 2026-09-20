@@ -43,7 +43,9 @@ require __DIR__ . '/../includes/layout/header.php';
                     <strong><?= e($notification['title']) ?></strong>
                     <span class="hint"><?= e(format_datetime($notification['created_at'])) ?></span>
                 </div>
-                <p style="margin:.25rem 0 0;font-size:.9rem;"><?= e($notification['message']) ?></p>
+                <p style="margin:.25rem 0 0;font-size:.9rem;">
+                    <?= e(strip_reminder_marker((string) $notification['message'])) ?>
+                </p>
                 <?php if ($notification['link_url']): ?>
                     <a class="btn btn-outline btn-sm" style="margin-top:.5rem;"
                        href="<?= e($notification['link_url']) ?>">Open</a>
