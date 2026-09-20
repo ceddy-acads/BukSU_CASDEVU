@@ -599,6 +599,17 @@ INSERT INTO courses (code, name, department) VALUES
     ('BSED',  'Bachelor of Secondary Education','College of Education'),
     ('BSN',   'BS Nursing',                     'College of Nursing');
 
+-- Starter venues so activity scheduling and venue conflict checking (FR-7.3)
+-- work on a fresh install. The office manages these through Admin > Venues.
+-- INSERT IGNORE: `name` is UNIQUE, so re-running adds nothing.
+INSERT IGNORE INTO venues (name, location, capacity) VALUES
+    ('University Gymnasium',   'Main Campus',                     2000),
+    ('Cultural Center',        'Main Campus',                      500),
+    ('Open Field / Grandstand','Main Campus',                     1500),
+    ('Student Center',         'Main Campus',                      300),
+    ('Audio Visual Room',      'Administration Building',          120),
+    ('Covered Court',          'Main Campus',                      800);
+
 INSERT INTO settings (setting_key, setting_value, description) VALUES
     ('office_name',            'Office of Culture, Arts, and Sports', 'Printed on reports'),
     ('university_name',        'Bukidnon State University',           'Printed on reports'),

@@ -48,12 +48,51 @@ if (is_post()) {
             redirect('inventory/borrowings.php');
         }
 
+        // Validate the reservation before the INSERT. Without this, an
+        // unknown id reaches the foreign key and raises an uncaught
+        // PDOException — a 500 page instead of a readable message.
+        $linkedReservationId = null;
+        if ($reservationIn !== '') {
+            if (!ctype_digit($reservationIn)) {
+                flash('error', 'That reservation reference is not valid.');
+                redirect('inventory/borrowings.php');
+            }
+
+            $linkedReservationId = (int) $reservationIn;
+            $reservation = fetch_one(
+                'SELECT reservation_id, status FROM reservations WHERE reservation_id = ?',
+                [$linkedReservationId]
+            );
+
+            if ($reservation === null) {
+                flash('error', 'That reservation does not exist.');
+                redirect('inventory/borrowings.php');
+            }
+            if (!in_array($reservation['status'], ['approved', 'fulfilled'], true)) {
+                flash('error', 'Items can only be released against an approved reservation. '
+                    . 'This one is ' . $reservation['status'] . '.');
+                redirect('inventory/borrowings.php');
+            }
+
+            // The item must actually be on that reservation, otherwise the
+            // fulfilment check below would be measuring the wrong thing.
+            $onReservation = fetch_value(
+                'SELECT 1 FROM reservation_items WHERE reservation_id = ? AND item_id = ?',
+                [$linkedReservationId, $itemId]
+            );
+            if (!$onReservation) {
+                flash('error', $item['name'] . ' is not part of that reservation. '
+                    . 'Release it without a reservation, or choose the correct item.');
+                redirect('inventory/borrowings.php');
+            }
+        }
+
         query(
             'INSERT INTO borrowings
                  (reservation_id, item_id, borrower_id, quantity, released_by, released_at, expected_return_at)
              VALUES (?, ?, ?, ?, ?, NOW(), ?)',
             [
-                $reservationIn !== '' && ctype_digit($reservationIn) ? (int) $reservationIn : null,
+                $linkedReservationId,
                 $itemId, $borrowerId, $quantity, current_user_id(), $expectedBack,
             ]
         );
@@ -62,8 +101,8 @@ if (is_post()) {
         refresh_item_status($itemId);
 
         // A reservation whose items are all out has been fulfilled.
-        if ($reservationIn !== '' && ctype_digit($reservationIn)) {
-            $reservationId = (int) $reservationIn;
+        if ($linkedReservationId !== null) {
+            $reservationId = $linkedReservationId;
             $stillPending  = (int) fetch_value(
                 'SELECT COUNT(*) FROM reservation_items ri
                   WHERE ri.reservation_id = ?

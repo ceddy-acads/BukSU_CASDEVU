@@ -54,10 +54,11 @@ function nav_active(string $section, string $currentDir, string $currentFile): s
                     <a href="<?= url('inventory/index.php') ?>"<?= nav_active('inventory', $currentDir, $currentFile) ?>>Inventory</a>
                 <?php endif; ?>
 
-                <?php if (has_role('admin')): ?>
-                    <a href="<?= url('admin/users.php') ?>"<?= nav_active('admin', $currentDir, $currentFile) ?>>Users</a>
-                <?php elseif (has_role('staff')): ?>
-                    <a href="<?= url('admin/users.php') ?>"<?= nav_active('admin', $currentDir, $currentFile) ?>>Accounts</a>
+                <?php if (has_role('staff', 'admin')): ?>
+                    <a href="<?= url('admin/users.php') ?>"<?= $currentFile === 'users.php' ? ' class="active"' : '' ?>>
+                        <?= has_role('admin') ? 'Users' : 'Accounts' ?>
+                    </a>
+                    <a href="<?= url('admin/venues.php') ?>"<?= $currentFile === 'venues.php' ? ' class="active"' : '' ?>>Venues</a>
                 <?php endif; ?>
             </nav>
 

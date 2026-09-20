@@ -19,7 +19,6 @@ if ($isEdit) {
 }
 
 $categories = fetch_all('SELECT category_id, name FROM activity_categories WHERE is_active = 1 ORDER BY name');
-$venues     = fetch_all('SELECT venue_id, name FROM venues WHERE is_active = 1 ORDER BY name');
 $statuses   = ['draft', 'upcoming', 'ongoing', 'completed', 'cancelled', 'closed'];
 
 $activity = null;
@@ -30,6 +29,17 @@ if ($isEdit) {
         exit('404 — Activity not found.');
     }
 }
+
+// Only active venues may be chosen. An activity already pointing at an archived
+// venue keeps it in the list, marked, so editing something else does not
+// silently clear the location.
+$currentVenueId = $isEdit ? (int) ($activity['venue_id'] ?? 0) : 0;
+$venues = fetch_all(
+    'SELECT venue_id, name, location, is_active FROM venues
+      WHERE is_active = 1 OR venue_id = ?
+      ORDER BY is_active DESC, name',
+    [$currentVenueId]
+);
 
 $errors = [];
 
@@ -69,6 +79,22 @@ if (is_post()) {
     }
     if (!in_array($statusIn, $statuses, true)) {
         $errors[] = 'Please choose a valid status.';
+    }
+
+    // The venue must exist and be active — unless it is the one this activity
+    // already had, which may since have been archived. Checked server-side so
+    // a crafted POST cannot attach an archived venue.
+    if ($venueIdIn !== '') {
+        if (!ctype_digit($venueIdIn)) {
+            $errors[] = 'Please choose a valid venue.';
+        } else {
+            $chosen = fetch_one('SELECT name, is_active FROM venues WHERE venue_id = ?', [(int) $venueIdIn]);
+            if ($chosen === null) {
+                $errors[] = 'That venue does not exist.';
+            } elseif ((int) $chosen['is_active'] !== 1 && (int) $venueIdIn !== $currentVenueId) {
+                $errors[] = '"' . $chosen['name'] . '" is archived and cannot be assigned to an activity.';
+            }
+        }
     }
 
     // ------------------------------------------- Venue double-booking (FR-7.3)
@@ -234,9 +260,21 @@ require __DIR__ . '/../../includes/layout/header.php';
                         <option value="<?= (int) $venue['venue_id'] ?>"
                             <?= field('venue_id', $activity) === (string) $venue['venue_id'] ? 'selected' : '' ?>>
                             <?= e($venue['name']) ?>
+                            <?= $venue['location'] ? ' — ' . e($venue['location']) : '' ?>
+                            <?= (int) $venue['is_active'] !== 1 ? ' (archived)' : '' ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
+                <?php if ($venues === []): ?>
+                    <div class="hint">
+                        No venues have been set up yet.
+                        <?php if (is_office_staff()): ?>
+                            <a href="<?= url('admin/venues.php') ?>">Add one now</a>.
+                        <?php else: ?>
+                            Ask the office to add one.
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
 

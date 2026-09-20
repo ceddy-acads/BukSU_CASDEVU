@@ -1,7 +1,7 @@
 # CASMS — Database Design
 
 **DBMS:** MySQL / MariaDB (XAMPP), InnoDB, `utf8mb4_unicode_ci`
-**Script:** `database/schema.sql` — verified to execute cleanly; creates 20 tables, 3 views, and seed data.
+**Script:** `database/schema.sql` — verified to execute cleanly; creates 22 tables, 3 views, and seed data.
 
 ---
 
@@ -181,8 +181,8 @@ These are the answers to "why did you do it that way?" in a defense.
 C:\xampp\mysql\bin\mysql.exe -u root < database/schema.sql
 ```
 
-Creates the `casms` database and seeds roles, year levels, categories, courses,
-settings, and a default administrator:
+Creates the `casms` database and seeds roles, year levels, activity and
+inventory categories, courses, venues, settings, and a default administrator:
 
 | Field | Value |
 |-------|-------|

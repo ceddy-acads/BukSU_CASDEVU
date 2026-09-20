@@ -56,6 +56,18 @@ $requirements = fetch_all(
     [$activityId]
 );
 
+// Eligibility whitelist. No rows means the activity is open to everyone.
+$eligibilityRules = fetch_all(
+    'SELECT y.label AS year_label, c.code AS course_code, c.name AS course_name
+       FROM activity_eligibility_rules r
+       LEFT JOIN year_levels y ON y.year_level_id = r.year_level_id
+       LEFT JOIN courses c     ON c.course_id     = r.course_id
+      WHERE r.activity_id = ?
+      ORDER BY y.sort_order, c.code',
+    [$activityId]
+);
+$eligibilityRuleCount = count($eligibilityRules);
+
 $approvedCount = (int) fetch_value(
     "SELECT COUNT(*) FROM registrations WHERE activity_id = ? AND status = 'approved'",
     [$activityId]
@@ -96,10 +108,28 @@ require __DIR__ . '/../../includes/layout/header.php';
             <?php endif; ?>
         </section>
 
-        <?php if ($activity['eligibility']): ?>
+        <?php if ($activity['eligibility'] || $eligibilityRules !== []): ?>
             <section class="card">
                 <div class="card-head"><h2>Who may join</h2></div>
-                <p style="white-space:pre-line;margin:0;"><?= e($activity['eligibility']) ?></p>
+
+                <?php if ($activity['eligibility']): ?>
+                    <p style="white-space:pre-line;margin:0 0 .75rem;"><?= e($activity['eligibility']) ?></p>
+                <?php endif; ?>
+
+                <?php if ($eligibilityRules !== []): ?>
+                    <p class="hint" style="margin:0 0 .4rem;">
+                        Restricted to students matching any one of these:
+                    </p>
+                    <ul style="margin:0;padding-left:1.15rem;font-size:.9rem;">
+                        <?php foreach ($eligibilityRules as $rule): ?>
+                            <li>
+                                <?= $rule['year_label'] ? e($rule['year_label']) : 'Any year level' ?>
+                                &middot;
+                                <?= $rule['course_code'] ? e($rule['course_code']) : 'any course' ?>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
             </section>
         <?php endif; ?>
 
@@ -283,6 +313,16 @@ require __DIR__ . '/../../includes/layout/header.php';
                        href="<?= url('requirements/verify.php?activity_id=' . $activityId) ?>">
                         Verify<?= $pendingSubmissions > 0 ? ' (' . $pendingSubmissions . ')' : '' ?>
                     </a>
+                    <a class="btn btn-outline btn-sm"
+                       href="<?= url('activities/eligibility.php?activity_id=' . $activityId) ?>">
+                        Eligibility (<?= $eligibilityRuleCount ?>)
+                    </a>
+                    <?php if (is_office_staff()): ?>
+                        <a class="btn btn-outline btn-sm"
+                           href="<?= url('activities/coordinators.php?activity_id=' . $activityId) ?>">
+                            Coordinators (<?= count($coordinators) ?>)
+                        </a>
+                    <?php endif; ?>
                 </div>
             </section>
         <?php endif; ?>

@@ -33,11 +33,29 @@ if ($registration === null || in_array($registration['status'], ['withdrawn', 'r
 
 $registrationId = (int) $registration['registration_id'];
 
+// Documents are only accepted while the activity is still running. A closed,
+// completed, or cancelled activity is settled — accepting files for it would
+// create submissions nobody will ever review.
+$acceptsSubmissions = in_array($activity['status'], ['upcoming', 'ongoing'], true);
+$closedReason       = match ($activity['status']) {
+    'cancelled' => 'This activity has been cancelled, so documents are no longer accepted.',
+    'completed' => 'This activity has finished, so documents are no longer accepted.',
+    'closed'    => 'This activity is closed, so documents are no longer accepted.',
+    'draft'     => 'This activity is not yet open.',
+    default     => '',
+};
+
 // =====================================================================
 // Upload / acknowledge
 // =====================================================================
 if (is_post()) {
     csrf_verify();
+
+    // Enforced server-side, not merely by hiding the form below.
+    if (!$acceptsSubmissions) {
+        flash('error', $closedReason);
+        redirect('requirements/submit.php?activity_id=' . $activityId);
+    }
 
     $requirementId = (int) post('requirement_id');
 
@@ -233,6 +251,10 @@ require __DIR__ . '/../../includes/layout/header.php';
                     <?php if ($isSettled): ?>
                         <div class="alert alert-success" style="margin:0;">
                             Verified by the office. No further action needed.
+                        </div>
+                    <?php elseif (!$acceptsSubmissions): ?>
+                        <div class="alert alert-warning" style="margin:0;">
+                            <?= e($closedReason) ?>
                         </div>
                     <?php else: ?>
                         <form method="post" enctype="multipart/form-data">

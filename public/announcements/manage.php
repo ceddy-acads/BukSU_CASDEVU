@@ -29,10 +29,34 @@ if ($isEdit) {
     }
 }
 
-$activities = fetch_all(
-    "SELECT activity_id, title FROM activities
-      WHERE status IN ('draft','upcoming','ongoing') ORDER BY start_at DESC"
-);
+// Office staff may announce about anything; a coordinator only about the
+// activities they are assigned to.
+$activities = is_office_staff()
+    ? fetch_all("SELECT activity_id, title FROM activities
+                  WHERE status IN ('draft','upcoming','ongoing') ORDER BY start_at DESC")
+    : fetch_all("SELECT a.activity_id, a.title FROM activities a
+                   JOIN activity_coordinators ac ON ac.activity_id = a.activity_id
+                  WHERE ac.user_id = ? AND a.status IN ('draft','upcoming','ongoing')
+                  ORDER BY a.start_at DESC", [current_user_id()]);
+
+/**
+ * A coordinator must not attach an announcement to an activity they do not
+ * coordinate. Checked server-side: the filtered dropdown above is presentation.
+ */
+function assert_may_announce_for(?int $activityId): void
+{
+    if ($activityId === null || is_office_staff()) {
+        return;
+    }
+    $assigned = fetch_value(
+        'SELECT 1 FROM activity_coordinators WHERE activity_id = ? AND user_id = ?',
+        [$activityId, current_user_id()]
+    );
+    if (!$assigned) {
+        http_response_code(403);
+        exit('403 — You may only post announcements for activities you coordinate.');
+    }
+}
 
 $errors = [];
 
@@ -67,6 +91,8 @@ if (is_post()) {
 
     if ($errors === []) {
         $activityId = $activityIn !== '' && ctype_digit($activityIn) ? (int) $activityIn : null;
+
+        assert_may_announce_for($activityId);
 
         // Notify only on the transition into 'published'.
         $wasPublished  = $isEdit && $announcement['status'] === 'published';

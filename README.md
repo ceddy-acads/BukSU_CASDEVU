@@ -52,7 +52,7 @@ http://localhost/casms/public/login.php
 
 ```
 BukSU CASDEVU/
-├── database/schema.sql      Clean installer: 20 tables, 3 views, seed data
+├── database/schema.sql      Clean installer: 22 tables, 3 views, seed data
 ├── docs/                    Requirements, DB design, role matrix, build plan
 ├── includes/                Application code — NOT web-accessible
 │   ├── config.php           Credentials and settings
@@ -70,13 +70,14 @@ BukSU CASDEVU/
 │   ├── login.php  logout.php  register.php
 │   ├── index.php            Role-specific dashboard
 │   ├── profile.php  notifications.php
-│   ├── activities/          index.php, view.php, manage.php
+│   ├── activities/          index.php, view.php, manage.php,
+│   │                        coordinators.php, eligibility.php
 │   ├── participation/       register.php, my-activities.php, participants.php
 │   ├── requirements/        manage.php, submit.php, verify.php, download.php
 │   ├── inventory/           index.php, manage.php, reserve.php,
 │   │                        reservations.php, borrowings.php
 │   ├── announcements/       index.php, manage.php
-│   ├── admin/users.php      Account activation and user management
+│   ├── admin/                users.php (accounts), venues.php
 │   └── assets/css/style.css
 └── storage/uploads/         Uploaded files — NOT web-accessible
 ```
@@ -140,12 +141,32 @@ eligibility guard blocking with the correct message.
 - Announcements with drafts, publishing, and pinning; publishing notifies every
   active student exactly once, and re-saving does not notify again
 
+**Phase 4 — management interfaces and security hardening**
+
+- Venue management: list, add, edit, archive/reactivate; venues are seeded so
+  scheduling and conflict detection work on a fresh install
+- Archived venues cannot be assigned to an activity (enforced server-side)
+- Coordinator assignment: assign and remove, restricted to active
+  coordinator/staff/admin accounts, duplicates prevented
+- Eligibility rules: add and remove year-level / course rules per activity,
+  with duplicate and redundant-rule detection; rules shown on the activity page
+- Staff can no longer deactivate or suspend an administrator
+- The last active administrator cannot be deactivated or demoted
+- `reservation_id` is validated before release (exists, approved, and actually
+  lists that item) instead of raising an uncaught database error
+- Coordinators can only post announcements for activities they coordinate
+- Requirement submission is refused once an activity is cancelled or completed
+
 **Not yet built**
 
 - Reports and CSV export (Week 4)
 - Deadline reminder notifications (Week 4)
 - Activity calendar view
 - Backup and restore
+- Activity deletion (create/edit only)
+- Category management UI (categories are seeded)
+- Audit trail viewer (entries are written but not displayed)
+- Login rate limiting
 
 ## Conventions to keep
 
@@ -173,7 +194,7 @@ These are what make the security checklist pass at the end of Week 4.
 
 | File | Contents |
 |------|----------|
-| `docs/01-requirements-spec.md` | 45 functional + 9 non-functional requirements, prioritized |
+| `docs/01-requirements-spec.md` | 58 functional + 9 non-functional requirements, prioritized |
 | `docs/02-database-design.md` | ERD, table reference, design rationale |
 | `docs/03-role-matrix.md` | Permission matrix and enforcement pattern |
 | `docs/04-build-plan.md` | Week-by-week schedule, security checklist, definition of done |

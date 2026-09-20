@@ -19,7 +19,12 @@ if (is_post()) {
     $action       = post('action');
     $targetUserId = (int) post('user_id');
 
-    $target = fetch_one('SELECT user_id, first_name, last_name, status FROM users WHERE user_id = ?', [$targetUserId]);
+    $target = fetch_one(
+        'SELECT u.user_id, u.first_name, u.last_name, u.status, r.name AS role_name
+           FROM users u JOIN roles r ON r.role_id = u.role_id
+          WHERE u.user_id = ?',
+        [$targetUserId]
+    );
     if ($target === null) {
         flash('error', 'That user account no longer exists.');
         redirect('admin/users.php');
@@ -29,6 +34,33 @@ if (is_post()) {
     if ($targetUserId === current_user_id() && $action !== 'role') {
         flash('error', 'You cannot change the status of your own account.');
         redirect('admin/users.php');
+    }
+
+    // Only an administrator may act on another administrator's account.
+    // Without this, staff could disable the accounts that supervise them.
+    if ($target['role_name'] === 'admin' && !$isAdmin) {
+        http_response_code(403);
+        exit('403 — Only an administrator may change another administrator\'s account.');
+    }
+
+    // Never leave the system without a way in: refuse to remove the last
+    // active administrator, whether by status change or by role change.
+    if ($target['role_name'] === 'admin'
+        && in_array($action, ['deactivate', 'suspend', 'role'], true)) {
+        $activeAdmins = (int) fetch_value(
+            "SELECT COUNT(*) FROM users u JOIN roles r ON r.role_id = u.role_id
+              WHERE r.name = 'admin' AND u.status = 'active'"
+        );
+
+        // For a role change, only block when the new role is not admin.
+        $stillAdminAfterwards = $action === 'role'
+            && (string) fetch_value('SELECT name FROM roles WHERE role_id = ?', [(int) post('role_id')]) === 'admin';
+
+        if ($activeAdmins <= 1 && $target['status'] === 'active' && !$stillAdminAfterwards) {
+            flash('error', 'This is the last active administrator. '
+                . 'Promote another account to administrator before changing this one.');
+            redirect('admin/users.php');
+        }
     }
 
     switch ($action) {
