@@ -284,11 +284,11 @@ require __DIR__ . '/../../includes/layout/header.php';
 <?php else: ?>
     <section class="card card-flush">
         <div class="table-wrap">
-            <table class="data table-stack">
+            <table class="data table-stack" data-sortable>
                 <thead>
                     <tr>
-                        <th>Student</th><th>Course / Year</th><th>Team</th>
-                        <th>Requirements</th><th>Status</th><th>Present</th><th class="actions">Actions</th>
+                        <th data-sort="text">Student</th><th data-sort="text">Course / Year</th><th data-sort="text">Team</th>
+                        <th>Requirements</th><th data-sort="text">Status</th><th>Present</th><th class="actions">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -323,7 +323,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                             <?php endif; ?>
                         </td>
                         <td data-label="Status">
-                            <?= status_badge($participant['status']) ?>
+                            <?= status_badge($participant['status'], 'registration') ?>
                             <?php if ($participant['review_remarks']): ?>
                                 <div class="hint"><?= e($participant['review_remarks']) ?></div>
                             <?php endif; ?>

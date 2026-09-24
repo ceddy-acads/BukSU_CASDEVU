@@ -205,11 +205,11 @@ require __DIR__ . '/../../includes/layout/header.php';
 <?php else: ?>
     <section class="card card-flush">
         <div class="table-wrap">
-            <table class="data">
+            <table class="data" data-sortable>
                 <thead>
                     <tr>
-                        <th>Student</th><th>Requirement</th><th>Document</th>
-                        <th>Submitted</th><th>Status</th><th class="actions">Actions</th>
+                        <th data-sort="text">Student</th><th data-sort="text">Requirement</th><th>Document</th>
+                        <th data-sort="number">Submitted</th><th data-sort="text">Status</th><th class="actions">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -241,7 +241,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                                 <span class="muted">Acknowledgement only</span>
                             <?php endif; ?>
                         </td>
-                        <td>
+                        <td data-sort-value="<?= (int) strtotime((string) $submission['submitted_at']) ?>">
                             <span class="nowrap"><?= e(format_datetime($submission['submitted_at'])) ?></span>
                             <?php if ($submission['deadline_at']
                                       && strtotime((string) $submission['submitted_at'])
@@ -250,7 +250,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                             <?php endif; ?>
                         </td>
                         <td>
-                            <?= status_badge($submission['status']) ?>
+                            <?= status_badge($submission['status'], 'submission') ?>
                             <?php if ($submission['reject_reason']): ?>
                                 <div class="hint"><?= e($submission['reject_reason']) ?></div>
                             <?php endif; ?>

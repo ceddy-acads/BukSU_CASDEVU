@@ -57,14 +57,19 @@ $activities = fetch_all(
             c.name AS category, c.color_hex,
             v.name AS venue,
             (SELECT COUNT(*) FROM registrations r
-              WHERE r.activity_id = a.activity_id AND r.status = 'approved') AS approved_count
+              WHERE r.activity_id = a.activity_id AND r.status = 'approved') AS approved_count,
+            -- The viewer's own latest registration, so a student sees where
+            -- they stand without opening every activity.
+            (SELECT r2.status FROM registrations r2
+              WHERE r2.activity_id = a.activity_id AND r2.user_id = ?
+              ORDER BY r2.registered_at DESC LIMIT 1) AS my_status
        FROM activities a
        JOIN activity_categories c ON c.category_id = a.category_id
        LEFT JOIN venues v         ON v.venue_id    = a.venue_id
        $where
       ORDER BY a.start_at DESC
       LIMIT " . PER_PAGE . " OFFSET $offset",
-    $params
+    array_merge([(int) current_user_id()], $params)
 );
 
 /** Preserve the current filters when building a page link. */
@@ -157,20 +162,32 @@ require __DIR__ . '/../../includes/layout/header.php';
 <?php else: ?>
     <div class="grid grid-3">
         <?php foreach ($activities as $activity): ?>
+            <?php $start = strtotime((string) $activity['start_at']); ?>
             <article class="activity-card">
                 <div class="cat-strip" style="background: <?= e($activity['color_hex'] ?: '#10284d') ?>"></div>
-                <div class="body">
-                    <?= status_badge($activity['status']) ?>
-                    <h3>
-                        <a href="<?= url('activities/view.php?id=' . (int) $activity['activity_id']) ?>">
-                            <?= e($activity['title']) ?>
-                        </a>
-                    </h3>
-                    <p class="meta"><strong><?= e($activity['category']) ?></strong></p>
-                    <p class="meta"><?= e(format_datetime($activity['start_at'])) ?></p>
-                    <?php if ($activity['venue']): ?>
-                        <p class="meta"><?= e($activity['venue']) ?></p>
-                    <?php endif; ?>
+                <div class="body activity-card-body">
+                    <span class="agenda-date" aria-hidden="true">
+                        <span class="mon"><?= e(date('M', $start)) ?></span>
+                        <span class="day"><?= e(date('j', $start)) ?></span>
+                    </span>
+                    <div class="activity-card-main">
+                        <p class="meta"><strong><?= e($activity['category']) ?></strong></p>
+                        <h3>
+                            <a href="<?= url('activities/view.php?id=' . (int) $activity['activity_id']) ?>">
+                                <?= e($activity['title']) ?>
+                            </a>
+                        </h3>
+                        <p class="meta"><?= e(date('D, j M Y · g:i A', $start)) ?></p>
+                        <?php if ($activity['venue']): ?>
+                            <p class="meta"><?= e($activity['venue']) ?></p>
+                        <?php endif; ?>
+                        <div class="activity-card-status">
+                            <?= status_badge($activity['status'], 'activity') ?>
+                            <?php if ($activity['my_status'] !== null): ?>
+                                <span class="my-status">You: <?= status_badge($activity['my_status'], 'registration') ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                 </div>
                 <div class="foot">
                     <?php if ($activity['max_participants']): ?>

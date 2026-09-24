@@ -164,9 +164,13 @@ BukSU CASDEVU/
 │   ├── db.php               PDO connection + query helpers
 │   ├── auth.php             Sessions, login, role gates, audit log
 │   ├── csrf.php             CSRF tokens
-│   ├── helpers.php          Escaping, URLs, flash messages, formatting
+│   ├── helpers.php          Escaping, URLs, flash messages, formatting, and
+│   │                        the status system (status_badge / status_meta)
+│   ├── icons.php            The interface icon set (inline SVG, one stroke)
 │   ├── notifications.php    In-app notifications
-│   ├── participation.php    Registration eligibility and requirement progress
+│   ├── participation.php    Registration eligibility, requirement progress,
+│   │                        and the requirement workflow (state, steps)
+│   ├── review.php           Review queue counts and lists, scoped per role
 │   ├── uploads.php          Upload validation and safe storage
 │   ├── inventory.php        Availability maths, reservations, borrowing
 │   ├── reports.php          Report queries and CSV export
@@ -181,11 +185,13 @@ BukSU CASDEVU/
 ├── public/                  Web root — point the browser here
 │   ├── login.php  logout.php  register.php
 │   ├── index.php            Role-specific dashboard
+│   ├── review.php           Review queue (staff and coordinators)
 │   ├── profile.php  notifications.php
 │   ├── activities/          index.php, view.php, manage.php, calendar.php,
 │   │                        coordinators.php, eligibility.php
 │   ├── participation/       register.php, my-activities.php, participants.php
-│   ├── requirements/        manage.php, submit.php, verify.php, download.php
+│   ├── requirements/        mine.php (student overview), manage.php,
+│   │                        submit.php, verify.php, download.php
 │   ├── inventory/           index.php, manage.php, reserve.php,
 │   │                        reservations.php, borrowings.php, photo.php
 │   ├── announcements/       index.php, manage.php
@@ -196,7 +202,8 @@ BukSU CASDEVU/
 │   ├── forgot-password.php  reset-password.php
 │   └── assets/
 │       ├── css/style.css    The whole design system (tokens + components)
-│       ├── js/app.js        Mobile navigation drawer (the only script)
+│       ├── js/app.js        Drawer, account menu, submit feedback, table
+│       │                    sorting (all optional: pages work without it)
 │       └── fonts/           Source Sans 3, Source Serif 4 (self-hosted, OFL)
 └── storage/                 NOT web-accessible
     ├── uploads/             Requirement files and inventory photos
@@ -341,6 +348,47 @@ eligibility guard blocking with the correct message.
 - The sidebar scrolls without a visible scrollbar when the admin menu is
   taller than the screen
 
+**Second design pass: workflow and navigation**
+
+Informed by a study of education-dashboard references (Kiaalap, and three
+Behance projects); their patterns were adapted, not their content, charts, or
+branding.
+
+- One status system (`status_meta()` in `includes/helpers.php`): every
+  database status has a tone and a plain-language label per domain, so the
+  same word can mean different things ("pending" is *Pending review* for a
+  registration but *Under review* for a document). Green means done or good to
+  go, amber waiting on a decision, red a problem, blue in progress or
+  scheduled, grey inactive. Inventory statuses, previously all grey, are now
+  distinct
+- Sidebar with line icons (`includes/icons.php`); the current page is marked
+  by a filled row, bold label, gold icon and gold bar, not colour alone
+- Desktop top bar with a breadcrumb, a notification bell with the unread
+  count, and an account menu (profile, sign out) that opens with Enter and
+  closes with Esc or a click outside. Phones keep a compact bar and the drawer
+- Requirement workflow shown as steps (Required, Submitted, Under review,
+  Verified or Rejected) with a **Your turn / With the office / Done** line, so
+  a student can tell what they must do from what the office is doing
+- **My requirements** (`requirements/mine.php`): every document a student's
+  registrations need, grouped by whose turn it is, with the rejection reason
+  and a direct link to each upload
+- **Review queue** (`review.php`): documents to verify, registrations to
+  approve, and (office staff) reservation requests and new accounts, oldest
+  first with how long each has waited. Each item links to the existing review
+  screen, so approval rules, notifications and audit logging are unchanged.
+  Coordinators see only their activities; the sidebar badge, dashboard tiles
+  and the queue share one source of counts
+- Activity cards show a date block and the student's own registration status;
+  the activity page opens with Date, Time, Venue and Your registration, and on
+  phones the student's action card comes straight after them
+- Notifications show their type (icon and label) and are grouped into Today
+  and Earlier
+- Every data-changing form shows "Saving…" and disables its button on submit,
+  so a double click cannot send it twice
+- Column sorting on the unpaginated staff tables (participants, document
+  verification, borrowed items, the participation and inventory reports),
+  keyboard operable, with the direction announced through `aria-sort`
+
 ## Requirements status
 
 Measured against the 58 functional requirements in
@@ -415,6 +463,16 @@ empty states, the mobile drawer (open, Esc, backdrop, navigation), a profile
 save, keyboard focus order and the visible focus ring, and the item photo
 upload / reject-PDF / remove cycle.
 
+**Browser testing after the second design pass.** 38 pages, as
+administrator, student and coordinator, at 390px, 768px and 1366px (342 page
+loads): no sideways scrolling, no PHP or JavaScript errors, a breadcrumb on
+every page, and every sidebar link resolving for each role. The requirement
+workflow was run for real (upload, verify, reject, re-check from both sides)
+on a backup of the demo data that was restored afterwards. Also checked:
+sorting by number, date and keyboard; the saving state during a real submit;
+a cancelled confirmation leaving the button untouched; the account menu from
+the keyboard; and role scoping of the review queue.
+
 **What this testing did not cover.** These are limits of the method, not
 statements that the system fails them:
 
@@ -463,6 +521,9 @@ statements that the system fails them:
 10. **Default credentials ship in the repository.** `admin123` for the seeded
    administrator and `demo1234` for demo accounts. Change them before the
    system is used with real data
+11. **Paginated tables are not sortable.** Users, the audit log and the staff
+   inventory list are split into pages on the server; sorting in the browser
+   would only reorder the visible page, so those keep their server order
 
 ---
 
@@ -501,11 +562,21 @@ These are what make the security checklist pass at the end of Week 4.
     the rest). No inline `style=""` except a colour or width that comes from data
 16. One gold button (`btn-gold`) per page, for its headline action. Form
     submits are `btn-primary`, everything else `btn-outline`
-17. Status is always shown in words (`status_badge()`, "4 available"), never
-    by colour alone; colour stat tiles with `stat_tone()` so a zero stays neutral
+17. Status is always shown in words, never by colour alone. Use
+    `status_badge($status, $domain)` with the domain it belongs to
+    (`activity`, `registration`, `submission`, `reservation`, `inventory`,
+    `account`, `announcement`); add new statuses to `status_meta()`, not to a
+    page. Colour stat tiles with `stat_tone()` so a zero stays neutral
 18. Link CSS and JS with `asset()`, which adds a version stamp so browsers do
     not keep an old copy after a change
 19. Check new screens at phone width (about 390px): nothing may scroll sideways
+20. Icons come from `icon('name')` in `includes/icons.php`; add a drawing there
+    rather than pasting an SVG into a page
+21. Requirement state comes from `requirement_state()`, so the upload page, My
+    requirements and anything new agree on whose turn it is
+22. A table that should sort gets `data-sortable` and `data-sort="text|number"`
+    on its headers (dates sort as numbers through `data-sort-value`). Only on
+    tables that are not paginated
 
 ---
 

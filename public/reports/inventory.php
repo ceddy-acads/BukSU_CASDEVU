@@ -177,11 +177,11 @@ require __DIR__ . '/../../includes/layout/header.php';
     <section class="card card-flush">
         <div class="card-head"><h2>Stock position</h2></div>
         <div class="table-wrap">
-            <table class="data">
+            <table class="data" data-sortable>
                 <thead>
                     <tr>
-                        <th>Item</th><th>Category</th><th class="num">Owned</th><th class="num">On loan</th>
-                        <th class="num">Available</th><th>Status</th><th>Overdue</th><th class="num">Damaged</th>
+                        <th data-sort="text">Item</th><th data-sort="text">Category</th><th class="num" data-sort="number">Owned</th><th class="num" data-sort="number">On loan</th>
+                        <th class="num" data-sort="number">Available</th><th data-sort="text">Status</th><th>Overdue</th><th class="num">Damaged</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -196,7 +196,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                         <td class="num"><?= (int) $item['quantity_total'] ?></td>
                         <td class="num"><?= (int) $item['quantity_out'] ?></td>
                         <td class="num"><strong><?= $available ?></strong></td>
-                        <td><?= status_badge($item['status']) ?></td>
+                        <td><?= status_badge($item['status'], 'inventory') ?></td>
                         <td class="nowrap">
                             <?php if ((int) $item['overdue_loans'] > 0): ?>
                                 <span class="badge badge-danger"><?= (int) $item['overdue_loans'] ?> overdue</span>

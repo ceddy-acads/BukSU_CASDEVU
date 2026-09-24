@@ -360,11 +360,11 @@ require __DIR__ . '/../../includes/layout/header.php';
 <?php else: ?>
     <div class="card card-flush">
         <div class="table-wrap">
-            <table class="data">
+            <table class="data" data-sortable>
                 <thead>
                     <tr>
-                        <th>Item</th><th>Borrower</th><th class="num">Qty</th>
-                        <th>Released</th><th>Due back</th><th>Returned</th><th class="actions">Actions</th>
+                        <th data-sort="text">Item</th><th data-sort="text">Borrower</th><th class="num">Qty</th>
+                        <th data-sort="number">Released</th><th data-sort="number">Due back</th><th>Returned</th><th class="actions">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -381,11 +381,11 @@ require __DIR__ . '/../../includes/layout/header.php';
                             <?php endif; ?>
                         </td>
                         <td class="num"><?= (int) $borrowing['quantity'] ?></td>
-                        <td class="nowrap">
+                        <td class="nowrap" data-sort-value="<?= (int) strtotime((string) $borrowing['released_at']) ?>">
                             <?= e(format_date($borrowing['released_at'])) ?>
                             <div class="hint">by <?= e($borrowing['released_by_first'] . ' ' . $borrowing['released_by_last']) ?></div>
                         </td>
-                        <td class="nowrap">
+                        <td class="nowrap" data-sort-value="<?= (int) strtotime((string) $borrowing['expected_return_at']) ?>">
                             <?php if (is_overdue($borrowing)): ?>
                                 <?php $daysLate = max(1, (int) floor((time() - strtotime((string) $borrowing['expected_return_at'])) / 86400)); ?>
                                 <span class="text-danger"><?= e(format_date($borrowing['expected_return_at'])) ?></span>

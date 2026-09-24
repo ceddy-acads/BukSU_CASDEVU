@@ -162,17 +162,28 @@ $items = fetch_all(
 $progress    = requirement_progress($registrationId);
 $maxUploadMb = (int) (MAX_UPLOAD_BYTES / 1024 / 1024);
 
-$pageTitle = 'My requirements: ' . $activity['title'];
+// Whose turn each requirement is, counted the same way as My requirements.
+$turns = ['student' => 0, 'office' => 0, 'none' => 0];
+foreach ($items as $countItem) {
+    if (!$countItem['is_mandatory']) {
+        continue;
+    }
+    $owner = requirement_state($countItem['submission_status'], $countItem['deadline_at'], (int) $countItem['needs_file'] === 1)['owner'];
+    $turns[$owner]++;
+}
+
+$pageTitle = 'Documents: ' . $activity['title'];
 require __DIR__ . '/../../includes/layout/header.php';
 ?>
 
 <div class="page-head">
     <div>
-        <a class="crumb" href="<?= url('participation/my-activities.php') ?>">&larr; Back to my activities</a>
-        <h1>My requirements</h1>
+        <a class="crumb" href="<?= url('requirements/mine.php') ?>">&larr; All my requirements</a>
+        <h1><?= e($activity['title']) ?></h1>
         <p>
-            For <a href="<?= url('activities/view.php?id=' . $activityId) ?>"><?= e($activity['title']) ?></a>
-            &middot; Registration: <?= status_badge($registration['status']) ?>
+            Required documents &middot;
+            <a href="<?= url('activities/view.php?id=' . $activityId) ?>">Activity details</a>
+            &middot; Registration: <?= status_badge($registration['status'], 'registration') ?>
         </p>
     </div>
 </div>
@@ -189,10 +200,14 @@ require __DIR__ . '/../../includes/layout/header.php';
             All required documents have been verified. Nothing further is needed from you.
         </div>
     <?php else: ?>
-        <div class="alert alert-warning">
-            <strong><?= $progress['missing'] ?></strong> of <?= $progress['total'] ?>
-            required document<?= $progress['total'] === 1 ? '' : 's' ?> still outstanding.
-            Upload each one below; the office verifies them.
+        <div class="alert <?= $turns['student'] > 0 ? 'alert-warning' : 'alert-info' ?>">
+            <?php if ($turns['student'] > 0): ?>
+                <strong><?= $turns['student'] ?></strong> required document<?= $turns['student'] === 1 ? ' needs' : 's need' ?> you.
+            <?php endif; ?>
+            <?php if ($turns['office'] > 0): ?>
+                <strong><?= $turns['office'] ?></strong> <?= $turns['office'] === 1 ? 'is' : 'are' ?> with the office for review.
+            <?php endif; ?>
+            <strong><?= $turns['none'] ?></strong> of <?= $progress['total'] ?> verified.
         </div>
     <?php endif; ?>
 
@@ -200,12 +215,13 @@ require __DIR__ . '/../../includes/layout/header.php';
         <?php
         $submissionStatus = $item['submission_status'];           // null when nothing submitted
         $isSettled        = $submissionStatus === 'verified';
-        $deadlinePassed   = $item['deadline_at'] && strtotime((string) $item['deadline_at']) < time();
         $reqId            = (int) $item['requirement_id'];
+        $state            = requirement_state($submissionStatus, $item['deadline_at'], (int) $item['needs_file'] === 1);
         ?>
-        <section class="card">
+        <section class="card" id="req-<?= $reqId ?>">
             <div class="item">
                 <div class="item-main">
+                    <?= status_badge($state['key'], 'submission') ?>
                     <h2 class="item-title">
                         <?= e($item['name']) ?>
                         <?php if (!$item['is_mandatory']): ?>
@@ -219,18 +235,15 @@ require __DIR__ . '/../../includes/layout/header.php';
 
                     <p class="meta">
                         Deadline: <?= $item['deadline_at'] ? e(format_datetime($item['deadline_at'])) : 'None' ?>
-                        <?php if ($deadlinePassed && !$isSettled): ?>
-                            <span class="badge badge-danger">Past due</span>
+                        <?php if ($submissionStatus !== null): ?>
+                            &middot; Submitted <?= e(format_datetime($item['submitted_at'])) ?>
                         <?php endif; ?>
                     </p>
 
-                    <?php if ($submissionStatus === null): ?>
-                        <p class="item-body"><span class="badge badge-warning">Not yet submitted</span></p>
-                    <?php else: ?>
-                        <p class="item-body">
-                            <?= status_badge($submissionStatus) ?>
-                            <span class="hint">Submitted <?= e(format_datetime($item['submitted_at'])) ?></span>
-                        </p>
+                    <?= requirement_steps_html($state['key']) ?>
+                    <?= requirement_next_html($state) ?>
+
+                    <?php if ($submissionStatus !== null): ?>
 
                         <?php if ($item['file_path']): ?>
                             <p class="small mt-2">
@@ -243,8 +256,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 
                         <?php if ($submissionStatus === 'rejected' && $item['reject_reason']): ?>
                             <div class="alert alert-error">
-                                <strong>Not accepted:</strong> <?= e($item['reject_reason']) ?><br>
-                                Please correct it and submit again.
+                                <strong>Reason from the office:</strong> <?= e($item['reject_reason']) ?>
                             </div>
                         <?php endif; ?>
                     <?php endif; ?>
@@ -252,9 +264,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 
                 <div class="item-aside">
                     <?php if ($isSettled): ?>
-                        <div class="alert alert-success alert-flush">
-                            Verified by the office. No further action needed.
-                        </div>
+                        <p class="muted small">A verified document is locked and cannot be replaced.</p>
                     <?php elseif (!$acceptsSubmissions): ?>
                         <div class="alert alert-warning alert-flush">
                             <?= e($closedReason) ?>
@@ -283,10 +293,11 @@ require __DIR__ . '/../../includes/layout/header.php';
                                        value="<?= e($item['note'] ?? '') ?>" placeholder="Anything the office should know">
                             </div>
 
-                            <button type="submit" class="btn btn-primary btn-block">
+                            <?php // While the office is reviewing, replacing is optional, so the button stays quiet. ?>
+                            <button type="submit" class="btn <?= $state['owner'] === 'student' ? 'btn-primary' : 'btn-outline' ?> btn-block">
                                 <?= $submissionStatus === null
                                     ? ((int) $item['needs_file'] === 1 ? 'Submit document' : 'Acknowledge')
-                                    : 'Submit again' ?>
+                                    : ($state['owner'] === 'student' ? 'Submit again' : 'Replace file') ?>
                             </button>
                         </form>
                     <?php endif; ?>

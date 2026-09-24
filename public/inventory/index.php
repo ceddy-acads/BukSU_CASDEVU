@@ -326,7 +326,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                             <?php endif; ?>
                         </td>
                         <td>
-                            <?= status_badge($item['status']) ?>
+                            <?= status_badge($item['status'], 'inventory') ?>
                             <?php if ($item['condition_note']): ?>
                                 <div class="hint"><?= e($item['condition_note']) ?></div>
                             <?php endif; ?>

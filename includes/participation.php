@@ -139,3 +139,61 @@ function registration_stage_label(string $status): string
         'completed' => 'You participated in this activity',
     ][$status] ?? '';
 }
+
+/**
+ * Where one requirement stands for a student, and whose move it is.
+ *
+ * The workflow is Required -> Submitted -> Under review -> Verified or
+ * Rejected. What a student most needs to know is whether the next step is
+ * theirs ('student') or the office's ('office'), so every state names an
+ * owner and a next action. Late uploads are still accepted, so "past due"
+ * stays the student's move.
+ *
+ * @return array{key: string, owner: string, next: string}
+ */
+function requirement_state(?string $submissionStatus, ?string $deadlineAt, bool $needsFile): array
+{
+    $pastDue = $deadlineAt !== null && $deadlineAt !== '' && strtotime($deadlineAt) < time();
+
+    return match ($submissionStatus) {
+        'pending'  => ['key' => 'pending',  'owner' => 'office',
+                       'next' => 'The office is reviewing it. Nothing to do for now.'],
+        'verified' => ['key' => 'verified', 'owner' => 'none',
+                       'next' => 'Verified by the office. Nothing more to do.'],
+        'rejected' => ['key' => 'rejected', 'owner' => 'student',
+                       'next' => 'Fix it and ' . ($needsFile ? 'upload it again.' : 'confirm again.')],
+        default    => ['key' => $pastDue ? 'past_due' : 'missing', 'owner' => 'student',
+                       'next' => ($needsFile ? 'Upload your file' : 'Confirm you have read it')
+                                 . ($pastDue ? ' now. The deadline has passed.' : '.')],
+    };
+}
+
+/** The four-step workflow line for a requirement state. */
+function requirement_steps_html(string $stateKey): string
+{
+    $decided = in_array($stateKey, ['verified', 'rejected'], true);
+    $steps = [
+        ['Required',     in_array($stateKey, ['missing', 'past_due'], true) ? 'current' : 'done'],
+        ['Submitted',    in_array($stateKey, ['missing', 'past_due'], true) ? 'todo' : 'done'],
+        ['Under review', $stateKey === 'pending' ? 'current' : ($decided ? 'done' : 'todo')],
+        [$stateKey === 'rejected' ? 'Rejected' : 'Verified',
+                         $stateKey === 'verified' ? 'done' : ($stateKey === 'rejected' ? 'bad' : 'todo')],
+    ];
+    $spoken = ['done' => 'done', 'current' => 'current step', 'todo' => 'not yet', 'bad' => 'needs attention'];
+
+    $html = '<ol class="steps" aria-label="Progress">';
+    foreach ($steps as [$label, $state]) {
+        $html .= '<li class="step is-' . $state . '"' . ($state === 'current' ? ' aria-current="step"' : '') . '>'
+               . '<span class="step-dot" aria-hidden="true"></span>'
+               . '<span class="step-label">' . e($label) . '</span>'
+               . '<span class="sr-only"> (' . $spoken[$state] . ')</span></li>';
+    }
+    return $html . '</ol>';
+}
+
+/** "Your turn" / "With the office" / "Done" line under a requirement. */
+function requirement_next_html(array $state): string
+{
+    $lead = ['student' => 'Your turn:', 'office' => 'With the office:', 'none' => 'Done:'][$state['owner']] ?? '';
+    return '<p class="next-action next-' . e($state['owner']) . '"><strong>' . $lead . '</strong> ' . e($state['next']) . '</p>';
+}

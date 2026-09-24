@@ -66,7 +66,7 @@ require __DIR__ . '/../../includes/layout/header.php';
         <section class="card">
             <div class="item">
                 <div class="item-main">
-                    <?= status_badge($registration['status']) ?>
+                    <?= status_badge($registration['status'], 'registration') ?>
                     <h2 class="item-title">
                         <a href="<?= url('activities/view.php?id=' . (int) $registration['activity_id']) ?>">
                             <?= e($registration['title']) ?>

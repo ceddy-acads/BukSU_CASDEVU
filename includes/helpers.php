@@ -157,26 +157,93 @@ function format_date(?string $datetime): string
  * Render an activity/registration/item status as a coloured badge.
  * Falls back to a neutral badge for any status not listed.
  */
-function status_badge(string $status): string
+function status_badge(string $status, string $domain = ''): string
 {
-    $classes = [
-        // Activities
-        'draft'     => 'badge-muted',   'upcoming'  => 'badge-info',
-        'ongoing'   => 'badge-success', 'completed' => 'badge-muted',
-        'cancelled' => 'badge-danger',  'closed'    => 'badge-warning',
-        // Registrations and submissions
-        'pending'   => 'badge-warning', 'approved'  => 'badge-success',
-        'rejected'  => 'badge-danger',  'withdrawn' => 'badge-muted',
-        'verified'  => 'badge-success',
-        // Accounts
-        'active'    => 'badge-success', 'inactive'  => 'badge-muted',
-        'suspended' => 'badge-danger',
+    [$tone, $label] = status_meta($status, $domain);
+    return '<span class="badge badge-' . $tone . '">' . e($label) . '</span>';
+}
+
+/**
+ * The one status system. Every stored status maps to a tone and a label,
+ * per domain, because the same word means different things: a "pending"
+ * registration waits for the office, a "pending" document is under review,
+ * a "cancelled" activity is bad news but a cancelled reservation is routine.
+ *
+ * Tones:  success = done / good to go     (approved, verified, available)
+ *         warning = waiting on a decision (pending review, reserved)
+ *         danger  = a problem             (rejected, damaged, past due)
+ *         info    = in progress / scheduled (upcoming, under review, borrowed)
+ *         muted   = inactive or closed    (draft, withdrawn, fulfilled)
+ *
+ * Tones repeat across statuses, so the label always carries the meaning.
+ * Domains mirror the database enums; the pseudo-statuses under 'submission'
+ * ('missing', 'past_due') describe a requirement with no upload yet.
+ *
+ * @return array{0: string, 1: string} [tone, label]
+ */
+function status_meta(string $status, string $domain = ''): array
+{
+    static $map = [
+        'activity' => [
+            'draft'     => ['muted',   'Draft'],
+            'upcoming'  => ['info',    'Upcoming'],
+            'ongoing'   => ['success', 'Happening now'],
+            'completed' => ['success', 'Completed'],
+            'cancelled' => ['danger',  'Cancelled'],
+            'closed'    => ['muted',   'Registration closed'],
+        ],
+        'registration' => [
+            'pending'   => ['warning', 'Pending review'],
+            'approved'  => ['success', 'Approved'],
+            'rejected'  => ['danger',  'Rejected'],
+            'withdrawn' => ['muted',   'Withdrawn'],
+            'completed' => ['success', 'Completed'],
+        ],
+        'submission' => [
+            'missing'   => ['warning', 'Not submitted'],
+            'past_due'  => ['danger',  'Past due'],
+            'pending'   => ['info',    'Under review'],
+            'verified'  => ['success', 'Verified'],
+            'rejected'  => ['danger',  'Rejected'],
+        ],
+        'reservation' => [
+            'pending'   => ['warning', 'Pending review'],
+            'approved'  => ['success', 'Approved'],
+            'rejected'  => ['danger',  'Rejected'],
+            'cancelled' => ['muted',   'Cancelled'],
+            'fulfilled' => ['muted',   'Fulfilled'],
+        ],
+        'inventory' => [
+            'available'         => ['success', 'Available'],
+            'reserved'          => ['warning', 'Reserved'],
+            'borrowed'          => ['info',    'Borrowed'],
+            'damaged'           => ['danger',  'Damaged'],
+            'under_maintenance' => ['muted',   'Under maintenance'],
+            'unavailable'       => ['muted',   'Unavailable'],
+        ],
+        'account' => [
+            'pending'   => ['warning', 'Awaiting approval'],
+            'active'    => ['success', 'Active'],
+            'inactive'  => ['muted',   'Inactive'],
+            'suspended' => ['danger',  'Suspended'],
+        ],
+        'announcement' => [
+            'draft'     => ['muted',   'Draft'],
+            'published' => ['success', 'Published'],
+            'archived'  => ['muted',   'Archived'],
+        ],
     ];
 
-    $class = $classes[$status] ?? 'badge-muted';
-    $label = ucwords(str_replace('_', ' ', $status));
-
-    return '<span class="badge ' . $class . '">' . e($label) . '</span>';
+    if (isset($map[$domain][$status])) {
+        return $map[$domain][$status];
+    }
+    // No domain given: first domain that knows the word.
+    foreach ($map as $statuses) {
+        if (isset($statuses[$status])) {
+            return $statuses[$status];
+        }
+    }
+    return ['muted', ucwords(str_replace('_', ' ', $status))];
 }
 
 /**

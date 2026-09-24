@@ -271,7 +271,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                                 <?= e(ucfirst($row['role_name'])) ?>
                             <?php endif; ?>
                         </td>
-                        <td><?= status_badge($row['status']) ?></td>
+                        <td><?= status_badge($row['status'], 'account') ?></td>
                         <td class="actions">
                             <?php if ((int) $row['user_id'] === current_user_id()): ?>
                                 <span class="muted small">You</span>

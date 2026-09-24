@@ -225,7 +225,7 @@ require __DIR__ . '/../includes/layout/header.php';
         <div class="card-head"><h2>Account</h2></div>
         <dl class="detail-list">
             <div><dt>Role</dt><dd><?= e(ucfirst((string) $user['role_name'])) ?></dd></div>
-            <div><dt>Status</dt><dd><?= status_badge($user['status']) ?></dd></div>
+            <div><dt>Status</dt><dd><?= status_badge($user['status'], 'account') ?></dd></div>
             <div><dt>Last sign-in</dt><dd><?= e(format_datetime($user['last_login_at'])) ?></dd></div>
             <div><dt>Member since</dt><dd><?= e(format_date($user['created_at'])) ?></dd></div>
         </dl>

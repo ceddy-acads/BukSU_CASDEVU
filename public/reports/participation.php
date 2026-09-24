@@ -177,12 +177,12 @@ require __DIR__ . '/../../includes/layout/header.php';
     <section class="card card-flush">
         <div class="card-head"><h2>By activity</h2></div>
         <div class="table-wrap">
-            <table class="data">
+            <table class="data" data-sortable>
                 <thead>
                     <tr>
-                        <th>Activity</th><th>Category</th><th>Starts</th><th>Status</th>
-                        <th class="num">Registered</th><th class="num">Approved</th><th class="num">Pending</th>
-                        <th class="num">Rejected</th><th class="num">Attended</th>
+                        <th data-sort="text">Activity</th><th data-sort="text">Category</th><th data-sort="number">Starts</th><th data-sort="text">Status</th>
+                        <th class="num" data-sort="number">Registered</th><th class="num" data-sort="number">Approved</th><th class="num" data-sort="number">Pending</th>
+                        <th class="num" data-sort="number">Rejected</th><th class="num" data-sort="number">Attended</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -197,8 +197,8 @@ require __DIR__ . '/../../includes/layout/header.php';
                             <?php endif; ?>
                         </td>
                         <td><?= e($row['category']) ?></td>
-                        <td class="nowrap"><?= e(format_date($row['start_at'])) ?></td>
-                        <td><?= status_badge($row['status']) ?></td>
+                        <td class="nowrap" data-sort-value="<?= (int) strtotime((string) $row['start_at']) ?>"><?= e(format_date($row['start_at'])) ?></td>
+                        <td><?= status_badge($row['status'], 'activity') ?></td>
                         <td class="num"><?= (int) $row['total_registered'] ?></td>
                         <td class="num"><strong><?= (int) $row['total_approved'] ?></strong></td>
                         <td class="num"><?= (int) $row['total_pending'] ?></td>

@@ -59,12 +59,12 @@ if ($role === 'student') {
         ['label' => 'Active activities', 'value' => fetch_value(
             "SELECT COUNT(*) FROM activities WHERE status IN ('upcoming','ongoing')"),
             'class' => '', 'href' => 'activities/index.php'],
-        ['label' => 'Pending registrations', 'value' => fetch_value(
-            "SELECT COUNT(*) FROM registrations WHERE status = 'pending'"),
-            'class' => 'stat-gold', 'href' => null],
-        ['label' => 'Requirements to verify', 'value' => fetch_value(
-            "SELECT COUNT(*) FROM requirement_submissions WHERE status = 'pending'"),
-            'class' => 'stat-gold', 'href' => null],
+        // Same source as the review queue, so the numbers always match it
+        // (and a coordinator counts only their own activities).
+        ['label' => 'Pending registrations', 'value' => review_counts()['registrations'],
+            'class' => 'stat-gold', 'href' => 'review.php#registrations'],
+        ['label' => 'Requirements to verify', 'value' => review_counts()['documents'],
+            'class' => 'stat-gold', 'href' => 'review.php#documents'],
         ['label' => 'Items on loan', 'value' => fetch_value(
             'SELECT COUNT(*) FROM borrowings WHERE returned_at IS NULL'),
             'class' => '', 'href' => is_office_staff() ? 'inventory/borrowings.php' : null],
@@ -173,6 +173,7 @@ require __DIR__ . '/../includes/layout/header.php';
         <section class="card">
             <div class="card-head">
                 <h2>Needs your attention</h2>
+                <a class="btn btn-ghost btn-sm" href="<?= url('review.php') ?>">Open review queue</a>
                 <p class="hint">Registrations and documents waiting for a decision.</p>
             </div>
 
@@ -251,7 +252,7 @@ require __DIR__ . '/../includes/layout/header.php';
                                 <?= $activity['venue'] ? ' &middot; ' . e($activity['venue']) : '' ?>
                             </p>
                         </div>
-                        <span class="agenda-status"><?= status_badge($activity['status']) ?></span>
+                        <span class="agenda-status"><?= status_badge($activity['status'], 'activity') ?></span>
                     </li>
                 <?php endforeach; ?>
             </ul>

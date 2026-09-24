@@ -136,7 +136,7 @@ if ($studentId !== null) {
                             </td>
                             <td><?= e($row['category']) ?></td>
                             <td class="nowrap"><?= e(format_date($row['start_at'])) ?></td>
-                            <td><?= status_badge($row['registration_status']) ?></td>
+                            <td><?= status_badge($row['registration_status'], 'registration') ?></td>
                             <td><?= (int) $row['attended'] === 1 ? 'Yes' : '<span class="muted">No</span>' ?></td>
                             <td>
                                 <?php if ($row['team_name']): ?>
@@ -356,7 +356,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                         </td>
                         <td class="num"><?= (int) $student['total_joined'] ?></td>
                         <td class="num"><strong><?= (int) $student['total_approved'] ?></strong></td>
-                        <td><?= status_badge($student['status']) ?></td>
+                        <td><?= status_badge($student['status'], 'account') ?></td>
                         <td class="actions">
                             <div class="btn-row">
                                 <a class="btn btn-outline btn-sm"

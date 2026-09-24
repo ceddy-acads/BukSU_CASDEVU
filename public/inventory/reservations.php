@@ -240,7 +240,7 @@ require __DIR__ . '/../../includes/layout/header.php';
         <section class="card">
             <div class="item">
                 <div class="item-main">
-                    <?= status_badge($reservation['status']) ?>
+                    <?= status_badge($reservation['status'], 'reservation') ?>
                     <h2 class="item-title">
                         <?= e(format_datetime($reservation['needed_from'])) ?>
                         to <?= e(format_datetime($reservation['needed_until'])) ?>

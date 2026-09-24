@@ -112,10 +112,10 @@ require __DIR__ . '/../../includes/layout/header.php';
                     <?php if ($announcement['is_pinned'] || $announcement['status'] !== 'published'): ?>
                         <div class="btn-row">
                             <?php if ($announcement['is_pinned']): ?>
-                                <span class="badge badge-warning">Pinned</span>
+                                <span class="badge badge-info">Pinned</span>
                             <?php endif; ?>
                             <?php if ($announcement['status'] !== 'published'): ?>
-                                <?= status_badge($announcement['status']) ?>
+                                <?= status_badge($announcement['status'], 'announcement') ?>
                             <?php endif; ?>
                         </div>
                     <?php endif; ?>

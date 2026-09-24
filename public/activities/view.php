@@ -101,9 +101,9 @@ require __DIR__ . '/../../includes/layout/header.php';
 <div class="page-head">
     <div>
         <a class="crumb" href="<?= url('activities/index.php') ?>">&larr; Back to activities</a>
-        <div><?= status_badge($activity['status']) ?></div>
+        <div><?= status_badge($activity['status'], 'activity') ?></div>
         <h1 class="mt-2"><?= e($activity['title']) ?></h1>
-        <p><?= e($activity['category']) ?> &middot; <?= e(format_datetime($activity['start_at'])) ?></p>
+        <p><?= e($activity['category']) ?></p>
     </div>
     <?php if ($canManage || $canRegister): ?>
         <div class="btn-row">
@@ -117,7 +117,61 @@ require __DIR__ . '/../../includes/layout/header.php';
     <?php endif; ?>
 </div>
 
-<div class="split">
+<?php
+// The four facts people look for first, above everything else.
+$startTs  = strtotime((string) $activity['start_at']);
+$endTs    = $activity['end_at'] ? strtotime((string) $activity['end_at']) : null;
+$sameDay  = $endTs !== null && date('Y-m-d', $startTs) === date('Y-m-d', $endTs);
+?>
+<dl class="fact-strip">
+    <div>
+        <dt>Date</dt>
+        <dd>
+            <?= e(date('D, j M Y', $startTs)) ?>
+            <?php if ($endTs !== null && !$sameDay): ?>
+                <span class="fact-sub">to <?= e(date('D, j M Y', $endTs)) ?></span>
+            <?php endif; ?>
+        </dd>
+    </div>
+    <div>
+        <dt>Time</dt>
+        <dd>
+            <?= e(date('g:i A', $startTs)) ?><?= $endTs !== null && $sameDay && $endTs !== $startTs ? ' to ' . e(date('g:i A', $endTs)) : '' ?>
+        </dd>
+    </div>
+    <div>
+        <dt>Venue</dt>
+        <dd>
+            <?= $activity['venue'] ? e($activity['venue']) : '<span class="muted">Not set yet</span>' ?>
+            <?php if ($activity['venue_location']): ?>
+                <span class="fact-sub"><?= e($activity['venue_location']) ?></span>
+            <?php endif; ?>
+        </dd>
+    </div>
+    <?php if ($isStudent): ?>
+        <div>
+            <dt>Your registration</dt>
+            <dd>
+                <?php if ($myRegistration): ?>
+                    <?= status_badge($myRegistration['status'], 'registration') ?>
+                <?php elseif ($canRegister): ?>
+                    <a href="#participation">Not registered: register below</a>
+                <?php else: ?>
+                    <span class="muted">Not registered</span>
+                <?php endif; ?>
+            </dd>
+        </div>
+    <?php else: ?>
+        <div>
+            <dt>Participants</dt>
+            <dd>
+                <?= $approvedCount ?> approved<?= $activity['max_participants'] ? ' of ' . (int) $activity['max_participants'] . ' places' : '' ?>
+            </dd>
+        </div>
+    <?php endif; ?>
+</dl>
+
+<div class="split split-aside-first">
     <div>
         <section class="card">
             <div class="card-head"><h2>About this activity</h2></div>
@@ -194,7 +248,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <div class="card-head"><h2>Your participation</h2></div>
 
                 <?php if ($isActiveReg): ?>
-                    <p><?= status_badge($myRegistration['status']) ?></p>
+                    <p><?= status_badge($myRegistration['status'], 'registration') ?></p>
                     <p><?= e(registration_stage_label($myRegistration['status'])) ?></p>
 
                     <?php if ($myRegistration['review_remarks']): ?>
@@ -300,18 +354,8 @@ require __DIR__ . '/../../includes/layout/header.php';
 
         <section class="card">
             <div class="card-head"><h2>Details</h2></div>
+            <?php // Date, time, and venue are in the fact strip at the top of the page. ?>
             <dl class="detail-list">
-                <div><dt>Starts</dt><dd><?= e(format_datetime($activity['start_at'])) ?></dd></div>
-                <div><dt>Ends</dt><dd><?= e(format_datetime($activity['end_at'])) ?></dd></div>
-                <div>
-                    <dt>Venue</dt>
-                    <dd>
-                        <?= $activity['venue'] ? e($activity['venue']) : '<span class="muted">Not set</span>' ?>
-                        <?php if ($activity['venue_location']): ?>
-                            <div class="hint"><?= e($activity['venue_location']) ?></div>
-                        <?php endif; ?>
-                    </dd>
-                </div>
                 <div>
                     <dt>Organizer</dt>
                     <dd><?= e($activity['author_first'] . ' ' . $activity['author_last']) ?></dd>
