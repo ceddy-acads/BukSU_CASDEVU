@@ -12,13 +12,13 @@ $student    = current_user();
 $activityId = get_id('activity_id') ?? (int) post('activity_id');
 if ($activityId <= 0) {
     http_response_code(404);
-    exit('404 — Activity not found.');
+    abort_page(404, 'Activity not found.');
 }
 
 $activity = fetch_one('SELECT * FROM activities WHERE activity_id = ?', [$activityId]);
 if ($activity === null) {
     http_response_code(404);
-    exit('404 — Activity not found.');
+    abort_page(404, 'Activity not found.');
 }
 
 // A student may only submit for an activity they actually registered for.
@@ -162,25 +162,26 @@ $items = fetch_all(
 $progress    = requirement_progress($registrationId);
 $maxUploadMb = (int) (MAX_UPLOAD_BYTES / 1024 / 1024);
 
-$pageTitle = 'My requirements — ' . $activity['title'];
+$pageTitle = 'My requirements: ' . $activity['title'];
 require __DIR__ . '/../../includes/layout/header.php';
 ?>
 
 <div class="page-head">
     <div>
+        <a class="crumb" href="<?= url('participation/my-activities.php') ?>">&larr; Back to my activities</a>
         <h1>My requirements</h1>
         <p>
-            <a href="<?= url('activities/view.php?id=' . $activityId) ?>"><?= e($activity['title']) ?></a>
-            &middot; registration is <?= status_badge($registration['status']) ?>
+            For <a href="<?= url('activities/view.php?id=' . $activityId) ?>"><?= e($activity['title']) ?></a>
+            &middot; Registration: <?= status_badge($registration['status']) ?>
         </p>
     </div>
-    <a class="btn btn-outline" href="<?= url('participation/my-activities.php') ?>">My activities</a>
 </div>
 
 <?php if ($items === []): ?>
     <div class="empty">
         <strong>Nothing to submit</strong>
         This activity does not require any documents.
+        <a class="btn btn-outline" href="<?= url('activities/view.php?id=' . $activityId) ?>">Back to the activity</a>
     </div>
 <?php else: ?>
     <?php if ($progress['complete']): ?>
@@ -191,6 +192,7 @@ require __DIR__ . '/../../includes/layout/header.php';
         <div class="alert alert-warning">
             <strong><?= $progress['missing'] ?></strong> of <?= $progress['total'] ?>
             required document<?= $progress['total'] === 1 ? '' : 's' ?> still outstanding.
+            Upload each one below; the office verifies them.
         </div>
     <?php endif; ?>
 
@@ -199,11 +201,12 @@ require __DIR__ . '/../../includes/layout/header.php';
         $submissionStatus = $item['submission_status'];           // null when nothing submitted
         $isSettled        = $submissionStatus === 'verified';
         $deadlinePassed   = $item['deadline_at'] && strtotime((string) $item['deadline_at']) < time();
+        $reqId            = (int) $item['requirement_id'];
         ?>
         <section class="card">
-            <div style="display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between;">
-                <div style="flex:1 1 300px;">
-                    <h2 style="margin:0 0 .35rem;">
+            <div class="item">
+                <div class="item-main">
+                    <h2 class="item-title">
                         <?= e($item['name']) ?>
                         <?php if (!$item['is_mandatory']): ?>
                             <span class="badge badge-muted">Optional</span>
@@ -211,26 +214,26 @@ require __DIR__ . '/../../includes/layout/header.php';
                     </h2>
 
                     <?php if ($item['description']): ?>
-                        <p style="margin:0 0 .5rem;font-size:.9rem;"><?= e($item['description']) ?></p>
+                        <p><?= e($item['description']) ?></p>
                     <?php endif; ?>
 
-                    <p class="hint" style="margin:0;">
-                        Deadline: <?= e(format_datetime($item['deadline_at'])) ?>
+                    <p class="meta">
+                        Deadline: <?= $item['deadline_at'] ? e(format_datetime($item['deadline_at'])) : 'None' ?>
                         <?php if ($deadlinePassed && !$isSettled): ?>
                             <span class="badge badge-danger">Past due</span>
                         <?php endif; ?>
                     </p>
 
                     <?php if ($submissionStatus === null): ?>
-                        <p style="margin:.6rem 0 0;"><span class="badge badge-warning">Not yet submitted</span></p>
+                        <p class="item-body"><span class="badge badge-warning">Not yet submitted</span></p>
                     <?php else: ?>
-                        <p style="margin:.6rem 0 0;">
+                        <p class="item-body">
                             <?= status_badge($submissionStatus) ?>
-                            <span class="hint">submitted <?= e(format_datetime($item['submitted_at'])) ?></span>
+                            <span class="hint">Submitted <?= e(format_datetime($item['submitted_at'])) ?></span>
                         </p>
 
                         <?php if ($item['file_path']): ?>
-                            <p style="margin:.35rem 0 0;font-size:.88rem;">
+                            <p class="small mt-2">
                                 <a href="<?= url('requirements/download.php?submission_id=' . (int) $item['submission_id']) ?>">
                                     <?= e($item['original_name']) ?>
                                 </a>
@@ -239,47 +242,48 @@ require __DIR__ . '/../../includes/layout/header.php';
                         <?php endif; ?>
 
                         <?php if ($submissionStatus === 'rejected' && $item['reject_reason']): ?>
-                            <div class="alert alert-error" style="margin:.6rem 0 0;">
+                            <div class="alert alert-error">
                                 <strong>Not accepted:</strong> <?= e($item['reject_reason']) ?><br>
-                                Please correct it and submit again below.
+                                Please correct it and submit again.
                             </div>
                         <?php endif; ?>
                     <?php endif; ?>
                 </div>
 
-                <div style="flex:0 1 300px;">
+                <div class="item-aside">
                     <?php if ($isSettled): ?>
-                        <div class="alert alert-success" style="margin:0;">
+                        <div class="alert alert-success alert-flush">
                             Verified by the office. No further action needed.
                         </div>
                     <?php elseif (!$acceptsSubmissions): ?>
-                        <div class="alert alert-warning" style="margin:0;">
+                        <div class="alert alert-warning alert-flush">
                             <?= e($closedReason) ?>
                         </div>
                     <?php else: ?>
                         <form method="post" enctype="multipart/form-data">
                             <?= csrf_field() ?>
                             <input type="hidden" name="activity_id" value="<?= $activityId ?>">
-                            <input type="hidden" name="requirement_id" value="<?= (int) $item['requirement_id'] ?>">
+                            <input type="hidden" name="requirement_id" value="<?= $reqId ?>">
 
                             <?php if ((int) $item['needs_file'] === 1): ?>
                                 <div class="form-row">
-                                    <label for="document-<?= (int) $item['requirement_id'] ?>">
+                                    <label for="document-<?= $reqId ?>">
                                         <?= $submissionStatus === null ? 'Upload document' : 'Replace document' ?>
                                     </label>
-                                    <input type="file" id="document-<?= (int) $item['requirement_id'] ?>"
-                                           name="document" required accept=".pdf,.jpg,.jpeg,.png">
-                                    <div class="hint">PDF, JPG, or PNG — up to <?= $maxUploadMb ?> MB.</div>
+                                    <input type="file" id="document-<?= $reqId ?>"
+                                           name="document" required accept=".pdf,.jpg,.jpeg,.png"
+                                           aria-describedby="document-hint-<?= $reqId ?>">
+                                    <div class="hint" id="document-hint-<?= $reqId ?>">PDF, JPG, or PNG, up to <?= $maxUploadMb ?> MB.</div>
                                 </div>
                             <?php endif; ?>
 
                             <div class="form-row">
-                                <label for="note-<?= (int) $item['requirement_id'] ?>">Note (optional)</label>
-                                <input type="text" id="note-<?= (int) $item['requirement_id'] ?>" name="note"
+                                <label for="note-<?= $reqId ?>">Note <span class="optional">(optional)</span></label>
+                                <input type="text" id="note-<?= $reqId ?>" name="note"
                                        value="<?= e($item['note'] ?? '') ?>" placeholder="Anything the office should know">
                             </div>
 
-                            <button type="submit" class="btn btn-gold btn-block">
+                            <button type="submit" class="btn btn-primary btn-block">
                                 <?= $submissionStatus === null
                                     ? ((int) $item['needs_file'] === 1 ? 'Submit document' : 'Acknowledge')
                                     : 'Submit again' ?>

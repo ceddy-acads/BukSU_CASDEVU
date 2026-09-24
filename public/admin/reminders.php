@@ -22,7 +22,7 @@ if (is_post()) {
         $result = send_due_reminders(false);
 
         flash('success', $result['sent'] === 0
-            ? 'Nothing new to send — every reminder in the window has already gone out.'
+            ? 'Nothing new to send. Every reminder in the window has already gone out.'
             : $result['sent'] . ' reminder(s) sent'
               . (MAIL_NOTIFICATIONS_ENABLED ? ', ' . $result['emailed'] . ' by email' : '')
               . ($result['skipped'] > 0 ? '. ' . $result['skipped'] . ' had already been sent.' : '.'));
@@ -34,7 +34,7 @@ if (is_post()) {
         // Only an administrator changes the office-wide setting.
         if (!has_role('admin')) {
             http_response_code(403);
-            exit('403 — Only an administrator may change the reminder lead time.');
+            abort_page(403, 'Only an administrator may change the reminder lead time.');
         }
 
         $days = post('reminder_lead_days');
@@ -94,7 +94,9 @@ require __DIR__ . '/../../includes/layout/header.php';
         <h1>Deadline reminders</h1>
         <p>Students are reminded <?= $leadDays ?> day(s) before a requirement falls due, and again on the day.</p>
     </div>
-    <a class="btn btn-outline" href="<?= url('reports/index.php') ?>">Reports</a>
+    <div class="btn-row">
+        <a class="btn btn-outline" href="<?= url('reports/index.php') ?>">Reports</a>
+    </div>
 </div>
 
 <?php if ($errors !== []): ?>
@@ -103,8 +105,8 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 <?php endif; ?>
 
-<div class="grid grid-3" style="margin-bottom:1.5rem;">
-    <div class="stat stat-gold">
+<div class="stats stats-3">
+    <div class="stat <?= stat_tone(count($pending), 'stat-gold') ?>">
         <div class="stat-value"><?= count($pending) ?></div>
         <div class="stat-label">Ready to send</div>
     </div>
@@ -128,30 +130,34 @@ require __DIR__ . '/../../includes/layout/header.php';
             or everyone in the window has already been reminded.
         </div>
     <?php else: ?>
-        <p style="font-size:.9rem;margin-top:0;">
+        <p class="card-intro">
             <?= count($pending) ?> student<?= count($pending) === 1 ? '' : 's' ?>
             will be notified in the system<?= MAIL_NOTIFICATIONS_ENABLED ? ' and by email' : '' ?>.
             Nobody is reminded twice for the same requirement.
         </p>
 
         <div class="table-wrap">
-            <table class="data">
+            <table class="data table-stack">
                 <thead><tr><th>Student</th><th>Requirement</th><th>Activity</th><th>Deadline</th></tr></thead>
                 <tbody>
                 <?php foreach ($pending as $item): ?>
                     <tr>
-                        <td>
-                            <strong><?= e(full_name($item, true)) ?></strong>
-                            <div class="hint"><?= e($item['email']) ?></div>
+                        <td data-label="Student">
+                            <div>
+                                <strong><?= e(full_name($item, true)) ?></strong>
+                                <div class="hint"><?= e($item['email']) ?></div>
+                            </div>
                         </td>
-                        <td><?= e($item['requirement_name']) ?></td>
-                        <td><?= e($item['activity_title']) ?></td>
-                        <td style="white-space:nowrap;">
-                            <?= e(format_date($item['deadline_at'])) ?>
-                            <div class="hint">
-                                <?= (int) $item['days_left'] === 0
-                                    ? 'due today'
-                                    : (int) $item['days_left'] . ' day(s) away' ?>
+                        <td data-label="Requirement"><?= e($item['requirement_name']) ?></td>
+                        <td data-label="Activity"><?= e($item['activity_title']) ?></td>
+                        <td data-label="Deadline" class="nowrap">
+                            <div>
+                                <?= e(format_date($item['deadline_at'])) ?>
+                                <div class="hint">
+                                    <?= (int) $item['days_left'] === 0
+                                        ? 'Due today'
+                                        : (int) $item['days_left'] . ' day(s) away' ?>
+                                </div>
                             </div>
                         </td>
                     </tr>
@@ -160,7 +166,7 @@ require __DIR__ . '/../../includes/layout/header.php';
             </table>
         </div>
 
-        <form method="post" style="margin-top:1rem;"
+        <form method="post" class="form-actions mt-4"
               onsubmit="return confirm('Send <?= count($pending) ?> reminder(s) now?');">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="send">
@@ -168,7 +174,7 @@ require __DIR__ . '/../../includes/layout/header.php';
         </form>
     <?php endif; ?>
 
-    <p class="hint" style="margin-bottom:0;">
+    <p class="hint mt-4">
         To send these automatically once a day, point Windows Task Scheduler at
         <code>bin\send-reminders.php</code>.
     </p>
@@ -176,42 +182,51 @@ require __DIR__ . '/../../includes/layout/header.php';
 
 <?php if (has_role('admin')): ?>
     <section class="card">
-        <div class="card-head"><h2>Reminder lead time</h2></div>
+        <div class="card-head">
+            <h2>Reminder lead time</h2>
+            <p class="hint">How many days ahead of a deadline the first reminder goes out. Applies to the whole office.</p>
+        </div>
         <form method="post" novalidate>
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="lead_days">
-            <div class="form-row" style="max-width:260px;">
+            <div class="form-row">
                 <label for="reminder_lead_days">Days before the deadline</label>
-                <input type="number" id="reminder_lead_days" name="reminder_lead_days"
+                <input type="number" id="reminder_lead_days" name="reminder_lead_days" class="input-auto"
                        min="1" max="30" value="<?= $leadDays ?>" required>
                 <div class="hint">Between 1 and 30.</div>
             </div>
-            <button type="submit" class="btn btn-primary">Save</button>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save lead time</button>
+            </div>
         </form>
     </section>
 <?php endif; ?>
 
 <?php if ($overdue !== []): ?>
     <section class="card">
-        <div class="card-head"><h2>Past the deadline (<?= count($overdue) ?>)</h2></div>
-        <p class="hint" style="margin-top:0;">
-            These are no longer reminded automatically — the deadline has passed.
-        </p>
+        <div class="card-head">
+            <h2>Past the deadline (<?= count($overdue) ?>)</h2>
+            <p class="hint">These are no longer reminded automatically because the deadline has passed.</p>
+        </div>
         <div class="table-wrap">
-            <table class="data">
+            <table class="data table-stack">
                 <thead><tr><th>Student</th><th>Requirement</th><th>Activity</th><th>Was due</th></tr></thead>
                 <tbody>
                 <?php foreach ($overdue as $row): ?>
                     <tr>
-                        <td>
-                            <strong><?= e(full_name($row, true)) ?></strong>
-                            <div class="hint"><?= e($row['student_number'] ?? '—') ?></div>
+                        <td data-label="Student">
+                            <div>
+                                <strong><?= e(full_name($row, true)) ?></strong>
+                                <div class="hint"><?= $row['student_number'] ? e($row['student_number']) : 'No student number' ?></div>
+                            </div>
                         </td>
-                        <td><?= e($row['requirement_name']) ?></td>
-                        <td><?= e($row['activity_title']) ?></td>
-                        <td>
-                            <?= e(format_date($row['deadline_at'])) ?>
-                            <div><span class="badge badge-danger">Overdue</span></div>
+                        <td data-label="Requirement"><?= e($row['requirement_name']) ?></td>
+                        <td data-label="Activity"><?= e($row['activity_title']) ?></td>
+                        <td data-label="Was due" class="nowrap">
+                            <div>
+                                <?= e(format_date($row['deadline_at'])) ?>
+                                <div><span class="badge badge-danger">Overdue</span></div>
+                            </div>
                         </td>
                     </tr>
                 <?php endforeach; ?>

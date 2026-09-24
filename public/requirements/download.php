@@ -15,7 +15,7 @@ require_login();
 $submissionId = get_id('submission_id');
 if ($submissionId === null) {
     http_response_code(404);
-    exit('404 — File not found.');
+    abort_page(404, 'File not found.');
 }
 
 $submission = fetch_one(
@@ -29,7 +29,7 @@ $submission = fetch_one(
 
 if ($submission === null || !$submission['file_path']) {
     http_response_code(404);
-    exit('404 — File not found.');
+    abort_page(404, 'File not found.');
 }
 
 // ------------------------------------------------------------ Authorization
@@ -37,14 +37,14 @@ $isOwner = (int) $submission['owner_id'] === current_user_id();
 
 if (!$isOwner && !can_manage_activity((int) $submission['activity_id'])) {
     http_response_code(403);
-    exit('403 — You do not have permission to open this document.');
+    abort_page(403, 'You do not have permission to open this document.');
 }
 
 $absolutePath = upload_absolute_path($submission['file_path']);
 if ($absolutePath === null || !is_file($absolutePath)) {
     error_log('[CASMS] Missing upload on disk: ' . $submission['file_path']);
     http_response_code(404);
-    exit('404 — The stored file could not be located. Please contact the office.');
+    abort_page(404, 'The stored file could not be located. Please contact the office.');
 }
 
 audit_log('view', 'requirement_submission', $submissionId,

@@ -229,7 +229,7 @@ function require_role(array $allowed): void
 
     if (!in_array(current_role(), $allowed, true)) {
         http_response_code(403);
-        exit('403 — You do not have permission to access this page.');
+        abort_page(403, 'This page belongs to a different role. If you think you need it, ask the office to check your account.');
     }
 }
 
@@ -256,7 +256,7 @@ function require_activity_access(int $activityId): void
     }
 
     http_response_code(403);
-    exit('403 — You are not assigned to this activity.');
+    abort_page(403, 'You are not assigned to this activity.');
 }
 
 /** Non-fatal variant, for deciding whether to render an "Edit" button. */

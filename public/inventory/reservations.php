@@ -37,11 +37,11 @@ if (is_post()) {
     if ($action === 'cancel') {
         if (!$isOwner && !$canDecide) {
             http_response_code(403);
-            exit('403 — You may only cancel your own reservation.');
+            abort_page(403, 'You may only cancel your own reservation.');
         }
     } elseif (!$canDecide) {
         http_response_code(403);
-        exit('403 — Only office staff may approve or reject reservations.');
+        abort_page(403, 'Only office staff may approve or reject reservations.');
     }
 
     $lines = fetch_all('SELECT item_id, quantity FROM reservation_items WHERE reservation_id = ?', [$reservationId]);
@@ -60,7 +60,7 @@ if (is_post()) {
             );
 
             if ($conflicts !== []) {
-                flash('error', 'Cannot approve — ' . implode(' ', $conflicts));
+                flash('error', 'Cannot approve: ' . implode(' ', $conflicts));
                 break;
             }
 
@@ -184,8 +184,8 @@ require __DIR__ . '/../../includes/layout/header.php';
         <p><?= $canDecide ? 'All reservation requests' : 'Your reservation requests' ?></p>
     </div>
     <div class="btn-row">
-        <a class="btn btn-gold" href="<?= url('inventory/reserve.php') ?>">+ New request</a>
         <a class="btn btn-outline" href="<?= url('inventory/index.php') ?>">Inventory</a>
+        <a class="btn btn-gold" href="<?= url('inventory/reserve.php') ?>">New request</a>
     </div>
 </div>
 
@@ -208,54 +208,74 @@ require __DIR__ . '/../../includes/layout/header.php';
             <?php endforeach; ?>
         </select>
     </div>
+    <div class="form-row filter-actions">
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <?php if ($statusFilter !== ''): ?>
+            <a class="btn btn-outline" href="<?= url('inventory/reservations.php') ?>">Clear</a>
+        <?php endif; ?>
+    </div>
 </form>
 
 <?php if ($reservations === []): ?>
-    <div class="empty">
-        <strong>No reservations</strong>
-        <?= $statusFilter !== '' ? 'Nothing matches this filter.' : 'No requests have been made yet.' ?>
-    </div>
+    <?php if ($statusFilter !== ''): ?>
+        <div class="empty">
+            <strong>No reservations with this status</strong>
+            Nothing matches this filter. Clear it to see every request.
+            <div class="btn-row">
+                <a class="btn btn-outline" href="<?= url('inventory/reservations.php') ?>">Clear filter</a>
+            </div>
+        </div>
+    <?php else: ?>
+        <div class="empty">
+            <strong>No reservations yet</strong>
+            No requests have been made. Reserve costumes or equipment ahead of an activity.
+            <div class="btn-row">
+                <a class="btn btn-primary" href="<?= url('inventory/reserve.php') ?>">Request a reservation</a>
+            </div>
+        </div>
+    <?php endif; ?>
 <?php else: ?>
     <?php foreach ($reservations as $reservation): ?>
         <?php $lines = $lineMap[(int) $reservation['reservation_id']] ?? []; ?>
         <section class="card">
-            <div style="display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between;">
-                <div style="flex:1 1 320px;">
+            <div class="item">
+                <div class="item-main">
                     <?= status_badge($reservation['status']) ?>
-                    <h2 style="margin:.4rem 0 .3rem;">
+                    <h2 class="item-title">
                         <?= e(format_datetime($reservation['needed_from'])) ?>
-                        &rarr; <?= e(format_datetime($reservation['needed_until'])) ?>
+                        to <?= e(format_datetime($reservation['needed_until'])) ?>
                     </h2>
-                    <p class="hint" style="margin:0;">
+                    <p class="meta">
                         Requested by <?= e(full_name($reservation)) ?>
                         <?php if ($reservation['activity_title']): ?>
                             &middot; for <?= e($reservation['activity_title']) ?>
                         <?php endif; ?>
                     </p>
                     <?php if ($reservation['purpose']): ?>
-                        <p style="margin:.5rem 0 0;font-size:.9rem;"><?= e($reservation['purpose']) ?></p>
+                        <p class="item-body"><?= e($reservation['purpose']) ?></p>
                     <?php endif; ?>
 
                     <?php if ($reservation['review_remarks']): ?>
-                        <div class="alert alert-error" style="margin:.6rem 0 0;">
-                            <?= e($reservation['review_remarks']) ?>
+                        <div class="alert alert-error">
+                            <strong>Reason given:</strong> <?= e($reservation['review_remarks']) ?>
                         </div>
                     <?php endif; ?>
 
-                    <ul style="margin:.7rem 0 0;padding-left:1.1rem;font-size:.9rem;">
+                    <ul class="bullets item-body">
                         <?php foreach ($lines as $line): ?>
                             <li>
                                 <?= (int) $line['quantity'] ?> &times; <?= e($line['name']) ?>
-                                <span class="hint">(<?= e($line['item_code']) ?>)</span>
+                                <span class="muted small">(<?= e($line['item_code']) ?>)</span>
                             </li>
                         <?php endforeach; ?>
                     </ul>
                 </div>
 
-                <div style="flex:0 1 240px;">
+                <?php if ($reservation['status'] === 'pending' || ($reservation['status'] === 'approved' && is_office_staff())): ?>
+                <div class="item-aside">
                     <?php if ($reservation['status'] === 'pending'): ?>
                         <?php if ($canDecide): ?>
-                            <form method="post" style="margin-bottom:.5rem;">
+                            <form method="post" class="mb-4">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="action" value="approve">
                                 <input type="hidden" name="reservation_id" value="<?= (int) $reservation['reservation_id'] ?>">
@@ -265,8 +285,10 @@ require __DIR__ . '/../../includes/layout/header.php';
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="action" value="reject">
                                 <input type="hidden" name="reservation_id" value="<?= (int) $reservation['reservation_id'] ?>">
-                                <input type="text" name="review_remarks" required placeholder="Reason for rejection"
-                                       style="font-size:.85rem;margin-bottom:.35rem;">
+                                <div class="form-row mb-2">
+                                    <input type="text" name="review_remarks" required placeholder="Reason for rejection"
+                                           aria-label="Reason for rejecting this reservation">
+                                </div>
                                 <button type="submit" class="btn btn-outline btn-block btn-sm">Reject</button>
                             </form>
                         <?php else: ?>
@@ -280,12 +302,13 @@ require __DIR__ . '/../../includes/layout/header.php';
                         <?php endif; ?>
 
                     <?php elseif ($reservation['status'] === 'approved' && is_office_staff()): ?>
-                        <a class="btn btn-gold btn-block"
+                        <a class="btn btn-primary btn-block"
                            href="<?= url('inventory/borrowings.php?reservation_id=' . (int) $reservation['reservation_id']) ?>">
                             Release items
                         </a>
                     <?php endif; ?>
                 </div>
+                <?php endif; ?>
             </div>
         </section>
     <?php endforeach; ?>

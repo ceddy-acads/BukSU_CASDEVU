@@ -17,10 +17,10 @@ define('APP_ENV', 'production');           // 'development' | 'production'
 define('APP_DEBUG', APP_ENV === 'development');
 
 // ---------------------------------------------------------------- Application
-define('APP_NAME',    'CASMS');
-define('APP_TAGLINE', 'Culture, Arts, and Sports Management System');
+define('APP_NAME',    'CASDevU');
+define('APP_TAGLINE', 'Culture, Arts, and Sports Development Unit');
 define('UNIVERSITY',  'Bukidnon State University');
-define('OFFICE_NAME', 'Office of Culture, Arts, and Sports');
+define('OFFICE_NAME', 'Culture, Arts, and Sports Development Unit');
 
 /**
  * Public URL prefix — the URL path that maps to public/.
@@ -98,13 +98,31 @@ define('LOGIN_MAX_ATTEMPTS',    8);
 define('LOGIN_LOCKOUT_MINUTES', 15);
 
 // ------------------------------------------------------------------- Email
-// 'log'  — write messages to storage/logs/mail.log (default; XAMPP has no
-//          mail server, and every flow still works end to end)
+// 'smtp' — send through an SMTP account such as Gmail (real delivery)
+// 'log'  — write messages to storage/logs/mail.log (no mail server needed)
 // 'mail' — hand messages to PHP's mail() on a server that has one
-define('MAIL_TRANSPORT',      'log');          // 'log' | 'mail'
-define('MAIL_FROM_ADDRESS',   'no-reply@buksu.edu.ph');
-define('MAIL_FROM_NAME',      'BukSU Office of Culture, Arts, and Sports');
-define('APP_HOSTNAME',        'localhost');    // used to build links inside emails
+//
+// Real credentials never live in this file. Copy config.local.example.php
+// to config.local.php (git-ignored) and fill in the SMTP account there;
+// any value it defines wins over the defaults below.
+if (is_file(__DIR__ . '/config.local.php')) {
+    require __DIR__ . '/config.local.php';
+}
+
+defined('SMTP_HOST')       || define('SMTP_HOST',       'smtp.gmail.com');
+defined('SMTP_PORT')       || define('SMTP_PORT',       587);           // 587 = STARTTLS, 465 = SSL
+defined('SMTP_USERNAME')   || define('SMTP_USERNAME',   '');
+defined('SMTP_PASSWORD')   || define('SMTP_PASSWORD',   '');            // Gmail: a 16-character App Password
+defined('SMTP_TIMEOUT')    || define('SMTP_TIMEOUT',    20);
+
+// Default to real SMTP once credentials exist, otherwise keep the log so
+// nothing breaks on a fresh install.
+defined('MAIL_TRANSPORT')  || define('MAIL_TRANSPORT',
+    SMTP_USERNAME !== '' && SMTP_PASSWORD !== '' ? 'smtp' : 'log');     // 'smtp' | 'log' | 'mail'
+// Gmail only sends as the signed-in account, so the From address follows it.
+defined('MAIL_FROM_ADDRESS') || define('MAIL_FROM_ADDRESS', SMTP_USERNAME !== '' ? SMTP_USERNAME : 'no-reply@buksu.edu.ph');
+defined('MAIL_FROM_NAME')  || define('MAIL_FROM_NAME',  'BukSU Culture, Arts, and Sports Development Unit');
+defined('APP_HOSTNAME')    || define('APP_HOSTNAME',    'localhost');   // used to build links inside emails
 
 // Whether approvals, rejections and reminders are also emailed. The in-app
 // notification is always sent either way.

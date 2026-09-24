@@ -25,53 +25,56 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 </div>
 
-<div class="grid grid-3">
+<div class="stack">
     <section class="card">
-        <div class="card-head"><h2>Participation</h2></div>
-        <p style="font-size:.9rem;">
-            Registered and approved participants by activity, with a breakdown
-            by year level and course.
-        </p>
-        <p class="hint"><?= number_format($activityCount) ?> activities on record</p>
-        <a class="btn btn-primary btn-block" href="<?= url('reports/participation.php') ?>">
-            Open report
-        </a>
+        <div class="item">
+            <div class="item-main">
+                <h2 class="item-title">Participation</h2>
+                <p class="mb-2">Registered and approved participants by activity, with a breakdown by year level and course.</p>
+                <p class="meta"><?= number_format($activityCount) ?> activities on record</p>
+            </div>
+            <div class="btn-row">
+                <a class="btn btn-primary" href="<?= url('reports/participation.php') ?>">Open report<span class="sr-only">: participation</span></a>
+            </div>
+        </div>
     </section>
 
     <section class="card">
-        <div class="card-head"><h2>Student &amp; player records</h2></div>
-        <p style="font-size:.9rem;">
-            Search students, see how many activities each has joined, and open
-            one student's full participation history.
-        </p>
-        <p class="hint"><?= number_format($studentCount) ?> students on record</p>
-        <a class="btn btn-primary btn-block" href="<?= url('reports/students.php') ?>">
-            Open report
-        </a>
+        <div class="item">
+            <div class="item-main">
+                <h2 class="item-title">Student &amp; player records</h2>
+                <p class="mb-2">Search students, see how many activities each has joined, and open one student's full participation history.</p>
+                <p class="meta"><?= number_format($studentCount) ?> students on record</p>
+            </div>
+            <div class="btn-row">
+                <a class="btn btn-primary" href="<?= url('reports/students.php') ?>">Open report<span class="sr-only">: student and player records</span></a>
+            </div>
+        </div>
     </section>
 
     <?php if (is_office_staff()): ?>
         <section class="card">
-            <div class="card-head"><h2>Inventory</h2></div>
-            <p style="font-size:.9rem;">
-                Owned, on loan, available, damaged and unavailable items, plus
-                the full borrowing log.
-            </p>
-            <p class="hint">
-                <?= number_format($itemCount) ?> items
-                <?= $overdueCount > 0 ? ' · ' . $overdueCount . ' overdue' : '' ?>
-            </p>
-            <a class="btn btn-primary btn-block" href="<?= url('reports/inventory.php') ?>">
-                Open report
-            </a>
+            <div class="item">
+                <div class="item-main">
+                    <h2 class="item-title">Inventory</h2>
+                    <p class="mb-2">Owned, on loan, available, damaged and unavailable items, plus the full borrowing log.</p>
+                    <p class="meta">
+                        <?= number_format($itemCount) ?> items<?php if ($overdueCount > 0): ?>
+                            &middot; <span class="text-danger"><?= $overdueCount ?> overdue</span><?php endif; ?>
+                    </p>
+                </div>
+                <div class="btn-row">
+                    <a class="btn btn-primary" href="<?= url('reports/inventory.php') ?>">Open report<span class="sr-only">: inventory</span></a>
+                </div>
+            </div>
         </section>
     <?php endif; ?>
-</div>
 
-<div class="alert alert-info">
-    <strong>Exports.</strong> CSV files open in Excel or Google Sheets and carry
-    the filters you have applied. Use Print for a paper copy — the navigation
-    and buttons are hidden automatically.
+    <div class="alert alert-info">
+        <strong>Exports.</strong> CSV files open in Excel or Google Sheets and carry
+        the filters you have applied. Use Print for a paper copy. The navigation
+        and buttons are hidden automatically.
+    </div>
 </div>
 
 <?php require __DIR__ . '/../../includes/layout/footer.php'; ?>

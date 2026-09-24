@@ -164,7 +164,9 @@ require __DIR__ . '/../../includes/layout/header.php';
         <h1>Categories</h1>
         <p>Activity categories drive the calendar colours and filters; inventory categories group the catalog.</p>
     </div>
-    <a class="btn btn-outline" href="<?= url('admin/users.php') ?>">User accounts</a>
+    <div class="btn-row">
+        <a class="btn btn-outline" href="<?= url('admin/users.php') ?>">User accounts</a>
+    </div>
 </div>
 
 <?php if ($errors !== []): ?>
@@ -173,8 +175,117 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 <?php endif; ?>
 
-<div class="grid grid-2">
-    <section class="card">
+<div class="split">
+    <div class="stack">
+        <section class="card<?= $activityCategories === [] ? '' : ' card-flush' ?>">
+            <div class="card-head"><h2>Activity categories</h2></div>
+            <?php if ($activityCategories === []): ?>
+                <div class="empty">
+                    <strong>No activity categories yet</strong>
+                    Add one with the form on this page so activities can be classified.
+                </div>
+            <?php else: ?>
+                <div class="table-wrap">
+                    <table class="data">
+                        <thead>
+                            <tr><th>Name</th><th>Colour</th><th class="num">Used by</th><th>Status</th><th class="actions">Actions</th></tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($activityCategories as $category): ?>
+                            <tr>
+                                <td>
+                                    <strong><?= e($category['name']) ?></strong>
+                                    <?php if ($category['description']): ?>
+                                        <div class="hint"><?= e($category['description']) ?></div>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="nowrap">
+                                    <?php if ($category['color_hex']): ?>
+                                        <span class="swatch" style="background: <?= e($category['color_hex']) ?>"></span>
+                                        <?= e($category['color_hex']) ?>
+                                    <?php else: ?>
+                                        <span class="muted">Not set</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="num"><?= (int) $category['usage_count'] ?></td>
+                                <td><?= (int) $category['is_active'] === 1
+                                        ? '<span class="badge badge-success">Active</span>'
+                                        : '<span class="badge badge-muted">Inactive</span>' ?></td>
+                                <td class="actions">
+                                    <div class="btn-row">
+                                        <a class="btn btn-outline btn-sm"
+                                           href="<?= url('admin/categories.php?kind=activity&edit=' . (int) $category['category_id']) ?>"
+                                           aria-label="Edit <?= e($category['name']) ?>">Edit</a>
+                                        <?php if ((int) $category['usage_count'] === 0): ?>
+                                            <form method="post" class="inline-form"
+                                                  onsubmit="return confirm('Delete this category?');">
+                                                <?= csrf_field() ?>
+                                                <input type="hidden" name="action" value="delete">
+                                                <input type="hidden" name="kind" value="activity">
+                                                <input type="hidden" name="category_id" value="<?= (int) $category['category_id'] ?>">
+                                                <button type="submit" class="btn btn-danger btn-sm"
+                                                        aria-label="Delete <?= e($category['name']) ?>">Delete</button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </section>
+
+        <section class="card<?= $inventoryCategories === [] ? '' : ' card-flush' ?>">
+            <div class="card-head"><h2>Inventory categories</h2></div>
+            <?php if ($inventoryCategories === []): ?>
+                <div class="empty">
+                    <strong>No inventory categories yet</strong>
+                    Add one with the form on this page to group the inventory catalog.
+                </div>
+            <?php else: ?>
+                <div class="table-wrap">
+                    <table class="data">
+                        <thead><tr><th>Name</th><th class="num">Items</th><th class="actions">Actions</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($inventoryCategories as $category): ?>
+                            <tr>
+                                <td>
+                                    <strong><?= e($category['name']) ?></strong>
+                                    <?php if ($category['description']): ?>
+                                        <div class="hint"><?= e($category['description']) ?></div>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="num"><?= (int) $category['usage_count'] ?></td>
+                                <td class="actions">
+                                    <div class="btn-row">
+                                        <a class="btn btn-outline btn-sm"
+                                           href="<?= url('admin/categories.php?kind=inventory&edit=' . (int) $category['inv_category_id']) ?>"
+                                           aria-label="Edit <?= e($category['name']) ?>">Edit</a>
+                                        <?php if ((int) $category['usage_count'] === 0): ?>
+                                            <form method="post" class="inline-form"
+                                                  onsubmit="return confirm('Delete this category?');">
+                                                <?= csrf_field() ?>
+                                                <input type="hidden" name="action" value="delete">
+                                                <input type="hidden" name="kind" value="inventory">
+                                                <input type="hidden" name="category_id" value="<?= (int) $category['inv_category_id'] ?>">
+                                                <button type="submit" class="btn btn-danger btn-sm"
+                                                        aria-label="Delete <?= e($category['name']) ?>">Delete</button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </section>
+    </div>
+
+    <section class="card" id="category-form">
         <div class="card-head"><h2><?= $editing ? 'Edit category' : 'Add a category' ?></h2></div>
 
         <form method="post" novalidate>
@@ -202,27 +313,27 @@ require __DIR__ . '/../../includes/layout/header.php';
             </div>
 
             <div class="form-row">
-                <label for="description">Description</label>
+                <label for="description">Description <span class="optional">(optional)</span></label>
                 <input type="text" id="description" name="description"
                        value="<?= e(category_field('description', $editing)) ?>">
             </div>
 
             <div class="form-row">
-                <label for="color_hex">Colour (activity categories only)</label>
+                <label for="color_hex">Colour <span class="optional">(activity categories only)</span></label>
                 <input type="text" id="color_hex" name="color_hex" placeholder="#2980B9"
                        value="<?= e(category_field('color_hex', $editing)) ?>">
                 <div class="hint">Six-digit hex, used to colour the activity list.</div>
             </div>
 
             <div class="form-row">
-                <label>
-                    <input type="checkbox" name="is_active" value="1" style="width:auto;"
+                <label class="check">
+                    <input type="checkbox" name="is_active" value="1"
                         <?= !$editing || (int) ($editing['is_active'] ?? 1) === 1 ? 'checked' : '' ?>>
-                    Active — can be chosen when creating an activity
+                    <span>Active: can be chosen when creating an activity</span>
                 </label>
             </div>
 
-            <div class="btn-row">
+            <div class="form-actions">
                 <button type="submit" class="btn btn-primary"><?= $editing ? 'Save changes' : 'Add category' ?></button>
                 <?php if ($editing): ?>
                     <a class="btn btn-outline" href="<?= url('admin/categories.php') ?>">Cancel</a>
@@ -230,91 +341,6 @@ require __DIR__ . '/../../includes/layout/header.php';
             </div>
         </form>
     </section>
-
-    <div>
-        <section class="card">
-            <div class="card-head"><h2>Activity categories</h2></div>
-            <div class="table-wrap">
-                <table class="data">
-                    <thead><tr><th>Name</th><th>Used by</th><th>Status</th><th></th></tr></thead>
-                    <tbody>
-                    <?php foreach ($activityCategories as $category): ?>
-                        <tr>
-                            <td>
-                                <?php if ($category['color_hex']): ?>
-                                    <span style="display:inline-block;width:10px;height:10px;border-radius:2px;
-                                                 background:<?= e($category['color_hex']) ?>;"></span>
-                                <?php endif; ?>
-                                <strong><?= e($category['name']) ?></strong>
-                                <?php if ($category['description']): ?>
-                                    <div class="hint"><?= e($category['description']) ?></div>
-                                <?php endif; ?>
-                            </td>
-                            <td><?= (int) $category['usage_count'] ?></td>
-                            <td><?= (int) $category['is_active'] === 1
-                                    ? '<span class="badge badge-success">Active</span>'
-                                    : '<span class="badge badge-muted">Inactive</span>' ?></td>
-                            <td class="actions">
-                                <div class="btn-row">
-                                    <a class="btn btn-outline btn-sm"
-                                       href="<?= url('admin/categories.php?kind=activity&edit=' . (int) $category['category_id']) ?>">Edit</a>
-                                    <?php if ((int) $category['usage_count'] === 0): ?>
-                                        <form method="post" style="display:inline;"
-                                              onsubmit="return confirm('Delete this category?');">
-                                            <?= csrf_field() ?>
-                                            <input type="hidden" name="action" value="delete">
-                                            <input type="hidden" name="kind" value="activity">
-                                            <input type="hidden" name="category_id" value="<?= (int) $category['category_id'] ?>">
-                                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                                        </form>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <section class="card">
-            <div class="card-head"><h2>Inventory categories</h2></div>
-            <div class="table-wrap">
-                <table class="data">
-                    <thead><tr><th>Name</th><th>Items</th><th></th></tr></thead>
-                    <tbody>
-                    <?php foreach ($inventoryCategories as $category): ?>
-                        <tr>
-                            <td>
-                                <strong><?= e($category['name']) ?></strong>
-                                <?php if ($category['description']): ?>
-                                    <div class="hint"><?= e($category['description']) ?></div>
-                                <?php endif; ?>
-                            </td>
-                            <td><?= (int) $category['usage_count'] ?></td>
-                            <td class="actions">
-                                <div class="btn-row">
-                                    <a class="btn btn-outline btn-sm"
-                                       href="<?= url('admin/categories.php?kind=inventory&edit=' . (int) $category['inv_category_id']) ?>">Edit</a>
-                                    <?php if ((int) $category['usage_count'] === 0): ?>
-                                        <form method="post" style="display:inline;"
-                                              onsubmit="return confirm('Delete this category?');">
-                                            <?= csrf_field() ?>
-                                            <input type="hidden" name="action" value="delete">
-                                            <input type="hidden" name="kind" value="inventory">
-                                            <input type="hidden" name="category_id" value="<?= (int) $category['inv_category_id'] ?>">
-                                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                                        </form>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    </div>
 </div>
 
 <?php

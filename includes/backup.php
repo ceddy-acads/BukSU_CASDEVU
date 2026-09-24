@@ -189,7 +189,7 @@ function restore_backup(string $filename): array
     if ($exitCode !== 0) {
         error_log('[CASMS] Restore failed (' . $exitCode . '): ' . implode(' ', $output));
         return ['ok' => false, 'error' => 'The restore failed. The database may be in a '
-            . 'partial state — check storage/logs/php-error.log.'];
+            . 'partial state. Check storage/logs/php-error.log.'];
     }
 
     return ['ok' => true];

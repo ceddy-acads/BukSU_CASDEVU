@@ -26,7 +26,7 @@ if ($isEdit) {
     $activity = fetch_one('SELECT * FROM activities WHERE activity_id = ?', [$activityId]);
     if ($activity === null) {
         http_response_code(404);
-        exit('404 — Activity not found.');
+        abort_page(404, 'Activity not found.');
     }
 }
 
@@ -53,7 +53,7 @@ if (is_post()) {
     if (post('action') === 'delete' && $isEdit) {
         if (!has_role('admin')) {
             http_response_code(403);
-            exit('403 — Only an administrator may delete an activity.');
+            abort_page(403, 'Only an administrator may delete an activity.');
         }
 
         $files = fetch_all(
@@ -246,13 +246,10 @@ require __DIR__ . '/../../includes/layout/header.php';
 
 <div class="page-head">
     <div>
+        <a class="crumb" href="<?= $isEdit ? url('activities/view.php?id=' . $activityId) : url('activities/index.php') ?>">&larr; <?= $isEdit ? 'Back to activity' : 'Back to activities' ?></a>
         <h1><?= $isEdit ? 'Edit activity' : 'New activity' ?></h1>
         <p><?= $isEdit ? e($activity['title']) : 'Publish a culture, arts, or sports activity.' ?></p>
     </div>
-    <a class="btn btn-outline"
-       href="<?= $isEdit ? url('activities/view.php?id=' . $activityId) : url('activities/index.php') ?>">
-        Cancel
-    </a>
 </div>
 
 <?php if ($errors !== []): ?>
@@ -267,131 +264,134 @@ require __DIR__ . '/../../includes/layout/header.php';
     <?= csrf_field() ?>
 
     <section class="card">
-        <div class="card-head"><h2>Basic information</h2></div>
+        <div class="form-section">
+            <h3>Basics</h3>
 
-        <div class="form-row">
-            <label for="title">Title <span class="req">*</span></label>
-            <input type="text" id="title" name="title" value="<?= e(field('title', $activity)) ?>" required>
+            <div class="form-row">
+                <label for="title">Title <span class="req">*</span></label>
+                <input type="text" id="title" name="title" value="<?= e(field('title', $activity)) ?>" required>
+            </div>
+
+            <div class="form-grid form-grid-2">
+                <div class="form-row">
+                    <label for="category_id">Category <span class="req">*</span></label>
+                    <select id="category_id" name="category_id" required>
+                        <option value="">Select a category</option>
+                        <?php foreach ($categories as $category): ?>
+                            <option value="<?= (int) $category['category_id'] ?>"
+                                <?= field('category_id', $activity) === (string) $category['category_id'] ? 'selected' : '' ?>>
+                                <?= e($category['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label for="status">Status <span class="req">*</span></label>
+                    <select id="status" name="status" required>
+                        <?php
+                        $currentStatus = field('status', $activity) ?: 'draft';
+                        foreach ($statuses as $statusOption): ?>
+                            <option value="<?= e($statusOption) ?>" <?= $currentStatus === $statusOption ? 'selected' : '' ?>>
+                                <?= e(ucfirst($statusOption)) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="hint">Drafts are hidden from students.</p>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <label for="description">Description <span class="optional">(optional)</span></label>
+                <textarea id="description" name="description"><?= e(field('description', $activity)) ?></textarea>
+            </div>
         </div>
 
-        <div class="form-grid form-grid-2">
-            <div class="form-row">
-                <label for="category_id">Category <span class="req">*</span></label>
-                <select id="category_id" name="category_id" required>
-                    <option value="">— Select category —</option>
-                    <?php foreach ($categories as $category): ?>
-                        <option value="<?= (int) $category['category_id'] ?>"
-                            <?= field('category_id', $activity) === (string) $category['category_id'] ? 'selected' : '' ?>>
-                            <?= e($category['name']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+        <div class="form-section">
+            <h3>Schedule and venue</h3>
+
+            <div class="form-grid form-grid-2">
+                <div class="form-row">
+                    <label for="start_at">Starts <span class="req">*</span></label>
+                    <input type="datetime-local" id="start_at" name="start_at"
+                           value="<?= e(field('start_at', $activity, true)) ?>" required>
+                </div>
+                <div class="form-row">
+                    <label for="end_at">Ends <span class="req">*</span></label>
+                    <input type="datetime-local" id="end_at" name="end_at"
+                           value="<?= e(field('end_at', $activity, true)) ?>" required>
+                </div>
             </div>
+
             <div class="form-row">
-                <label for="venue_id">Venue</label>
+                <label for="venue_id">Venue <span class="optional">(optional)</span></label>
                 <select id="venue_id" name="venue_id">
-                    <option value="">— Not yet assigned —</option>
+                    <option value="">Not yet assigned</option>
                     <?php foreach ($venues as $venue): ?>
                         <option value="<?= (int) $venue['venue_id'] ?>"
                             <?= field('venue_id', $activity) === (string) $venue['venue_id'] ? 'selected' : '' ?>>
-                            <?= e($venue['name']) ?>
-                            <?= $venue['location'] ? ' — ' . e($venue['location']) : '' ?>
+                            <?= e($venue['name']) ?><?= $venue['location'] ? ', ' . e($venue['location']) : '' ?>
                             <?= (int) $venue['is_active'] !== 1 ? ' (archived)' : '' ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
                 <?php if ($venues === []): ?>
-                    <div class="hint">
+                    <p class="hint">
                         No venues have been set up yet.
                         <?php if (is_office_staff()): ?>
                             <a href="<?= url('admin/venues.php') ?>">Add one now</a>.
                         <?php else: ?>
                             Ask the office to add one.
                         <?php endif; ?>
-                    </div>
+                    </p>
                 <?php endif; ?>
             </div>
         </div>
 
-        <div class="form-row">
-            <label for="description">Description</label>
-            <textarea id="description" name="description"><?= e(field('description', $activity)) ?></textarea>
+        <div class="form-section">
+            <h3>Registration and participation</h3>
+
+            <div class="form-grid form-grid-3">
+                <div class="form-row">
+                    <label for="registration_opens_at">Registration opens <span class="optional">(optional)</span></label>
+                    <input type="datetime-local" id="registration_opens_at" name="registration_opens_at"
+                           value="<?= e(field('registration_opens_at', $activity, true)) ?>">
+                </div>
+                <div class="form-row">
+                    <label for="registration_closes_at">Registration closes <span class="optional">(optional)</span></label>
+                    <input type="datetime-local" id="registration_closes_at" name="registration_closes_at"
+                           value="<?= e(field('registration_closes_at', $activity, true)) ?>">
+                </div>
+                <div class="form-row">
+                    <label for="max_participants">Maximum participants <span class="optional">(optional)</span></label>
+                    <input type="number" id="max_participants" name="max_participants" min="1"
+                           value="<?= e(field('max_participants', $activity)) ?>">
+                    <p class="hint">Leave blank for unlimited.</p>
+                </div>
+            </div>
+
+            <div class="form-grid form-grid-2">
+                <div class="form-row">
+                    <label for="eligibility">Who may join <span class="optional">(optional)</span></label>
+                    <textarea id="eligibility" name="eligibility"
+                              placeholder="e.g. Open to all bona fide students, 1st to 4th year."><?= e(field('eligibility', $activity)) ?></textarea>
+                </div>
+                <div class="form-row">
+                    <label for="instructions">How to participate <span class="optional">(optional)</span></label>
+                    <textarea id="instructions" name="instructions"><?= e(field('instructions', $activity)) ?></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <?= $isEdit ? 'Save changes' : 'Create activity' ?>
+            </button>
+            <a class="btn btn-outline"
+               href="<?= $isEdit ? url('activities/view.php?id=' . $activityId) : url('activities/index.php') ?>">
+                Cancel
+            </a>
         </div>
     </section>
-
-    <section class="card">
-        <div class="card-head"><h2>Schedule</h2></div>
-
-        <div class="form-grid form-grid-2">
-            <div class="form-row">
-                <label for="start_at">Starts <span class="req">*</span></label>
-                <input type="datetime-local" id="start_at" name="start_at"
-                       value="<?= e(field('start_at', $activity, true)) ?>" required>
-            </div>
-            <div class="form-row">
-                <label for="end_at">Ends <span class="req">*</span></label>
-                <input type="datetime-local" id="end_at" name="end_at"
-                       value="<?= e(field('end_at', $activity, true)) ?>" required>
-            </div>
-            <div class="form-row">
-                <label for="registration_opens_at">Registration opens</label>
-                <input type="datetime-local" id="registration_opens_at" name="registration_opens_at"
-                       value="<?= e(field('registration_opens_at', $activity, true)) ?>">
-            </div>
-            <div class="form-row">
-                <label for="registration_closes_at">Registration closes</label>
-                <input type="datetime-local" id="registration_closes_at" name="registration_closes_at"
-                       value="<?= e(field('registration_closes_at', $activity, true)) ?>">
-            </div>
-        </div>
-    </section>
-
-    <section class="card">
-        <div class="card-head"><h2>Participation</h2></div>
-
-        <div class="form-grid form-grid-2">
-            <div class="form-row">
-                <label for="max_participants">Maximum participants</label>
-                <input type="number" id="max_participants" name="max_participants" min="1"
-                       value="<?= e(field('max_participants', $activity)) ?>">
-                <div class="hint">Leave blank for unlimited.</div>
-            </div>
-            <div class="form-row">
-                <label for="status">Status <span class="req">*</span></label>
-                <select id="status" name="status" required>
-                    <?php
-                    $currentStatus = field('status', $activity) ?: 'draft';
-                    foreach ($statuses as $statusOption): ?>
-                        <option value="<?= e($statusOption) ?>" <?= $currentStatus === $statusOption ? 'selected' : '' ?>>
-                            <?= e(ucfirst($statusOption)) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <div class="hint">Drafts are hidden from students.</div>
-            </div>
-        </div>
-
-        <div class="form-row">
-            <label for="eligibility">Who may join</label>
-            <textarea id="eligibility" name="eligibility"
-                      placeholder="e.g. Open to all bona fide students, 1st to 4th year."><?= e(field('eligibility', $activity)) ?></textarea>
-        </div>
-
-        <div class="form-row">
-            <label for="instructions">How to participate</label>
-            <textarea id="instructions" name="instructions"><?= e(field('instructions', $activity)) ?></textarea>
-        </div>
-    </section>
-
-    <div class="btn-row">
-        <button type="submit" class="btn btn-primary">
-            <?= $isEdit ? 'Save changes' : 'Create activity' ?>
-        </button>
-        <a class="btn btn-outline"
-           href="<?= $isEdit ? url('activities/view.php?id=' . $activityId) : url('activities/index.php') ?>">
-            Cancel
-        </a>
-    </div>
 </form>
 
 <?php if ($isEdit && has_role('admin')): ?>
@@ -400,9 +400,9 @@ require __DIR__ . '/../../includes/layout/header.php';
         'SELECT COUNT(*) FROM registrations WHERE activity_id = ?', [$activityId]
     );
     ?>
-    <section class="card" style="margin-top:1.5rem;">
+    <section class="card mt-6">
         <div class="card-head"><h2>Delete this activity</h2></div>
-        <p style="font-size:.9rem;margin-top:0;">
+        <p class="card-intro">
             Deleting removes the activity permanently, together with its
             <strong><?= $registrationCount ?></strong> registration<?= $registrationCount === 1 ? '' : 's' ?>,
             its requirements, and every document students submitted for it.

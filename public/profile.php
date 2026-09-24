@@ -105,7 +105,7 @@ require __DIR__ . '/../includes/layout/header.php';
     </div>
 <?php endif; ?>
 
-<div class="grid grid-2">
+<div class="split">
     <section class="card">
         <div class="card-head"><h2>Personal details</h2></div>
 
@@ -114,15 +114,15 @@ require __DIR__ . '/../includes/layout/header.php';
             <input type="hidden" name="action" value="details">
 
             <div class="form-row">
-                <label>Email address</label>
-                <input type="email" value="<?= e($user['email']) ?>" disabled>
+                <label for="email_display">Email address</label>
+                <input type="email" id="email_display" value="<?= e($user['email']) ?>" disabled>
                 <div class="hint">Contact the office to change your registered email.</div>
             </div>
 
             <?php if ($user['student_number']): ?>
                 <div class="form-row">
-                    <label>Student number</label>
-                    <input type="text" value="<?= e($user['student_number']) ?>" disabled>
+                    <label for="student_number_display">Student number</label>
+                    <input type="text" id="student_number_display" value="<?= e($user['student_number']) ?>" disabled>
                 </div>
             <?php endif; ?>
 
@@ -138,12 +138,12 @@ require __DIR__ . '/../includes/layout/header.php';
                            value="<?= e($user['last_name']) ?>" required>
                 </div>
                 <div class="form-row">
-                    <label for="middle_name">Middle name</label>
+                    <label for="middle_name">Middle name <span class="optional">(optional)</span></label>
                     <input type="text" id="middle_name" name="middle_name"
                            value="<?= e($user['middle_name']) ?>">
                 </div>
                 <div class="form-row">
-                    <label for="contact_number">Contact number</label>
+                    <label for="contact_number">Contact number <span class="optional">(optional)</span></label>
                     <input type="text" id="contact_number" name="contact_number"
                            value="<?= e($user['contact_number']) ?>">
                 </div>
@@ -154,11 +154,11 @@ require __DIR__ . '/../includes/layout/header.php';
                     <div class="form-row">
                         <label for="course_id">Course</label>
                         <select id="course_id" name="course_id">
-                            <option value="">— Not set —</option>
+                            <option value="">Not set</option>
                             <?php foreach ($courses as $course): ?>
                                 <option value="<?= (int) $course['course_id'] ?>"
                                     <?= (int) $user['course_id'] === (int) $course['course_id'] ? 'selected' : '' ?>>
-                                    <?= e($course['code']) ?> — <?= e($course['name']) ?>
+                                    <?= e($course['code']) ?>: <?= e($course['name']) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -166,7 +166,7 @@ require __DIR__ . '/../includes/layout/header.php';
                     <div class="form-row">
                         <label for="year_level_id">Year level</label>
                         <select id="year_level_id" name="year_level_id">
-                            <option value="">— Not set —</option>
+                            <option value="">Not set</option>
                             <?php foreach ($yearLevels as $level): ?>
                                 <option value="<?= (int) $level['year_level_id'] ?>"
                                     <?= (int) $user['year_level_id'] === (int) $level['year_level_id'] ? 'selected' : '' ?>>
@@ -182,16 +182,21 @@ require __DIR__ . '/../includes/layout/header.php';
                 </div>
             <?php endif; ?>
 
-            <button type="submit" class="btn btn-primary">Save changes</button>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save changes</button>
+            </div>
         </form>
     </section>
 
+    <div class="stack">
     <section class="card">
         <div class="card-head"><h2>Change password</h2></div>
 
         <form method="post" novalidate>
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="password">
+            <?php // Unnamed, so never submitted: lets password managers pair the new password with this account. ?>
+            <input type="email" autocomplete="username" value="<?= e($user['email']) ?>" hidden aria-hidden="true" tabindex="-1">
 
             <div class="form-row">
                 <label for="current_password">Current password <span class="req">*</span></label>
@@ -210,17 +215,22 @@ require __DIR__ . '/../includes/layout/header.php';
                        autocomplete="new-password" required>
             </div>
 
-            <button type="submit" class="btn btn-primary">Change password</button>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Change password</button>
+            </div>
         </form>
+    </section>
 
-        <div class="card-head" style="margin-top:1.75rem;"><h2>Account</h2></div>
+    <section class="card">
+        <div class="card-head"><h2>Account</h2></div>
         <dl class="detail-list">
-            <dt>Role</dt>      <dd><?= e(ucfirst((string) $user['role_name'])) ?></dd>
-            <dt>Status</dt>    <dd><?= status_badge($user['status']) ?></dd>
-            <dt>Last sign-in</dt><dd><?= e(format_datetime($user['last_login_at'])) ?></dd>
-            <dt>Member since</dt><dd><?= e(format_date($user['created_at'])) ?></dd>
+            <div><dt>Role</dt><dd><?= e(ucfirst((string) $user['role_name'])) ?></dd></div>
+            <div><dt>Status</dt><dd><?= status_badge($user['status']) ?></dd></div>
+            <div><dt>Last sign-in</dt><dd><?= e(format_datetime($user['last_login_at'])) ?></dd></div>
+            <div><dt>Member since</dt><dd><?= e(format_date($user['created_at'])) ?></dd></div>
         </dl>
     </section>
+    </div>
 </div>
 
 <?php require __DIR__ . '/../includes/layout/footer.php'; ?>

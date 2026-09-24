@@ -12,7 +12,7 @@ require_once __DIR__ . '/../../includes/bootstrap.php';
 $activityId = get_id('activity_id') ?? (int) post('activity_id');
 if ($activityId <= 0) {
     http_response_code(404);
-    exit('404 — Activity not found.');
+    abort_page(404, 'Activity not found.');
 }
 
 require_activity_access($activityId);
@@ -25,7 +25,7 @@ $activity = fetch_one(
 );
 if ($activity === null) {
     http_response_code(404);
-    exit('404 — Activity not found.');
+    abort_page(404, 'Activity not found.');
 }
 
 // =====================================================================
@@ -183,15 +183,16 @@ $counts = fetch_one(
 $yearLevels       = fetch_all('SELECT year_level_id, label FROM year_levels ORDER BY sort_order');
 $requirementCount = (int) fetch_value('SELECT COUNT(*) FROM activity_requirements WHERE activity_id = ?', [$activityId]);
 
-$pageTitle = 'Participants — ' . $activity['title'];
+$pageTitle = 'Participants: ' . $activity['title'];
 require __DIR__ . '/../../includes/layout/header.php';
 ?>
 
 <div class="page-head">
     <div>
+        <a class="crumb" href="<?= url('activities/view.php?id=' . $activityId) ?>">&larr; Back to activity</a>
         <h1>Participants</h1>
         <p>
-            <a href="<?= url('activities/view.php?id=' . $activityId) ?>"><?= e($activity['title']) ?></a>
+            <?= e($activity['title']) ?>
             &middot; <?= e($activity['category']) ?>
             <?php if ($activity['max_participants']): ?>
                 &middot; <?= (int) $counts['approved'] ?> of <?= (int) $activity['max_participants'] ?> slots filled
@@ -202,20 +203,19 @@ require __DIR__ . '/../../includes/layout/header.php';
         <a class="btn btn-outline" href="<?= url('requirements/manage.php?activity_id=' . $activityId) ?>">
             Requirements (<?= $requirementCount ?>)
         </a>
-        <a class="btn btn-outline" href="<?= url('activities/view.php?id=' . $activityId) ?>">Back to activity</a>
     </div>
 </div>
 
-<div class="grid grid-4" style="margin-bottom:1.5rem;">
+<div class="stats">
     <div class="stat">
         <div class="stat-value"><?= (int) $counts['total'] ?></div>
         <div class="stat-label">Total registered</div>
     </div>
-    <div class="stat stat-gold">
+    <div class="stat <?= stat_tone($counts['pending'], 'stat-gold') ?>">
         <div class="stat-value"><?= (int) $counts['pending'] ?></div>
         <div class="stat-label">Awaiting review</div>
     </div>
-    <div class="stat stat-success">
+    <div class="stat <?= stat_tone($counts['approved'], 'stat-success') ?>">
         <div class="stat-value"><?= (int) $counts['approved'] ?></div>
         <div class="stat-label">Approved</div>
     </div>
@@ -224,6 +224,8 @@ require __DIR__ . '/../../includes/layout/header.php';
         <div class="stat-label">Marked present</div>
     </div>
 </div>
+
+<?php $hasFilters = $keyword !== '' || $statusFilter !== '' || $yearFilter !== ''; ?>
 
 <form method="get" class="filter-bar">
     <input type="hidden" name="activity_id" value="<?= $activityId ?>">
@@ -254,120 +256,146 @@ require __DIR__ . '/../../includes/layout/header.php';
             <?php endforeach; ?>
         </select>
     </div>
-    <div class="form-row" style="flex:0 0 auto;">
+    <div class="form-row filter-actions">
         <button type="submit" class="btn btn-primary">Filter</button>
-    </div>
-    <?php if ($keyword !== '' || $statusFilter !== '' || $yearFilter !== ''): ?>
-        <div class="form-row" style="flex:0 0 auto;">
+        <?php if ($hasFilters): ?>
             <a class="btn btn-outline" href="<?= url('participation/participants.php?activity_id=' . $activityId) ?>">Clear</a>
-        </div>
-    <?php endif; ?>
+        <?php endif; ?>
+    </div>
 </form>
 
 <?php if ($participants === []): ?>
-    <div class="empty">
-        <strong>No participants match</strong>
-        <?= (int) $counts['total'] === 0
-            ? 'No one has registered for this activity yet.'
-            : 'Try different filters.' ?>
-    </div>
+    <?php if ((int) $counts['total'] === 0): ?>
+        <div class="empty">
+            <strong>No registrations yet</strong>
+            No one has registered for this activity. Registrations appear here as students sign up.
+        </div>
+    <?php else: ?>
+        <div class="empty">
+            <strong>No participants match these filters</strong>
+            Try a different search, status, or year level.
+            <?php if ($hasFilters): ?>
+                <div class="btn-row">
+                    <a class="btn btn-outline" href="<?= url('participation/participants.php?activity_id=' . $activityId) ?>">Clear filters</a>
+                </div>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 <?php else: ?>
-    <div class="card">
+    <section class="card card-flush">
         <div class="table-wrap">
-            <table class="data">
+            <table class="data table-stack">
                 <thead>
                     <tr>
                         <th>Student</th><th>Course / Year</th><th>Team</th>
-                        <th>Requirements</th><th>Status</th><th>Present</th><th>Actions</th>
+                        <th>Requirements</th><th>Status</th><th>Present</th><th class="actions">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                 <?php foreach ($participants as $participant): ?>
-                    <?php $progress = $participant['progress']; ?>
+                    <?php
+                    $progress = $participant['progress'];
+                    $rowName  = full_name($participant, true);
+                    ?>
                     <tr>
-                        <td>
-                            <strong><?= e(full_name($participant, true)) ?></strong>
-                            <div class="hint"><?= e($participant['student_number'] ?? '—') ?></div>
-                        </td>
-                        <td>
-                            <?= e($participant['course_code'] ?? '—') ?>
+                        <td data-label="Student">
+                            <strong><?= e($rowName) ?></strong>
                             <div class="hint">
-                                <?= e($participant['year_level_label'] ?? '') ?>
-                                <?= $participant['section'] ? ' — ' . e($participant['section']) : '' ?>
+                                <?= $participant['student_number'] ? e($participant['student_number']) : 'No student number' ?>
                             </div>
                         </td>
-                        <td><?= e($participant['team_name'] ?? '—') ?></td>
-                        <td>
+                        <td data-label="Course / Year">
+                            <?= $participant['course_code'] ? e($participant['course_code']) : '<span class="muted">Not set</span>' ?>
+                            <div class="hint">
+                                <?= e($participant['year_level_label'] ?? '') ?><?= $participant['section'] ? ', ' . e($participant['section']) : '' ?>
+                            </div>
+                        </td>
+                        <td data-label="Team"><?= $participant['team_name'] ? e($participant['team_name']) : '<span class="muted">None</span>' ?></td>
+                        <td data-label="Requirements">
                             <?php if ($progress['total'] === 0): ?>
-                                <span class="hint">None required</span>
+                                <span class="muted">None required</span>
                             <?php elseif ($progress['complete']): ?>
                                 <span class="badge badge-success">Complete</span>
                             <?php else: ?>
                                 <span class="badge badge-warning">
-                                    <?= $progress['satisfied'] ?>/<?= $progress['total'] ?>
+                                    <?= $progress['satisfied'] ?> of <?= $progress['total'] ?> done
                                 </span>
                             <?php endif; ?>
                         </td>
-                        <td>
+                        <td data-label="Status">
                             <?= status_badge($participant['status']) ?>
                             <?php if ($participant['review_remarks']): ?>
                                 <div class="hint"><?= e($participant['review_remarks']) ?></div>
                             <?php endif; ?>
                         </td>
-                        <td>
+                        <td data-label="Present">
                             <?php if ($participant['status'] === 'approved'): ?>
-                                <form method="post" style="display:inline;">
+                                <form method="post" class="inline-form">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="action" value="attendance">
                                     <input type="hidden" name="activity_id" value="<?= $activityId ?>">
                                     <input type="hidden" name="registration_id" value="<?= (int) $participant['registration_id'] ?>">
                                     <input type="hidden" name="attended" value="<?= $participant['attended'] ? '0' : '1' ?>">
-                                    <button type="submit" class="btn btn-sm <?= $participant['attended'] ? 'btn-gold' : 'btn-outline' ?>">
-                                        <?= $participant['attended'] ? 'Present' : 'Mark present' ?>
-                                    </button>
+                                    <?php if ($participant['attended']): ?>
+                                        <button type="submit" class="btn btn-sm btn-primary nowrap"
+                                                aria-label="<?= e($rowName) ?> is marked present. Select to mark absent.">
+                                            Present
+                                        </button>
+                                    <?php else: ?>
+                                        <button type="submit" class="btn btn-sm btn-outline nowrap"
+                                                aria-label="Mark <?= e($rowName) ?> present">
+                                            Mark present
+                                        </button>
+                                    <?php endif; ?>
                                 </form>
                             <?php else: ?>
-                                <span class="hint">—</span>
+                                <span class="muted">Not applicable</span>
                             <?php endif; ?>
                         </td>
                         <td class="actions">
                             <div class="btn-row">
                                 <?php if ($participant['status'] !== 'approved'): ?>
-                                    <form method="post" style="display:inline;">
+                                    <form method="post" class="inline-form">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="approve">
                                         <input type="hidden" name="activity_id" value="<?= $activityId ?>">
                                         <input type="hidden" name="registration_id" value="<?= (int) $participant['registration_id'] ?>">
-                                        <button type="submit" class="btn btn-primary btn-sm">Approve</button>
+                                        <button type="submit" class="btn btn-primary btn-sm"
+                                                aria-label="Approve <?= e($rowName) ?>">Approve</button>
                                     </form>
                                 <?php endif; ?>
 
                                 <?php if ($participant['status'] !== 'rejected'): ?>
                                     <button type="button" class="btn btn-outline btn-sm"
+                                            aria-label="Reject <?= e($rowName) ?>"
                                             onclick="document.getElementById('reject-<?= (int) $participant['registration_id'] ?>').hidden = false; this.hidden = true;">
                                         Reject
                                     </button>
-                                    <form method="post" id="reject-<?= (int) $participant['registration_id'] ?>" hidden
-                                          style="margin-top:.35rem;">
-                                        <?= csrf_field() ?>
-                                        <input type="hidden" name="action" value="reject">
-                                        <input type="hidden" name="activity_id" value="<?= $activityId ?>">
-                                        <input type="hidden" name="registration_id" value="<?= (int) $participant['registration_id'] ?>">
-                                        <input type="text" name="review_remarks" required
-                                               placeholder="Reason (shown to the student)" style="font-size:.8rem;">
-                                        <button type="submit" class="btn btn-danger btn-sm" style="margin-top:.3rem;">
-                                            Confirm rejection
-                                        </button>
-                                    </form>
                                 <?php endif; ?>
                             </div>
+                            <?php if ($participant['status'] !== 'rejected'): ?>
+                                <form method="post" id="reject-<?= (int) $participant['registration_id'] ?>" hidden class="mt-2">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="action" value="reject">
+                                    <input type="hidden" name="activity_id" value="<?= $activityId ?>">
+                                    <input type="hidden" name="registration_id" value="<?= (int) $participant['registration_id'] ?>">
+                                    <div class="btn-row">
+                                        <input type="text" name="review_remarks" required class="input-auto input-sm"
+                                               aria-label="Reason for rejecting <?= e($rowName) ?>"
+                                               placeholder="Reason (shown to the student)">
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            Confirm rejection
+                                        </button>
+                                    </div>
+                                </form>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
-    </div>
+    </section>
 <?php endif; ?>
 
 <?php require __DIR__ . '/../../includes/layout/footer.php'; ?>

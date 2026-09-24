@@ -129,9 +129,11 @@ require __DIR__ . '/../../includes/layout/header.php';
 <div class="page-head">
     <div>
         <h1>Audit trail</h1>
-        <p><?= number_format($total) ?> matching entr<?= $total === 1 ? 'y' : 'ies' ?></p>
+        <p><?= number_format($total) ?> matching entr<?= $total === 1 ? 'y' : 'ies' ?>, newest first<?= $pages > 1 ? '. Page ' . $page . ' of ' . $pages : '' ?>.</p>
     </div>
-    <a class="btn btn-outline" href="<?= url('admin/users.php') ?>">User accounts</a>
+    <div class="btn-row">
+        <a class="btn btn-outline" href="<?= url('admin/users.php') ?>">User accounts</a>
+    </div>
 </div>
 
 <?php if ($failedLogins > 0): ?>
@@ -142,7 +144,7 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 <?php endif; ?>
 
-<div class="grid grid-3" style="margin-bottom:1.5rem;">
+<div class="stats stats-3">
     <div class="stat">
         <div class="stat-value"><?= number_format((int) fetch_value('SELECT COUNT(*) FROM audit_logs')) ?></div>
         <div class="stat-label">Entries recorded</div>
@@ -204,23 +206,29 @@ require __DIR__ . '/../../includes/layout/header.php';
         <label for="to">To</label>
         <input type="date" id="to" name="to" value="<?= e($toDate) ?>">
     </div>
-    <div class="form-row" style="flex:0 0 auto;">
+    <div class="form-row filter-actions">
         <button type="submit" class="btn btn-primary">Filter</button>
-    </div>
-    <?php if ($conditions !== []): ?>
-        <div class="form-row" style="flex:0 0 auto;">
+        <?php if ($conditions !== []): ?>
             <a class="btn btn-outline" href="<?= url('admin/audit.php') ?>">Clear</a>
-        </div>
-    <?php endif; ?>
+        <?php endif; ?>
+    </div>
 </form>
 
 <?php if ($entries === []): ?>
-    <div class="empty">
-        <strong>No entries match</strong>
-        Try widening the date range or clearing the filters.
-    </div>
+    <?php if ($conditions !== []): ?>
+        <div class="empty">
+            <strong>No entries match these filters</strong>
+            Try widening the date range or clearing the filters.
+            <div class="btn-row"><a class="btn btn-outline" href="<?= url('admin/audit.php') ?>">Clear filters</a></div>
+        </div>
+    <?php else: ?>
+        <div class="empty">
+            <strong>No activity recorded yet</strong>
+            Sign-ins, approvals, and record changes are logged here as people use the system.
+        </div>
+    <?php endif; ?>
 <?php else: ?>
-    <div class="card">
+    <div class="card card-flush">
         <div class="table-wrap">
             <table class="data">
                 <thead>
@@ -232,7 +240,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <tbody>
                 <?php foreach ($entries as $entry): ?>
                     <tr>
-                        <td style="white-space:nowrap;">
+                        <td class="nowrap">
                             <?= e(format_datetime($entry['created_at'])) ?>
                         </td>
                         <td>
@@ -240,18 +248,20 @@ require __DIR__ . '/../../includes/layout/header.php';
                                 <strong><?= e(full_name($entry, true)) ?></strong>
                                 <div class="hint"><?= e(ucfirst((string) $entry['role_name'])) ?></div>
                             <?php else: ?>
-                                <span class="hint">System / signed out</span>
+                                <span class="muted">System / signed out</span>
                             <?php endif; ?>
                         </td>
                         <td><?= audit_action_badge((string) $entry['action']) ?></td>
-                        <td>
+                        <td class="nowrap">
                             <?= e(ucwords(str_replace('_', ' ', (string) $entry['entity_type']))) ?>
                             <?php if ($entry['entity_id'] !== null): ?>
                                 <div class="hint">#<?= (int) $entry['entity_id'] ?></div>
                             <?php endif; ?>
                         </td>
-                        <td><?= e($entry['description'] ?? '—') ?></td>
-                        <td class="hint"><?= e($entry['ip_address'] ?? '—') ?></td>
+                        <td><?= $entry['description'] !== null && $entry['description'] !== ''
+                                ? e($entry['description'])
+                                : '<span class="muted">None</span>' ?></td>
+                        <td class="muted small nowrap"><?= $entry['ip_address'] ? e($entry['ip_address']) : 'Unknown' ?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
@@ -260,19 +270,19 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 
     <?php if ($pages > 1): ?>
-        <nav class="pagination">
+        <nav class="pagination" aria-label="Pagination">
             <?php if ($page > 1): ?>
-                <a href="<?= e(audit_link(['page' => $page - 1])) ?>">&laquo; Previous</a>
+                <a href="<?= e(audit_link(['page' => $page - 1])) ?>">Previous</a>
             <?php endif; ?>
             <?php for ($p = max(1, $page - 2); $p <= min($pages, $page + 2); $p++): ?>
                 <?php if ($p === $page): ?>
-                    <span class="current"><?= $p ?></span>
+                    <span class="current" aria-current="page"><?= $p ?></span>
                 <?php else: ?>
                     <a href="<?= e(audit_link(['page' => $p])) ?>"><?= $p ?></a>
                 <?php endif; ?>
             <?php endfor; ?>
             <?php if ($page < $pages): ?>
-                <a href="<?= e(audit_link(['page' => $page + 1])) ?>">Next &raquo;</a>
+                <a href="<?= e(audit_link(['page' => $page + 1])) ?>">Next</a>
             <?php endif; ?>
         </nav>
     <?php endif; ?>

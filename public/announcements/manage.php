@@ -19,13 +19,13 @@ if ($isEdit) {
     $announcement = fetch_one('SELECT * FROM announcements WHERE announcement_id = ?', [$announcementId]);
     if ($announcement === null) {
         http_response_code(404);
-        exit('404 — Announcement not found.');
+        abort_page(404, 'Announcement not found.');
     }
 
     // A coordinator may only touch their own posts; the office may touch any.
     if (!is_office_staff() && (int) $announcement['posted_by'] !== current_user_id()) {
         http_response_code(403);
-        exit('403 — You may only edit announcements you posted.');
+        abort_page(403, 'You may only edit announcements you posted.');
     }
 }
 
@@ -54,7 +54,7 @@ function assert_may_announce_for(?int $activityId): void
     );
     if (!$assigned) {
         http_response_code(403);
-        exit('403 — You may only post announcements for activities you coordinate.');
+        abort_page(403, 'You may only post announcements for activities you coordinate.');
     }
 }
 
@@ -68,7 +68,7 @@ if (is_post()) {
     if ($action === 'delete' && $isEdit) {
         if (!has_role('admin')) {
             http_response_code(403);
-            exit('403 — Only an administrator may delete an announcement.');
+            abort_page(403, 'Only an administrator may delete an announcement.');
         }
         query('DELETE FROM announcements WHERE announcement_id = ?', [$announcementId]);
         audit_log('delete', 'announcement', $announcementId, 'Deleted: ' . $announcement['title']);
@@ -160,10 +160,10 @@ require __DIR__ . '/../../includes/layout/header.php';
 
 <div class="page-head">
     <div>
+        <a class="crumb" href="<?= url('announcements/index.php') ?>">&larr; Back to announcements</a>
         <h1><?= $isEdit ? 'Edit announcement' : 'New announcement' ?></h1>
         <p>Published announcements notify every active student once.</p>
     </div>
-    <a class="btn btn-outline" href="<?= url('announcements/index.php') ?>">Back</a>
 </div>
 
 <?php if ($errors !== []): ?>
@@ -185,14 +185,14 @@ require __DIR__ . '/../../includes/layout/header.php';
 
         <div class="form-row">
             <label for="body">Announcement <span class="req">*</span></label>
-            <textarea id="body" name="body" required style="min-height:200px;"><?= e(announcement_field('body', $announcement)) ?></textarea>
+            <textarea id="body" name="body" rows="9" required><?= e(announcement_field('body', $announcement)) ?></textarea>
         </div>
 
         <div class="form-grid form-grid-2">
             <div class="form-row">
-                <label for="activity_id">Related activity</label>
+                <label for="activity_id">Related activity <span class="optional">(optional)</span></label>
                 <select id="activity_id" name="activity_id">
-                    <option value="">— Not related to an activity —</option>
+                    <option value="">Not related to an activity</option>
                     <?php foreach ($activities as $activity): ?>
                         <option value="<?= (int) $activity['activity_id'] ?>"
                             <?= announcement_field('activity_id', $announcement) === (string) $activity['activity_id'] ? 'selected' : '' ?>>
@@ -206,8 +206,8 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <select id="status" name="status" required>
                     <?php
                     $currentStatus = announcement_field('status', $announcement, 'draft');
-                    foreach (['draft' => 'Draft — not visible to students',
-                              'published' => 'Published — visible and notifies students',
+                    foreach (['draft' => 'Draft: not visible to students',
+                              'published' => 'Published: visible and notifies students',
                               'archived' => 'Archived'] as $value => $label): ?>
                         <option value="<?= e($value) ?>" <?= $currentStatus === $value ? 'selected' : '' ?>>
                             <?= e($label) ?>
@@ -218,22 +218,22 @@ require __DIR__ . '/../../includes/layout/header.php';
         </div>
 
         <div class="form-row">
-            <label>
-                <input type="checkbox" name="is_pinned" value="1" style="width:auto;"
+            <label class="check">
+                <input type="checkbox" name="is_pinned" value="1"
                     <?= announcement_field('is_pinned', $announcement) === '1' ? 'checked' : '' ?>>
-                Pin to the top of the list and the dashboard
+                <span>Pin to the top of the list and the dashboard</span>
             </label>
         </div>
-    </section>
 
-    <div class="btn-row">
-        <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Save changes' : 'Save announcement' ?></button>
-        <a class="btn btn-outline" href="<?= url('announcements/index.php') ?>">Cancel</a>
-    </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Save changes' : 'Save announcement' ?></button>
+            <a class="btn btn-outline" href="<?= url('announcements/index.php') ?>">Cancel</a>
+        </div>
+    </section>
 </form>
 
 <?php if ($isEdit && has_role('admin')): ?>
-    <form method="post" style="margin-top:1rem;"
+    <form method="post"
           onsubmit="return confirm('Delete this announcement permanently?');">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="delete">

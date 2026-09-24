@@ -14,7 +14,7 @@ require_role(['staff', 'admin']);
 $activityId = get_id('activity_id') ?? (int) post('activity_id');
 if ($activityId <= 0) {
     http_response_code(404);
-    exit('404 — Activity not found.');
+    abort_page(404, 'Activity not found.');
 }
 
 $activity = fetch_one(
@@ -25,7 +25,7 @@ $activity = fetch_one(
 );
 if ($activity === null) {
     http_response_code(404);
-    exit('404 — Activity not found.');
+    abort_page(404, 'Activity not found.');
 }
 
 $errors = [];
@@ -89,7 +89,7 @@ if (is_post()) {
 
                     notify(
                         $userId, 'activity', 'You have been assigned as coordinator',
-                        $activity['title'] . ($assignmentRole !== '' ? ' — ' . $assignmentRole : ''),
+                        $activity['title'] . ($assignmentRole !== '' ? ' (' . $assignmentRole . ')' : ''),
                         url('activities/view.php?id=' . $activityId)
                     );
 
@@ -161,21 +161,18 @@ $candidates = fetch_all(
     [$activityId]
 );
 
-$pageTitle = 'Coordinators — ' . $activity['title'];
+$pageTitle = 'Coordinators: ' . $activity['title'];
 require __DIR__ . '/../../includes/layout/header.php';
 ?>
 
 <div class="page-head">
     <div>
+        <a class="crumb" href="<?= url('activities/view.php?id=' . $activityId) ?>">&larr; Back to activity</a>
         <h1>Coordinators</h1>
-        <p>
-            <a href="<?= url('activities/view.php?id=' . $activityId) ?>"><?= e($activity['title']) ?></a>
-            &middot; <?= e($activity['category']) ?>
-        </p>
+        <p><?= e($activity['title']) ?> &middot; <?= e($activity['category']) ?></p>
     </div>
     <div class="btn-row">
         <a class="btn btn-outline" href="<?= url('activities/eligibility.php?activity_id=' . $activityId) ?>">Eligibility</a>
-        <a class="btn btn-outline" href="<?= url('activities/view.php?id=' . $activityId) ?>">Back to activity</a>
     </div>
 </div>
 
@@ -190,7 +187,63 @@ require __DIR__ . '/../../includes/layout/header.php';
     and announcements. They have no access to activities they are not assigned to.
 </div>
 
-<div class="grid grid-2">
+<div class="split">
+    <section class="card<?= $assigned !== [] ? ' card-flush' : '' ?>">
+        <div class="card-head"><h2>Assigned (<?= count($assigned) ?>)</h2></div>
+
+        <?php if ($assigned === []): ?>
+            <div class="empty">
+                <strong>No coordinators assigned</strong>
+                Only office staff and administrators can manage this activity until someone is assigned.
+            </div>
+        <?php else: ?>
+            <div class="table-wrap">
+                <table class="data table-stack">
+                    <thead><tr><th>Person</th><th>Role here</th><th>Assigned</th><th class="actions"><span class="sr-only">Actions</span></th></tr></thead>
+                    <tbody>
+                    <?php foreach ($assigned as $person): ?>
+                        <tr>
+                            <td data-label="Person">
+                                <div>
+                                    <strong><?= e(full_name($person, true)) ?></strong>
+                                    <div class="hint"><?= e($person['email']) ?></div>
+                                    <div class="hint"><?= e(ucfirst($person['role_name'])) ?> account</div>
+                                </div>
+                            </td>
+                            <td data-label="Role here">
+                                <?php if (($person['assignment_role'] ?? '') !== ''): ?>
+                                    <?= e($person['assignment_role']) ?>
+                                <?php else: ?>
+                                    <span class="muted">Not set</span>
+                                <?php endif; ?>
+                            </td>
+                            <td data-label="Assigned">
+                                <div>
+                                    <span class="nowrap"><?= e(format_date($person['assigned_at'])) ?></span>
+                                    <?php if ($person['by_first']): ?>
+                                        <div class="hint">by <?= e($person['by_first'] . ' ' . $person['by_last']) ?></div>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                            <td class="actions">
+                                <form method="post" class="inline-form"
+                                      onsubmit="return confirm('Remove this coordinator? They will lose access to this activity.');">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="action" value="remove">
+                                    <input type="hidden" name="activity_id" value="<?= $activityId ?>">
+                                    <input type="hidden" name="user_id" value="<?= (int) $person['user_id'] ?>">
+                                    <button type="submit" class="btn btn-outline btn-sm"
+                                            aria-label="Remove <?= e(full_name($person, true)) ?>">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    </section>
+
     <section class="card">
         <div class="card-head"><h2>Assign a coordinator</h2></div>
 
@@ -208,7 +261,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <div class="form-row">
                     <label for="user_id">Person <span class="req">*</span></label>
                     <select id="user_id" name="user_id" required>
-                        <option value="">— Select a person —</option>
+                        <option value="">Select a person</option>
                         <?php foreach ($candidates as $candidate): ?>
                             <option value="<?= (int) $candidate['user_id'] ?>">
                                 <?= e(full_name($candidate, true)) ?>
@@ -216,62 +269,19 @@ require __DIR__ . '/../../includes/layout/header.php';
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <div class="hint">Only active coordinator, staff, and administrator accounts appear here.</div>
+                    <p class="hint">Only active coordinator, staff, and administrator accounts appear here.</p>
                 </div>
 
                 <div class="form-row">
-                    <label for="assignment_role">Role in this activity</label>
+                    <label for="assignment_role">Role in this activity <span class="optional">(optional)</span></label>
                     <input type="text" id="assignment_role" name="assignment_role"
                            placeholder="e.g. Head Coordinator, Trainer">
                 </div>
 
-                <button type="submit" class="btn btn-primary">Assign</button>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Assign coordinator</button>
+                </div>
             </form>
-        <?php endif; ?>
-    </section>
-
-    <section class="card">
-        <div class="card-head"><h2>Assigned (<?= count($assigned) ?>)</h2></div>
-
-        <?php if ($assigned === []): ?>
-            <div class="empty">
-                <strong>No coordinators assigned</strong>
-                Only office staff and administrators can manage this activity until someone is assigned.
-            </div>
-        <?php else: ?>
-            <div class="table-wrap">
-                <table class="data">
-                    <thead><tr><th>Person</th><th>Role here</th><th>Assigned</th><th></th></tr></thead>
-                    <tbody>
-                    <?php foreach ($assigned as $person): ?>
-                        <tr>
-                            <td>
-                                <strong><?= e(full_name($person, true)) ?></strong>
-                                <div class="hint"><?= e($person['email']) ?></div>
-                                <div class="hint"><?= e(ucfirst($person['role_name'])) ?> account</div>
-                            </td>
-                            <td><?= e($person['assignment_role'] ?? '—') ?></td>
-                            <td>
-                                <?= e(format_date($person['assigned_at'])) ?>
-                                <?php if ($person['by_first']): ?>
-                                    <div class="hint">by <?= e($person['by_first'] . ' ' . $person['by_last']) ?></div>
-                                <?php endif; ?>
-                            </td>
-                            <td class="actions">
-                                <form method="post" style="display:inline;"
-                                      onsubmit="return confirm('Remove this coordinator? They will lose access to this activity.');">
-                                    <?= csrf_field() ?>
-                                    <input type="hidden" name="action" value="remove">
-                                    <input type="hidden" name="activity_id" value="<?= $activityId ?>">
-                                    <input type="hidden" name="user_id" value="<?= (int) $person['user_id'] ?>">
-                                    <button type="submit" class="btn btn-outline btn-sm">Remove</button>
-                                </form>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
         <?php endif; ?>
     </section>
 </div>

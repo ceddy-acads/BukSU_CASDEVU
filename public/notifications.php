@@ -31,27 +31,32 @@ require __DIR__ . '/../includes/layout/header.php';
 
 <?php if ($notifications === []): ?>
     <div class="empty">
-        <strong>Nothing here yet</strong>
-        You will be notified about new activities, approvals, and deadlines.
+        <strong>No notifications yet</strong>
+        Registration decisions, document reviews, and deadline reminders will appear here.
     </div>
 <?php else: ?>
     <div class="card">
-        <?php foreach ($notifications as $notification): ?>
-            <article style="padding:.85rem 0;border-bottom:1px solid var(--line);
-                            <?= $notification['is_read'] ? '' : 'border-left:3px solid var(--gold);padding-left:.75rem;' ?>">
-                <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
-                    <strong><?= e($notification['title']) ?></strong>
-                    <span class="hint"><?= e(format_datetime($notification['created_at'])) ?></span>
-                </div>
-                <p style="margin:.25rem 0 0;font-size:.9rem;">
-                    <?= e(strip_reminder_marker((string) $notification['message'])) ?>
-                </p>
-                <?php if ($notification['link_url']): ?>
-                    <a class="btn btn-outline btn-sm" style="margin-top:.5rem;"
-                       href="<?= e($notification['link_url']) ?>">Open</a>
-                <?php endif; ?>
-            </article>
-        <?php endforeach; ?>
+        <div class="feed">
+            <?php foreach ($notifications as $notification): ?>
+                <article class="notice<?= $notification['is_read'] ? '' : ' is-new' ?>">
+                    <div class="feed-row">
+                        <div>
+                            <h3>
+                                <?php if (!$notification['is_read']): ?>
+                                    <span class="badge badge-warning">New</span>
+                                <?php endif; ?>
+                                <?= e($notification['title']) ?>
+                            </h3>
+                            <p class="meta"><?= e(format_datetime($notification['created_at'])) ?></p>
+                            <p><?= e(strip_reminder_marker((string) $notification['message'])) ?></p>
+                        </div>
+                        <?php if ($notification['link_url']): ?>
+                            <a class="btn btn-outline btn-sm" href="<?= e($notification['link_url']) ?>">View details</a>
+                        <?php endif; ?>
+                    </div>
+                </article>
+            <?php endforeach; ?>
+        </div>
     </div>
 <?php endif; ?>
 

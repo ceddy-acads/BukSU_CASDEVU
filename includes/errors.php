@@ -39,26 +39,82 @@ function render_error_page(string $detail, string $reference): void
     $safeReference = htmlspecialchars($reference, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $baseUrl       = defined('BASE_URL') ? BASE_URL : '';
 
-    echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
-       . '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
-       . '<title>Something went wrong — CASMS</title>'
-       . '<link rel="stylesheet" href="' . $baseUrl . '/assets/css/style.css"></head><body>'
-       . '<div class="auth-wrap"><div class="auth-card">'
-       . '<div class="auth-head"><h1>Something went wrong</h1>'
-       . '<p>The system could not complete that request.</p></div>';
-
     if (defined('APP_DEBUG') && APP_DEBUG) {
-        echo '<div class="alert alert-error" style="white-space:pre-wrap;word-break:break-word;">'
-           . $safeDetail . '</div>'
-           . '<p class="hint">This detail is shown because the system is running '
-           . 'in development mode.</p>';
+        $body = '<div class="alert alert-error preline" style="word-break:break-word;">' . $safeDetail . '</div>'
+              . '<p class="hint">This detail is shown because the system is running in development mode.</p>';
     } else {
-        echo '<div class="alert alert-error">Please try again. If it keeps happening, '
-           . 'report this reference to the office: <strong>' . $safeReference . '</strong></div>';
+        $body = '<div class="alert alert-error">Please try again. If it keeps happening, '
+              . 'report this reference to the office: <strong>' . $safeReference . '</strong></div>';
     }
 
-    echo '<a class="btn btn-primary btn-block" href="' . $baseUrl . '/index.php">Back to the dashboard</a>'
-       . '</div></div></body></html>';
+    echo status_page_html(
+        'Something went wrong',
+        'The system could not complete that request.',
+        $body,
+        '<a class="btn btn-primary btn-block" href="' . $baseUrl . '/index.php">Back to the dashboard</a>'
+    );
+}
+
+/**
+ * The shared frame for full-page status screens (errors, access denied,
+ * not found, expired session). Self-contained: it only needs BASE_URL, so
+ * it still renders when a failure happens before the helpers are loaded.
+ */
+function status_page_html(string $title, string $lead, string $bodyHtml, string $actionsHtml): string
+{
+    $baseUrl   = defined('BASE_URL') ? BASE_URL : '';
+    $appName   = defined('APP_NAME') ? APP_NAME : 'CASDevU';
+    $tagline   = defined('APP_TAGLINE') ? APP_TAGLINE : '';
+    $cssFile   = dirname(__DIR__) . '/public/assets/css/style.css';
+    $cssUrl    = $baseUrl . '/assets/css/style.css' . (is_file($cssFile) ? '?v=' . filemtime($cssFile) : '');
+    $safe      = static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+    return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
+         . '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+         . '<meta name="theme-color" content="#10284d">'
+         . '<title>' . $safe($title) . ' · ' . $safe($appName) . '</title>'
+         . '<link rel="stylesheet" href="' . $safe($cssUrl) . '"></head><body>'
+         . '<main class="auth-wrap"><div><div class="auth-card">'
+         . '<header class="auth-head"><span class="brand-mark">' . $safe($appName) . '</span>'
+         . '<span class="brand-sub">' . $safe($tagline) . '</span>'
+         . '<h1>' . $safe($title) . '</h1><p>' . $safe($lead) . '</p></header>'
+         . $bodyHtml
+         . '<div class="form-actions">' . $actionsHtml . '</div>'
+         . '</div></div></main></body></html>';
+}
+
+/**
+ * Stop the request with a designed status page instead of bare text.
+ * Used for access denied (403), not found (404), and expired forms (419).
+ */
+function abort_page(int $code, string $message): never
+{
+    if (!headers_sent()) {
+        http_response_code($code);
+        header('Content-Type: text/html; charset=UTF-8');
+    }
+
+    [$title, $lead] = match ($code) {
+        403     => ['You do not have access', 'Your account is not allowed to open this page.'],
+        404     => ['Not found', 'The page or record you asked for does not exist.'],
+        419     => ['Your session expired', 'The form could not be verified, so nothing was saved.'],
+        default => ['Something went wrong', 'The system could not complete that request.'],
+    };
+
+    $baseUrl  = defined('BASE_URL') ? BASE_URL : '';
+    $signedIn = function_exists('is_logged_in') && is_logged_in();
+    $body     = '<div class="alert alert-' . ($code === 404 ? 'info' : 'warning') . '">'
+              . htmlspecialchars($message, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</div>';
+
+    $actions  = $signedIn
+        ? '<a class="btn btn-primary" href="' . $baseUrl . '/index.php">Back to the dashboard</a>'
+        : '<a class="btn btn-primary" href="' . $baseUrl . '/login.php">Sign in</a>';
+    if ($code === 419 || $code === 404) {
+        $actions .= '<a class="btn btn-outline" href="javascript:history.back()">Go back</a>';
+    }
+
+    echo status_page_html($title, $lead, $body, $actions);
+    exit;
 }
 
 /**

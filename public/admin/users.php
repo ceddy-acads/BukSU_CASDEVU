@@ -40,7 +40,7 @@ if (is_post()) {
     // Without this, staff could disable the accounts that supervise them.
     if ($target['role_name'] === 'admin' && !$isAdmin) {
         http_response_code(403);
-        exit('403 — Only an administrator may change another administrator\'s account.');
+        abort_page(403, 'Only an administrator may change another administrator\'s account.');
     }
 
     // Never leave the system without a way in: refuse to remove the last
@@ -87,7 +87,7 @@ if (is_post()) {
         case 'role':
             if (!$isAdmin) {
                 http_response_code(403);
-                exit('403 — Only an administrator may change a user role.');
+                abort_page(403, 'Only an administrator may change a user role.');
             }
             if ($targetUserId === current_user_id()) {
                 flash('error', 'You cannot change your own role.');
@@ -163,10 +163,12 @@ $pageTitle = 'User accounts';
 require __DIR__ . '/../../includes/layout/header.php';
 ?>
 
+<?php $isFiltered = $statusFilter !== '' || $roleFilter !== '' || $keyword !== ''; ?>
+
 <div class="page-head">
     <div>
         <h1>User accounts</h1>
-        <p><?= $total ?> account<?= $total === 1 ? '' : 's' ?></p>
+        <p><?= $total ?> account<?= $total === 1 ? '' : 's' ?><?= $isFiltered ? ' match these filters' : '' ?>. Approve new sign-ups and manage who can sign in.</p>
     </div>
 </div>
 
@@ -205,21 +207,38 @@ require __DIR__ . '/../../includes/layout/header.php';
             <?php endforeach; ?>
         </select>
     </div>
-    <div class="form-row" style="flex:0 0 auto;">
+    <div class="form-row filter-actions">
         <button type="submit" class="btn btn-primary">Filter</button>
+        <?php if ($isFiltered): ?>
+            <a class="btn btn-outline" href="<?= url('admin/users.php') ?>">Clear</a>
+        <?php endif; ?>
     </div>
 </form>
 
 <?php if ($users === []): ?>
-    <div class="empty"><strong>No accounts match</strong> Try different filters.</div>
+    <?php if ($statusFilter === 'pending' && $roleFilter === '' && $keyword === ''): ?>
+        <div class="empty">
+            <strong>No accounts awaiting approval</strong>
+            Every sign-up has been reviewed. New registrations will appear here.
+            <div class="btn-row"><a class="btn btn-outline" href="<?= url('admin/users.php') ?>">Show all accounts</a></div>
+        </div>
+    <?php elseif ($isFiltered): ?>
+        <div class="empty">
+            <strong>No accounts match these filters</strong>
+            Try a different search term, status, or role.
+            <div class="btn-row"><a class="btn btn-outline" href="<?= url('admin/users.php') ?>">Clear filters</a></div>
+        </div>
+    <?php else: ?>
+        <div class="empty"><strong>No user accounts yet</strong> Accounts appear here once people register.</div>
+    <?php endif; ?>
 <?php else: ?>
-    <div class="card">
+    <div class="card card-flush">
         <div class="table-wrap">
             <table class="data">
                 <thead>
                     <tr>
                         <th>Name</th><th>Email</th><th>Student no.</th>
-                        <th>Course / Year</th><th>Role</th><th>Status</th><th>Actions</th>
+                        <th>Course / Year</th><th>Role</th><th>Status</th><th class="actions">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -227,18 +246,19 @@ require __DIR__ . '/../../includes/layout/header.php';
                     <tr>
                         <td><strong><?= e(full_name($row, true)) ?></strong></td>
                         <td><?= e($row['email']) ?></td>
-                        <td><?= e($row['student_number'] ?? '—') ?></td>
+                        <td><?= $row['student_number'] ? e($row['student_number']) : '<span class="muted">None</span>' ?></td>
                         <td>
-                            <?= e($row['course_code'] ?? '—') ?>
+                            <?= $row['course_code'] ? e($row['course_code']) : '<span class="muted">None</span>' ?>
                             <?= $row['year_level_label'] ? '<div class="hint">' . e($row['year_level_label']) . '</div>' : '' ?>
                         </td>
                         <td>
                             <?php if ($isAdmin && (int) $row['user_id'] !== current_user_id()): ?>
-                                <form method="post" style="display:inline;">
+                                <form method="post" class="inline-form">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="action" value="role">
                                     <input type="hidden" name="user_id" value="<?= (int) $row['user_id'] ?>">
-                                    <select name="role_id" onchange="this.form.submit()" style="font-size:.8rem;padding:.2rem;">
+                                    <select name="role_id" onchange="this.form.submit()" class="input-auto input-sm"
+                                            aria-label="Role for <?= e(full_name($row)) ?>">
                                         <?php foreach ($roles as $role): ?>
                                             <option value="<?= (int) $role['role_id'] ?>"
                                                 <?= (int) $row['role_id'] === (int) $role['role_id'] ? 'selected' : '' ?>>
@@ -254,23 +274,25 @@ require __DIR__ . '/../../includes/layout/header.php';
                         <td><?= status_badge($row['status']) ?></td>
                         <td class="actions">
                             <?php if ((int) $row['user_id'] === current_user_id()): ?>
-                                <span class="hint">You</span>
+                                <span class="muted small">You</span>
                             <?php else: ?>
                                 <div class="btn-row">
                                     <?php if ($row['status'] !== 'active'): ?>
-                                        <form method="post" style="display:inline;">
+                                        <form method="post" class="inline-form">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="action" value="activate">
                                             <input type="hidden" name="user_id" value="<?= (int) $row['user_id'] ?>">
-                                            <button type="submit" class="btn btn-gold btn-sm">Activate</button>
+                                            <button type="submit" class="btn btn-primary btn-sm"
+                                                    aria-label="Activate <?= e(full_name($row)) ?>">Activate</button>
                                         </form>
                                     <?php else: ?>
-                                        <form method="post" style="display:inline;"
+                                        <form method="post" class="inline-form"
                                               onsubmit="return confirm('Deactivate this account? The user will not be able to sign in.');">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="action" value="deactivate">
                                             <input type="hidden" name="user_id" value="<?= (int) $row['user_id'] ?>">
-                                            <button type="submit" class="btn btn-outline btn-sm">Deactivate</button>
+                                            <button type="submit" class="btn btn-outline btn-sm"
+                                                    aria-label="Deactivate <?= e(full_name($row)) ?>">Deactivate</button>
                                         </form>
                                     <?php endif; ?>
                                 </div>
@@ -284,10 +306,10 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 
     <?php if ($pages > 1): ?>
-        <nav class="pagination">
+        <nav class="pagination" aria-label="Pagination">
             <?php for ($p = 1; $p <= $pages; $p++): ?>
                 <?php if ($p === $page): ?>
-                    <span class="current"><?= $p ?></span>
+                    <span class="current" aria-current="page"><?= $p ?></span>
                 <?php else: ?>
                     <a href="<?= e(url('admin/users.php?' . http_build_query(array_filter([
                         'status' => $statusFilter, 'role' => $roleFilter, 'q' => $keyword, 'page' => $p,

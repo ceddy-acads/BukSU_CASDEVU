@@ -112,124 +112,118 @@ if (is_post()) {
 
     remember_input($_POST);
 }
+$pageTitle = 'Create a student account';
+$authIntro = 'The office reviews new accounts before you can sign in.';
+$authWide  = true;
+require __DIR__ . '/../includes/layout/auth-header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student registration — <?= e(APP_NAME) ?></title>
-    <link rel="stylesheet" href="<?= url('assets/css/style.css') ?>">
-</head>
-<body>
-<div class="auth-wrap">
-    <div class="auth-card wide">
-        <div class="auth-head">
-            <h1>Student registration</h1>
-            <p><?= e(OFFICE_NAME) ?> &middot; <?= e(UNIVERSITY) ?></p>
-        </div>
 
-        <?php if ($errors !== []): ?>
-            <div class="alert alert-error">
-                <?php foreach ($errors as $error): ?>
-                    <div><?= e($error) ?></div>
-                <?php endforeach; ?>
+<?php if ($errors !== []): ?>
+    <div class="alert alert-error" role="alert">
+        <?php foreach ($errors as $error): ?>
+            <div><?= e($error) ?></div>
+        <?php endforeach; ?>
+    </div>
+<?php endif; ?>
+
+<form method="post" novalidate>
+    <?= csrf_field() ?>
+
+    <div class="form-section">
+        <h3>About you</h3>
+        <div class="form-grid form-grid-2">
+            <div class="form-row">
+                <label for="student_number">Student number <span class="req">*</span></label>
+                <input type="text" id="student_number" name="student_number"
+                       value="<?= e(old('student_number')) ?>" required>
             </div>
-        <?php endif; ?>
-
-        <div class="alert alert-info">
-            New accounts must be approved by the office before you can sign in.
-        </div>
-
-        <form method="post" novalidate>
-            <?= csrf_field() ?>
-
-            <div class="form-grid form-grid-2">
-                <div class="form-row">
-                    <label for="student_number">Student number <span class="req">*</span></label>
-                    <input type="text" id="student_number" name="student_number"
-                           value="<?= e(old('student_number')) ?>" required>
-                </div>
-                <div class="form-row">
-                    <label for="email">Email address <span class="req">*</span></label>
-                    <input type="email" id="email" name="email"
-                           value="<?= e(old('email')) ?>" required>
-                </div>
-
-                <div class="form-row">
-                    <label for="first_name">First name <span class="req">*</span></label>
-                    <input type="text" id="first_name" name="first_name"
-                           value="<?= e(old('first_name')) ?>" required>
-                </div>
-                <div class="form-row">
-                    <label for="last_name">Last name <span class="req">*</span></label>
-                    <input type="text" id="last_name" name="last_name"
-                           value="<?= e(old('last_name')) ?>" required>
-                </div>
-
-                <div class="form-row">
-                    <label for="middle_name">Middle name</label>
-                    <input type="text" id="middle_name" name="middle_name"
-                           value="<?= e(old('middle_name')) ?>">
-                </div>
-                <div class="form-row">
-                    <label for="contact_number">Contact number</label>
-                    <input type="text" id="contact_number" name="contact_number"
-                           value="<?= e(old('contact_number')) ?>">
-                </div>
-
-                <div class="form-row">
-                    <label for="course_id">Course <span class="req">*</span></label>
-                    <select id="course_id" name="course_id" required>
-                        <option value="">— Select course —</option>
-                        <?php foreach ($courses as $course): ?>
-                            <option value="<?= (int) $course['course_id'] ?>"
-                                <?= old('course_id') === (string) $course['course_id'] ? 'selected' : '' ?>>
-                                <?= e($course['code']) ?> — <?= e($course['name']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="form-row">
-                    <label for="year_level_id">Year level <span class="req">*</span></label>
-                    <select id="year_level_id" name="year_level_id" required>
-                        <option value="">— Select year level —</option>
-                        <?php foreach ($yearLevels as $level): ?>
-                            <option value="<?= (int) $level['year_level_id'] ?>"
-                                <?= old('year_level_id') === (string) $level['year_level_id'] ? 'selected' : '' ?>>
-                                <?= e($level['label']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-
-                <div class="form-row">
-                    <label for="section">Section</label>
-                    <input type="text" id="section" name="section" value="<?= e(old('section')) ?>">
-                </div>
-                <div class="form-row"></div>
-
-                <div class="form-row">
-                    <label for="password">Password <span class="req">*</span></label>
-                    <input type="password" id="password" name="password"
-                           autocomplete="new-password" required>
-                    <div class="hint">At least 8 characters.</div>
-                </div>
-                <div class="form-row">
-                    <label for="password_confirm">Confirm password <span class="req">*</span></label>
-                    <input type="password" id="password_confirm" name="password_confirm"
-                           autocomplete="new-password" required>
-                </div>
+            <div class="form-row">
+                <label for="email">University email <span class="req">*</span></label>
+                <input type="email" id="email" name="email"
+                       value="<?= e(old('email')) ?>" autocomplete="email" required>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-block">Create account</button>
-        </form>
+            <div class="form-row">
+                <label for="first_name">First name <span class="req">*</span></label>
+                <input type="text" id="first_name" name="first_name"
+                       value="<?= e(old('first_name')) ?>" autocomplete="given-name" required>
+            </div>
+            <div class="form-row">
+                <label for="last_name">Last name <span class="req">*</span></label>
+                <input type="text" id="last_name" name="last_name"
+                       value="<?= e(old('last_name')) ?>" autocomplete="family-name" required>
+            </div>
 
-        <div class="auth-foot">
-            Already registered? <a href="<?= url('login.php') ?>">Sign in</a>
+            <div class="form-row">
+                <label for="middle_name">Middle name <span class="optional">(optional)</span></label>
+                <input type="text" id="middle_name" name="middle_name"
+                       value="<?= e(old('middle_name')) ?>" autocomplete="additional-name">
+            </div>
+            <div class="form-row">
+                <label for="contact_number">Contact number <span class="optional">(optional)</span></label>
+                <input type="tel" id="contact_number" name="contact_number"
+                       value="<?= e(old('contact_number')) ?>" autocomplete="tel">
+            </div>
         </div>
     </div>
+
+    <div class="form-section">
+        <h3>Your program</h3>
+        <div class="form-grid form-grid-3">
+            <div class="form-row">
+                <label for="course_id">Course <span class="req">*</span></label>
+                <select id="course_id" name="course_id" required>
+                    <option value="">Select your course</option>
+                    <?php foreach ($courses as $course): ?>
+                        <option value="<?= (int) $course['course_id'] ?>"
+                            <?= old('course_id') === (string) $course['course_id'] ? 'selected' : '' ?>>
+                            <?= e($course['code']) ?>: <?= e($course['name']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="form-row">
+                <label for="year_level_id">Year level <span class="req">*</span></label>
+                <select id="year_level_id" name="year_level_id" required>
+                    <option value="">Select year level</option>
+                    <?php foreach ($yearLevels as $level): ?>
+                        <option value="<?= (int) $level['year_level_id'] ?>"
+                            <?= old('year_level_id') === (string) $level['year_level_id'] ? 'selected' : '' ?>>
+                            <?= e($level['label']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="form-row">
+                <label for="section">Section <span class="optional">(optional)</span></label>
+                <input type="text" id="section" name="section" value="<?= e(old('section')) ?>">
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h3>Password</h3>
+        <div class="form-grid form-grid-2">
+            <div class="form-row">
+                <label for="password">Password <span class="req">*</span></label>
+                <input type="password" id="password" name="password"
+                       autocomplete="new-password" required>
+                <p class="hint">At least 8 characters.</p>
+            </div>
+            <div class="form-row">
+                <label for="password_confirm">Confirm password <span class="req">*</span></label>
+                <input type="password" id="password_confirm" name="password_confirm"
+                       autocomplete="new-password" required>
+            </div>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-block">Create account</button>
+</form>
+
+<div class="auth-foot">
+    <p>Already registered? <a href="<?= url('login.php') ?>">Sign in</a></p>
 </div>
-</body>
-</html>
+
+<?php require __DIR__ . '/../includes/layout/auth-footer.php'; ?>
 <?php clear_old_input(); ?>

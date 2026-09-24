@@ -9,7 +9,7 @@ require_once __DIR__ . '/../../includes/bootstrap.php';
 $activityId = get_id('activity_id') ?? (int) post('activity_id');
 if ($activityId <= 0) {
     http_response_code(404);
-    exit('404 — Activity not found.');
+    abort_page(404, 'Activity not found.');
 }
 
 require_activity_access($activityId);
@@ -17,7 +17,7 @@ require_activity_access($activityId);
 $activity = fetch_one('SELECT * FROM activities WHERE activity_id = ?', [$activityId]);
 if ($activity === null) {
     http_response_code(404);
-    exit('404 — Activity not found.');
+    abort_page(404, 'Activity not found.');
 }
 
 // =====================================================================
@@ -142,17 +142,15 @@ $outstanding = fetch_all(
     [$activityId]
 );
 
-$pageTitle = 'Verify requirements — ' . $activity['title'];
+$pageTitle = 'Verify requirements: ' . $activity['title'];
 require __DIR__ . '/../../includes/layout/header.php';
 ?>
 
 <div class="page-head">
     <div>
+        <a class="crumb" href="<?= url('activities/view.php?id=' . $activityId) ?>">&larr; Back to activity</a>
         <h1>Verify requirements</h1>
-        <p>
-            <a href="<?= url('activities/view.php?id=' . $activityId) ?>"><?= e($activity['title']) ?></a>
-            &middot; review what students have submitted
-        </p>
+        <p><?= e($activity['title']) ?> &middot; review what students have submitted</p>
     </div>
     <div class="btn-row">
         <a class="btn btn-outline" href="<?= url('requirements/manage.php?activity_id=' . $activityId) ?>">Define requirements</a>
@@ -160,22 +158,22 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 </div>
 
-<div class="grid grid-3" style="margin-bottom:1.5rem;">
-    <div class="stat stat-gold">
+<div class="stats stats-3">
+    <div class="stat <?= stat_tone($counts['pending'], 'stat-gold') ?>">
         <div class="stat-value"><?= (int) $counts['pending'] ?></div>
         <div class="stat-label">Awaiting verification</div>
     </div>
-    <div class="stat stat-success">
+    <div class="stat <?= stat_tone($counts['verified'], 'stat-success') ?>">
         <div class="stat-value"><?= (int) $counts['verified'] ?></div>
         <div class="stat-label">Verified</div>
     </div>
-    <div class="stat stat-danger">
+    <div class="stat <?= stat_tone(count($outstanding), 'stat-danger') ?>">
         <div class="stat-value"><?= count($outstanding) ?></div>
         <div class="stat-label">Still outstanding</div>
     </div>
 </div>
 
-<form method="get" class="filter-bar">
+<form method="get" class="filter-bar filter-bar-compact">
     <input type="hidden" name="activity_id" value="<?= $activityId ?>">
     <div class="form-row">
         <label for="status">Show</label>
@@ -186,32 +184,42 @@ require __DIR__ . '/../../includes/layout/header.php';
             <option value="rejected" <?= $statusFilter === 'rejected' ? 'selected' : '' ?>>Rejected</option>
         </select>
     </div>
+    <div class="form-row filter-actions">
+        <button type="submit" class="btn btn-primary">Show</button>
+    </div>
 </form>
 
 <?php if ($submissions === []): ?>
-    <div class="empty">
-        <strong>Nothing to show</strong>
-        <?= $statusFilter === 'pending'
-            ? 'There is nothing waiting to be verified.'
-            : 'No submissions match this filter.' ?>
+    <div class="empty mb-6">
+        <?php if ($statusFilter === 'pending'): ?>
+            <strong>Nothing waiting to be verified</strong>
+            Every submission for this activity has been reviewed.
+        <?php elseif ($statusFilter === ''): ?>
+            <strong>No submissions yet</strong>
+            Documents appear here once registered students submit them.
+        <?php else: ?>
+            <strong>No <?= e($statusFilter) ?> submissions</strong>
+            No submissions match this filter. Choose another option under Show.
+        <?php endif; ?>
     </div>
 <?php else: ?>
-    <div class="card">
+    <section class="card card-flush">
         <div class="table-wrap">
             <table class="data">
                 <thead>
                     <tr>
                         <th>Student</th><th>Requirement</th><th>Document</th>
-                        <th>Submitted</th><th>Status</th><th>Actions</th>
+                        <th>Submitted</th><th>Status</th><th class="actions">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                 <?php foreach ($submissions as $submission): ?>
+                    <?php $rowName = full_name($submission, true); ?>
                     <tr>
                         <td>
-                            <strong><?= e(full_name($submission, true)) ?></strong>
+                            <strong><?= e($rowName) ?></strong>
                             <div class="hint">
-                                <?= e($submission['student_number'] ?? '—') ?>
+                                <?= $submission['student_number'] ? e($submission['student_number']) : 'No student number' ?>
                                 <?= $submission['course_code'] ? ' &middot; ' . e($submission['course_code']) : '' ?>
                                 <?= $submission['year_level_label'] ? ' ' . e($submission['year_level_label']) : '' ?>
                             </div>
@@ -230,11 +238,11 @@ require __DIR__ . '/../../includes/layout/header.php';
                                 </a>
                                 <div class="hint"><?= e(format_filesize($submission['file_size'] === null ? null : (int) $submission['file_size'])) ?></div>
                             <?php else: ?>
-                                <span class="hint">Acknowledgement only</span>
+                                <span class="muted">Acknowledgement only</span>
                             <?php endif; ?>
                         </td>
                         <td>
-                            <?= e(format_datetime($submission['submitted_at'])) ?>
+                            <span class="nowrap"><?= e(format_datetime($submission['submitted_at'])) ?></span>
                             <?php if ($submission['deadline_at']
                                       && strtotime((string) $submission['submitted_at'])
                                          > strtotime((string) $submission['deadline_at'])): ?>
@@ -250,66 +258,77 @@ require __DIR__ . '/../../includes/layout/header.php';
                         <td class="actions">
                             <div class="btn-row">
                                 <?php if ($submission['status'] !== 'verified'): ?>
-                                    <form method="post" style="display:inline;">
+                                    <form method="post" class="inline-form">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="verify">
                                         <input type="hidden" name="activity_id" value="<?= $activityId ?>">
                                         <input type="hidden" name="submission_id" value="<?= (int) $submission['submission_id'] ?>">
-                                        <button type="submit" class="btn btn-primary btn-sm">Verify</button>
+                                        <button type="submit" class="btn btn-primary btn-sm"
+                                                aria-label="Verify <?= e($submission['requirement_name']) ?> for <?= e($rowName) ?>">Verify</button>
                                     </form>
                                 <?php endif; ?>
 
                                 <?php if ($submission['status'] !== 'rejected'): ?>
                                     <button type="button" class="btn btn-outline btn-sm"
+                                            aria-label="Reject <?= e($submission['requirement_name']) ?> for <?= e($rowName) ?>"
                                             onclick="document.getElementById('rej-<?= (int) $submission['submission_id'] ?>').hidden = false; this.hidden = true;">
                                         Reject
                                     </button>
-                                    <form method="post" id="rej-<?= (int) $submission['submission_id'] ?>" hidden style="margin-top:.35rem;">
-                                        <?= csrf_field() ?>
-                                        <input type="hidden" name="action" value="reject">
-                                        <input type="hidden" name="activity_id" value="<?= $activityId ?>">
-                                        <input type="hidden" name="submission_id" value="<?= (int) $submission['submission_id'] ?>">
-                                        <input type="text" name="reject_reason" required
-                                               placeholder="What needs correcting?" style="font-size:.8rem;">
-                                        <button type="submit" class="btn btn-danger btn-sm" style="margin-top:.3rem;">
-                                            Confirm rejection
-                                        </button>
-                                    </form>
                                 <?php endif; ?>
                             </div>
+                            <?php if ($submission['status'] !== 'rejected'): ?>
+                                <form method="post" id="rej-<?= (int) $submission['submission_id'] ?>" hidden class="mt-2">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="action" value="reject">
+                                    <input type="hidden" name="activity_id" value="<?= $activityId ?>">
+                                    <input type="hidden" name="submission_id" value="<?= (int) $submission['submission_id'] ?>">
+                                    <div class="btn-row">
+                                        <input type="text" name="reject_reason" required class="input-auto input-sm"
+                                               aria-label="What needs correcting for <?= e($rowName) ?>"
+                                               placeholder="What needs correcting?">
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            Confirm rejection
+                                        </button>
+                                    </div>
+                                </form>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
-    </div>
+    </section>
 <?php endif; ?>
 
 <?php if ($outstanding !== []): ?>
-    <section class="card">
+    <section class="card card-flush">
         <div class="card-head">
             <h2>Not yet submitted (<?= count($outstanding) ?>)</h2>
+            <p class="hint">
+                Mandatory requirements with nothing submitted, or with a rejected submission awaiting correction.
+            </p>
         </div>
-        <p class="hint" style="margin-top:0;">
-            Mandatory requirements with nothing submitted, or with a rejected submission awaiting correction.
-        </p>
         <div class="table-wrap">
-            <table class="data">
+            <table class="data table-stack">
                 <thead><tr><th>Student</th><th>Requirement</th><th>Deadline</th></tr></thead>
                 <tbody>
                 <?php foreach ($outstanding as $row): ?>
                     <tr>
-                        <td>
-                            <?= e($row['student_name']) ?>
-                            <div class="hint"><?= e($row['student_number'] ?? '—') ?></div>
+                        <td data-label="Student">
+                            <div>
+                                <?= e($row['student_name']) ?>
+                                <div class="hint"><?= $row['student_number'] ? e($row['student_number']) : 'No student number' ?></div>
+                            </div>
                         </td>
-                        <td><?= e($row['requirement_name']) ?></td>
-                        <td>
-                            <?= e(format_datetime($row['deadline_at'])) ?>
-                            <?php if ($row['deadline_at'] && strtotime((string) $row['deadline_at']) < time()): ?>
-                                <span class="badge badge-danger">Overdue</span>
-                            <?php endif; ?>
+                        <td data-label="Requirement"><?= e($row['requirement_name']) ?></td>
+                        <td data-label="Deadline">
+                            <div>
+                                <?= $row['deadline_at'] ? e(format_datetime($row['deadline_at'])) : '<span class="muted">No deadline</span>' ?>
+                                <?php if ($row['deadline_at'] && strtotime((string) $row['deadline_at']) < time()): ?>
+                                    <span class="badge badge-danger">Overdue</span>
+                                <?php endif; ?>
+                            </div>
                         </td>
                     </tr>
                 <?php endforeach; ?>

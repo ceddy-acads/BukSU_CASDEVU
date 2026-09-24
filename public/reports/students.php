@@ -32,7 +32,7 @@ if ($studentId !== null) {
 
     if ($student === null) {
         http_response_code(404);
-        exit('404 — Student not found.');
+        abort_page(404, 'Student not found.');
     }
 
     $history = student_participation_history($studentId);
@@ -74,18 +74,18 @@ if ($studentId !== null) {
 
     <div class="page-head">
         <div>
+            <a class="crumb" href="<?= url('reports/students.php') ?>">&larr; Back to student records</a>
             <h1><?= e(full_name($student, true)) ?></h1>
             <p>
-                <?= e($student['student_number'] ?? '—') ?>
+                <?= $student['student_number'] ? e($student['student_number']) : 'No student number' ?>
                 <?= $student['course_code'] ? ' &middot; ' . e($student['course_code']) : '' ?>
                 <?= $student['year_level_label'] ? ' ' . e($student['year_level_label']) : '' ?>
-                <?= $student['section'] ? ' — ' . e($student['section']) : '' ?>
+                <?= $student['section'] ? ' &middot; Section ' . e($student['section']) : '' ?>
             </p>
         </div>
         <div class="btn-row">
-            <a class="btn btn-gold" href="<?= url('reports/students.php?student=' . $studentId . '&export=csv') ?>">Export CSV</a>
             <button type="button" class="btn btn-outline" onclick="window.print()">Print</button>
-            <a class="btn btn-outline" href="<?= url('reports/students.php') ?>">All students</a>
+            <a class="btn btn-gold" href="<?= url('reports/students.php?student=' . $studentId . '&export=csv') ?>">Export CSV</a>
         </div>
     </div>
 
@@ -94,12 +94,12 @@ if ($studentId !== null) {
         Participation history generated <?= e(format_datetime(date('Y-m-d H:i:s'))) ?>
     </div>
 
-    <div class="grid grid-3" style="margin-bottom:1.5rem;">
+    <div class="stats stats-3">
         <div class="stat">
             <div class="stat-value"><?= count($history) ?></div>
             <div class="stat-label">Activities joined</div>
         </div>
-        <div class="stat stat-success">
+        <div class="stat <?= stat_tone($approved, 'stat-success') ?>">
             <div class="stat-value"><?= $approved ?></div>
             <div class="stat-label">Approved</div>
         </div>
@@ -109,7 +109,7 @@ if ($studentId !== null) {
         </div>
     </div>
 
-    <div class="card">
+    <section class="card<?= $history !== [] ? ' card-flush' : '' ?>">
         <div class="card-head"><h2>Participation history</h2></div>
         <?php if ($history === []): ?>
             <div class="empty">
@@ -135,17 +135,23 @@ if ($studentId !== null) {
                                 <div class="hint"><?= e(ucfirst((string) $row['activity_status'])) ?></div>
                             </td>
                             <td><?= e($row['category']) ?></td>
-                            <td style="white-space:nowrap;"><?= e(format_date($row['start_at'])) ?></td>
+                            <td class="nowrap"><?= e(format_date($row['start_at'])) ?></td>
                             <td><?= status_badge($row['registration_status']) ?></td>
-                            <td><?= (int) $row['attended'] === 1 ? 'Yes' : '—' ?></td>
-                            <td><?= e($row['team_name'] ?? '—') ?></td>
+                            <td><?= (int) $row['attended'] === 1 ? 'Yes' : '<span class="muted">No</span>' ?></td>
+                            <td>
+                                <?php if ($row['team_name']): ?>
+                                    <?= e($row['team_name']) ?>
+                                <?php else: ?>
+                                    <span class="muted">None</span>
+                                <?php endif; ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
         <?php endif; ?>
-    </div>
+    </section>
 
     <?php
     require __DIR__ . '/../../includes/layout/footer.php';
@@ -253,15 +259,16 @@ require __DIR__ . '/../../includes/layout/header.php';
 
 <div class="page-head">
     <div>
+        <a class="crumb" href="<?= url('reports/index.php') ?>">&larr; Back to reports</a>
         <h1>Student &amp; player records</h1>
         <p><?= number_format($total) ?> student<?= $total === 1 ? '' : 's' ?></p>
     </div>
     <div class="btn-row">
         <a class="btn btn-gold" href="<?= e(students_link(['export' => 'csv'])) ?>">Export CSV</a>
-        <a class="btn btn-outline" href="<?= url('reports/index.php') ?>">All reports</a>
     </div>
 </div>
 
+<?php $filtered = $keyword !== '' || $courseIn !== '' || $yearIn !== '' || $onlyActive; ?>
 <form method="get" class="filter-bar">
     <div class="form-row">
         <label for="q">Search</label>
@@ -292,49 +299,71 @@ require __DIR__ . '/../../includes/layout/header.php';
         </select>
     </div>
     <div class="form-row">
-        <label>
-            <input type="checkbox" name="participants" value="1" style="width:auto;"
+        <label class="check">
+            <input type="checkbox" name="participants" value="1"
                 <?= $onlyActive ? 'checked' : '' ?>>
             Only those who have joined something
         </label>
     </div>
-    <div class="form-row" style="flex:0 0 auto;">
+    <div class="form-row filter-actions">
         <button type="submit" class="btn btn-primary">Filter</button>
+        <?php if ($filtered): ?>
+            <a class="btn btn-outline" href="<?= url('reports/students.php') ?>">Clear</a>
+        <?php endif; ?>
     </div>
 </form>
 
 <?php if ($students === []): ?>
-    <div class="empty"><strong>No students match</strong> Try different filters.</div>
+    <div class="empty">
+        <?php if ($filtered): ?>
+            <strong>No students match these filters</strong>
+            Try a different search, or clear the filters to see every student.
+            <div class="btn-row">
+                <a class="btn btn-outline" href="<?= url('reports/students.php') ?>">Clear filters</a>
+            </div>
+        <?php else: ?>
+            <strong>No student accounts yet</strong>
+            Students appear here once they register for an account.
+        <?php endif; ?>
+    </div>
 <?php else: ?>
-    <div class="card">
+    <div class="card card-flush">
         <div class="table-wrap">
             <table class="data">
                 <thead>
-                    <tr><th>Student</th><th>Course / Year</th><th>Joined</th>
-                        <th>Approved</th><th>Account</th><th></th></tr>
+                    <tr><th>Student</th><th>Course / Year</th><th class="num">Joined</th>
+                        <th class="num">Approved</th><th>Account</th><th class="actions"><span class="sr-only">Actions</span></th></tr>
                 </thead>
                 <tbody>
                 <?php foreach ($students as $student): ?>
                     <tr>
                         <td>
                             <strong><?= e(full_name($student, true)) ?></strong>
-                            <div class="hint"><?= e($student['student_number'] ?? '—') ?></div>
+                            <div class="hint"><?= $student['student_number'] ? e($student['student_number']) : 'No student number' ?></div>
                         </td>
                         <td>
-                            <?= e($student['course_code'] ?? '—') ?>
-                            <div class="hint">
-                                <?= e($student['year_level_label'] ?? '') ?>
-                                <?= $student['section'] ? ' — ' . e($student['section']) : '' ?>
-                            </div>
+                            <?php if ($student['course_code']): ?>
+                                <?= e($student['course_code']) ?>
+                            <?php else: ?>
+                                <span class="muted">Course not set</span>
+                            <?php endif; ?>
+                            <?php if ($student['year_level_label'] || $student['section']): ?>
+                                <div class="hint">
+                                    <?= e($student['year_level_label'] ?? '') ?>
+                                    <?= $student['section'] ? ' &middot; Section ' . e($student['section']) : '' ?>
+                                </div>
+                            <?php endif; ?>
                         </td>
-                        <td><?= (int) $student['total_joined'] ?></td>
-                        <td><strong><?= (int) $student['total_approved'] ?></strong></td>
+                        <td class="num"><?= (int) $student['total_joined'] ?></td>
+                        <td class="num"><strong><?= (int) $student['total_approved'] ?></strong></td>
                         <td><?= status_badge($student['status']) ?></td>
                         <td class="actions">
-                            <a class="btn btn-outline btn-sm"
-                               href="<?= url('reports/students.php?student=' . (int) $student['user_id']) ?>">
-                                History
-                            </a>
+                            <div class="btn-row">
+                                <a class="btn btn-outline btn-sm"
+                                   href="<?= url('reports/students.php?student=' . (int) $student['user_id']) ?>">
+                                    History<span class="sr-only"> for <?= e(full_name($student)) ?></span>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -344,10 +373,10 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 
     <?php if ($pages > 1): ?>
-        <nav class="pagination">
+        <nav class="pagination" aria-label="Pagination">
             <?php for ($p = max(1, $page - 2); $p <= min($pages, $page + 2); $p++): ?>
                 <?php if ($p === $page): ?>
-                    <span class="current"><?= $p ?></span>
+                    <span class="current" aria-current="page"><?= $p ?></span>
                 <?php else: ?>
                     <a href="<?= e(students_link(['page' => $p])) ?>"><?= $p ?></a>
                 <?php endif; ?>

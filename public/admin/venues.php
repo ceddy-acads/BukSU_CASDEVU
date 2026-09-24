@@ -141,9 +141,11 @@ require __DIR__ . '/../../includes/layout/header.php';
 <div class="page-head">
     <div>
         <h1>Venues</h1>
-        <p><?= $activeCount ?> active of <?= count($venues) ?> total</p>
+        <p><?= $activeCount ?> active of <?= count($venues) ?> total. Active venues can be chosen when scheduling an activity.</p>
     </div>
-    <a class="btn btn-outline" href="<?= url('activities/index.php') ?>">Activities</a>
+    <div class="btn-row">
+        <a class="btn btn-outline" href="<?= url('activities/index.php') ?>">Activities</a>
+    </div>
 </div>
 
 <?php if ($errors !== []): ?>
@@ -159,8 +161,78 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 <?php endif; ?>
 
-<div class="grid grid-2">
-    <section class="card">
+<div class="split">
+    <section class="card<?= $venues === [] ? '' : ' card-flush' ?>">
+        <div class="card-head"><h2>All venues</h2></div>
+
+        <?php if ($venues === []): ?>
+            <div class="empty">
+                <strong>No venues yet</strong>
+                Add the first one with the form on this page.
+            </div>
+        <?php else: ?>
+            <div class="table-wrap">
+                <table class="data table-stack">
+                    <thead>
+                        <tr><th>Venue</th><th class="num">Capacity</th><th class="num">Activities</th><th>Status</th><th class="actions">Actions</th></tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($venues as $venue): ?>
+                        <tr>
+                            <td data-label="Venue">
+                                <div>
+                                    <strong><?= e($venue['name']) ?></strong>
+                                    <?php if ($venue['location']): ?>
+                                        <div class="hint"><?= e($venue['location']) ?></div>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                            <td class="num" data-label="Capacity"><?= $venue['capacity'] ? (int) $venue['capacity'] : '<span class="muted">Not set</span>' ?></td>
+                            <td class="num" data-label="Activities">
+                                <div>
+                                    <?= (int) $venue['activity_count'] ?>
+                                    <?php if ((int) $venue['upcoming_count'] > 0): ?>
+                                        <div class="hint"><?= (int) $venue['upcoming_count'] ?> upcoming</div>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                            <td data-label="Status">
+                                <div>
+                                    <?php if ((int) $venue['is_active'] === 1): ?>
+                                        <span class="badge badge-success">Active</span>
+                                    <?php else: ?>
+                                        <span class="badge badge-muted">Archived</span>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                            <td class="actions">
+                                <div class="btn-row">
+                                    <a class="btn btn-outline btn-sm"
+                                       href="<?= url('admin/venues.php?edit=' . (int) $venue['venue_id']) ?>"
+                                       aria-label="Edit <?= e($venue['name']) ?>">Edit</a>
+                                    <form method="post" class="inline-form"
+                                          <?= (int) $venue['is_active'] === 1 && (int) $venue['upcoming_count'] > 0
+                                              ? 'onsubmit="return confirm(\'This venue has upcoming activities scheduled. Archive it anyway?\');"'
+                                              : '' ?>>
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="action" value="toggle">
+                                        <input type="hidden" name="venue_id" value="<?= (int) $venue['venue_id'] ?>">
+                                        <button type="submit" class="btn btn-outline btn-sm"
+                                                aria-label="<?= (int) $venue['is_active'] === 1 ? 'Archive' : 'Reactivate' ?> <?= e($venue['name']) ?>">
+                                            <?= (int) $venue['is_active'] === 1 ? 'Archive' : 'Reactivate' ?>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    </section>
+
+    <section class="card" id="venue-form">
         <div class="card-head">
             <h2><?= $editing ? 'Edit venue' : 'Add a venue' ?></h2>
         </div>
@@ -178,28 +250,28 @@ require __DIR__ . '/../../includes/layout/header.php';
             </div>
 
             <div class="form-row">
-                <label for="location">Location</label>
+                <label for="location">Location <span class="optional">(optional)</span></label>
                 <input type="text" id="location" name="location"
                        placeholder="e.g. Main Campus"
                        value="<?= e(venue_field('location', $editing)) ?>">
             </div>
 
             <div class="form-row">
-                <label for="capacity">Capacity</label>
+                <label for="capacity">Capacity <span class="optional">(optional)</span></label>
                 <input type="number" id="capacity" name="capacity" min="1"
                        value="<?= e(venue_field('capacity', $editing)) ?>">
                 <div class="hint">Leave blank if not applicable.</div>
             </div>
 
             <div class="form-row">
-                <label>
-                    <input type="checkbox" name="is_active" value="1" style="width:auto;"
+                <label class="check">
+                    <input type="checkbox" name="is_active" value="1"
                         <?= !$editing || (int) $editing['is_active'] === 1 ? 'checked' : '' ?>>
-                    Active — can be selected when scheduling an activity
+                    <span>Active: can be selected when scheduling an activity</span>
                 </label>
             </div>
 
-            <div class="btn-row">
+            <div class="form-actions">
                 <button type="submit" class="btn btn-primary">
                     <?= $editing ? 'Save changes' : 'Add venue' ?>
                 </button>
@@ -208,68 +280,6 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <?php endif; ?>
             </div>
         </form>
-    </section>
-
-    <section class="card">
-        <div class="card-head"><h2>All venues</h2></div>
-
-        <?php if ($venues === []): ?>
-            <div class="empty">
-                <strong>No venues yet</strong>
-                Add the first one using the form beside this list.
-            </div>
-        <?php else: ?>
-            <div class="table-wrap">
-                <table class="data">
-                    <thead>
-                        <tr><th>Venue</th><th>Capacity</th><th>Activities</th><th>Status</th><th>Actions</th></tr>
-                    </thead>
-                    <tbody>
-                    <?php foreach ($venues as $venue): ?>
-                        <tr>
-                            <td>
-                                <strong><?= e($venue['name']) ?></strong>
-                                <?php if ($venue['location']): ?>
-                                    <div class="hint"><?= e($venue['location']) ?></div>
-                                <?php endif; ?>
-                            </td>
-                            <td><?= $venue['capacity'] ? (int) $venue['capacity'] : '—' ?></td>
-                            <td>
-                                <?= (int) $venue['activity_count'] ?>
-                                <?php if ((int) $venue['upcoming_count'] > 0): ?>
-                                    <div class="hint"><?= (int) $venue['upcoming_count'] ?> upcoming</div>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <?php if ((int) $venue['is_active'] === 1): ?>
-                                    <span class="badge badge-success">Active</span>
-                                <?php else: ?>
-                                    <span class="badge badge-muted">Archived</span>
-                                <?php endif; ?>
-                            </td>
-                            <td class="actions">
-                                <div class="btn-row">
-                                    <a class="btn btn-outline btn-sm"
-                                       href="<?= url('admin/venues.php?edit=' . (int) $venue['venue_id']) ?>">Edit</a>
-                                    <form method="post" style="display:inline;"
-                                          <?= (int) $venue['is_active'] === 1 && (int) $venue['upcoming_count'] > 0
-                                              ? 'onsubmit="return confirm(\'This venue has upcoming activities scheduled. Archive it anyway?\');"'
-                                              : '' ?>>
-                                        <?= csrf_field() ?>
-                                        <input type="hidden" name="action" value="toggle">
-                                        <input type="hidden" name="venue_id" value="<?= (int) $venue['venue_id'] ?>">
-                                        <button type="submit" class="btn btn-outline btn-sm">
-                                            <?= (int) $venue['is_active'] === 1 ? 'Archive' : 'Reactivate' ?>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php endif; ?>
     </section>
 </div>
 

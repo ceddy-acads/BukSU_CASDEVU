@@ -16,7 +16,7 @@ if ($isEdit) {
     $item = fetch_one('SELECT * FROM inventory_items WHERE item_id = ?', [$itemId]);
     if ($item === null) {
         http_response_code(404);
-        exit('404 — Item not found.');
+        abort_page(404, 'Item not found.');
     }
 }
 
@@ -39,6 +39,7 @@ if (is_post()) {
         }
 
         query('DELETE FROM inventory_items WHERE item_id = ?', [$itemId]);
+        delete_upload($item['photo_path']);
         audit_log('delete', 'inventory_item', $itemId, 'Deleted item: ' . $item['name']);
         flash('success', 'Item deleted.');
         redirect('inventory/index.php');
@@ -89,12 +90,35 @@ if (is_post()) {
         }
     }
 
+    // ------------------------------------------------------------- Photo
+    // Only stored once every other field is valid, so a rejected form never
+    // leaves an orphaned file behind.
+    $currentPhoto = $item['photo_path'] ?? null;
+    $newPhoto     = null;
+    $photoUpload  = $_FILES['photo'] ?? null;
+
+    if ($errors === [] && is_array($photoUpload)
+        && (int) ($photoUpload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+        $stored = store_upload($photoUpload, 'inventory');
+        if (!$stored['ok']) {
+            $errors[] = 'Photo: ' . $stored['error'];
+        } elseif (!str_starts_with((string) $stored['mime'], 'image/')) {
+            delete_upload($stored['path']);
+            $errors[] = 'The photo must be a JPG or PNG image.';
+        } else {
+            $newPhoto = $stored['path'];
+        }
+    }
+
+    $photoPath = $newPhoto ?? (post('remove_photo') === '1' ? null : $currentPhoto);
+
     if ($errors === []) {
         if ($isEdit) {
             query(
                 'UPDATE inventory_items
                     SET inv_category_id = ?, item_code = ?, name = ?, description = ?, size = ?,
-                        unit = ?, quantity_total = ?, condition_note = ?, storage_location = ?, status = ?
+                        unit = ?, quantity_total = ?, condition_note = ?, storage_location = ?, status = ?,
+                        photo_path = ?
                   WHERE item_id = ?',
                 [
                     (int) $categoryIn, $itemCode, $name,
@@ -104,9 +128,12 @@ if (is_post()) {
                     (int) $quantityIn,
                     $condition !== '' ? $condition : null,
                     $location !== '' ? $location : null,
-                    $statusIn, $itemId,
+                    $statusIn, $photoPath, $itemId,
                 ]
             );
+            if ($photoPath !== $currentPhoto) {
+                delete_upload($currentPhoto);
+            }
             audit_log('update', 'inventory_item', $itemId, 'Updated item: ' . $name, $item,
                       ['name' => $name, 'quantity_total' => (int) $quantityIn, 'status' => $statusIn]);
             flash('success', 'Item updated.');
@@ -116,8 +143,8 @@ if (is_post()) {
         query(
             'INSERT INTO inventory_items
                  (inv_category_id, item_code, name, description, size, unit,
-                  quantity_total, condition_note, storage_location, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                  quantity_total, condition_note, storage_location, status, photo_path)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 (int) $categoryIn, $itemCode, $name,
                 $description !== '' ? $description : null,
@@ -126,7 +153,7 @@ if (is_post()) {
                 (int) $quantityIn,
                 $condition !== '' ? $condition : null,
                 $location !== '' ? $location : null,
-                $statusIn,
+                $statusIn, $newPhoto,
             ]
         );
         $newId = (int) db()->lastInsertId();
@@ -157,10 +184,10 @@ require __DIR__ . '/../../includes/layout/header.php';
 
 <div class="page-head">
     <div>
+        <a class="crumb" href="<?= url('inventory/index.php') ?>">&larr; Back to inventory</a>
         <h1><?= $isEdit ? 'Edit item' : 'New item' ?></h1>
         <p><?= $isEdit ? e($item['name']) : 'Add a costume or piece of equipment to the catalog.' ?></p>
     </div>
-    <a class="btn btn-outline" href="<?= url('inventory/index.php') ?>">Back to inventory</a>
 </div>
 
 <?php if ($errors !== []): ?>
@@ -169,7 +196,7 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 <?php endif; ?>
 
-<form method="post" novalidate>
+<form method="post" enctype="multipart/form-data" novalidate>
     <?= csrf_field() ?>
     <input type="hidden" name="action" value="save">
 
@@ -185,7 +212,7 @@ require __DIR__ . '/../../includes/layout/header.php';
             <div class="form-row">
                 <label for="inv_category_id">Category <span class="req">*</span></label>
                 <select id="inv_category_id" name="inv_category_id" required>
-                    <option value="">— Select category —</option>
+                    <option value="">Select a category</option>
                     <?php foreach ($categories as $category): ?>
                         <option value="<?= (int) $category['inv_category_id'] ?>"
                             <?= item_field('inv_category_id', $item) === (string) $category['inv_category_id'] ? 'selected' : '' ?>>
@@ -202,7 +229,7 @@ require __DIR__ . '/../../includes/layout/header.php';
         </div>
 
         <div class="form-row">
-            <label for="description">Description</label>
+            <label for="description">Description <span class="optional">(optional)</span></label>
             <textarea id="description" name="description"><?= e(item_field('description', $item)) ?></textarea>
         </div>
     </section>
@@ -222,12 +249,12 @@ require __DIR__ . '/../../includes/layout/header.php';
                        value="<?= e(item_field('unit', $item, 'pc')) ?>">
             </div>
             <div class="form-row">
-                <label for="size">Size</label>
-                <input type="text" id="size" name="size" placeholder="S, M, L — for costumes"
+                <label for="size">Size <span class="optional">(optional)</span></label>
+                <input type="text" id="size" name="size" placeholder="S, M, L for costumes"
                        value="<?= e(item_field('size', $item)) ?>">
             </div>
             <div class="form-row">
-                <label for="storage_location">Storage location</label>
+                <label for="storage_location">Storage location <span class="optional">(optional)</span></label>
                 <input type="text" id="storage_location" name="storage_location"
                        value="<?= e(item_field('storage_location', $item)) ?>">
             </div>
@@ -251,25 +278,60 @@ require __DIR__ . '/../../includes/layout/header.php';
         </div>
 
         <div class="form-row">
-            <label for="condition_note">Condition note</label>
+            <label for="condition_note">Condition note <span class="optional">(optional)</span></label>
             <input type="text" id="condition_note" name="condition_note"
                    placeholder="e.g. Zipper needs repair" value="<?= e(item_field('condition_note', $item)) ?>">
         </div>
     </section>
 
-    <div class="btn-row">
+    <section class="card">
+        <div class="card-head">
+            <h2>Photo</h2>
+            <p class="hint">Students browse the catalog by photo, so a clear picture of the item helps them find it.</p>
+        </div>
+
+        <div class="photo-field">
+            <?php if (!empty($item['photo_path'])): ?>
+                <img class="item-photo" src="<?= url('inventory/photo.php?id=' . (int) $item['item_id']) ?>"
+                     alt="Current photo of <?= e($item['name']) ?>">
+            <?php endif; ?>
+            <div class="photo-field-inputs">
+                <div class="form-row">
+                    <label for="photo">
+                        <?= !empty($item['photo_path']) ? 'Replace photo' : 'Upload a photo' ?>
+                        <span class="optional">(optional)</span>
+                    </label>
+                    <input type="file" id="photo" name="photo" accept="image/jpeg,image/png" aria-describedby="photo-hint">
+                    <p class="hint" id="photo-hint">JPG or PNG, up to <?= (int) (MAX_UPLOAD_BYTES / 1024 / 1024) ?> MB.</p>
+                </div>
+                <?php if (!empty($item['photo_path'])): ?>
+                    <label class="check">
+                        <input type="checkbox" name="remove_photo" value="1"> Remove the current photo
+                    </label>
+                <?php endif; ?>
+            </div>
+        </div>
+    </section>
+
+    <div class="form-actions">
         <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Save changes' : 'Add item' ?></button>
         <a class="btn btn-outline" href="<?= url('inventory/index.php') ?>">Cancel</a>
     </div>
 </form>
 
 <?php if ($isEdit): ?>
-    <form method="post" style="margin-top:1rem;"
-          onsubmit="return confirm('Delete this item permanently? This cannot be undone.');">
-        <?= csrf_field() ?>
-        <input type="hidden" name="action" value="delete">
-        <button type="submit" class="btn btn-danger btn-sm">Delete this item</button>
-    </form>
+    <section class="card mt-6">
+        <div class="card-head">
+            <h2>Delete this item</h2>
+            <p class="hint">Only items with no borrowing history can be deleted. Otherwise, set the status to unavailable.</p>
+        </div>
+        <form method="post"
+              onsubmit="return confirm('Delete this item permanently? This cannot be undone.');">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="delete">
+            <button type="submit" class="btn btn-danger btn-sm">Delete this item</button>
+        </form>
+    </section>
 <?php endif; ?>
 
 <?php

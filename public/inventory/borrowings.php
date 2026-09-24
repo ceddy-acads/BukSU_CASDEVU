@@ -120,7 +120,7 @@ if (is_post()) {
                   'Released ' . $quantity . ' x ' . $item['name'] . ' to ' . full_name($borrower));
         notify(
             $borrowerId, 'reservation', 'Item released to you',
-            $quantity . ' x ' . $item['name'] . ' — due back ' . format_datetime($expectedBack),
+            $quantity . ' x ' . $item['name'] . ', due back ' . format_datetime($expectedBack),
             url('inventory/borrowings.php')
         );
 
@@ -280,11 +280,11 @@ require __DIR__ . '/../../includes/layout/header.php';
             <div class="form-row">
                 <label for="item_id">Item <span class="req">*</span></label>
                 <select id="item_id" name="item_id" required>
-                    <option value="">— Select item —</option>
+                    <option value="">Select an item</option>
                     <?php foreach ($availableItems as $item): ?>
                         <?php $free = (int) $item['quantity_total'] - (int) $item['quantity_out']; ?>
                         <option value="<?= (int) $item['item_id'] ?>" <?= $free < 1 ? 'disabled' : '' ?>>
-                            <?= e($item['name']) ?> (<?= e($item['item_code']) ?>) — <?= $free ?> available
+                            <?= e($item['name']) ?> (<?= e($item['item_code']) ?>), <?= $free > 0 ? $free . ' available' : 'none available' ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -292,7 +292,7 @@ require __DIR__ . '/../../includes/layout/header.php';
             <div class="form-row">
                 <label for="borrower_id">Borrower <span class="req">*</span></label>
                 <select id="borrower_id" name="borrower_id" required>
-                    <option value="">— Select person —</option>
+                    <option value="">Select a person</option>
                     <?php foreach ($borrowers as $person): ?>
                         <option value="<?= (int) $person['user_id'] ?>"
                             <?= $prefill && (int) $prefill['requested_by'] === (int) $person['user_id'] ? 'selected' : '' ?>>
@@ -313,11 +313,15 @@ require __DIR__ . '/../../includes/layout/header.php';
             </div>
         </div>
 
-        <button type="submit" class="btn btn-primary">Record release</button>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Record release</button>
+        </div>
     </form>
 </section>
 
-<form method="get" class="filter-bar">
+<h2 class="section-title">Borrowing records</h2>
+
+<form method="get" class="filter-bar filter-bar-compact">
     <div class="form-row">
         <label for="filter">Show</label>
         <select id="filter" name="filter" onchange="this.form.submit()">
@@ -327,21 +331,40 @@ require __DIR__ . '/../../includes/layout/header.php';
             <option value="all"      <?= $filter === 'all'      ? 'selected' : '' ?>>All records</option>
         </select>
     </div>
+    <div class="form-row filter-actions">
+        <button type="submit" class="btn btn-primary">Filter</button>
+    </div>
 </form>
 
 <?php if ($borrowings === []): ?>
     <div class="empty">
-        <strong>Nothing to show</strong>
-        <?= $filter === 'overdue' ? 'No items are overdue.' : 'No borrowing records match this filter.' ?>
+        <?php if ($filter === 'overdue'): ?>
+            <strong>No overdue items</strong>
+            Everything that is out is still within its expected return date.
+        <?php elseif ($filter === 'open'): ?>
+            <strong>Nothing is out right now</strong>
+            Every borrowed item has been returned. Use the form above to record a release.
+        <?php elseif ($filter === 'returned'): ?>
+            <strong>No returns recorded yet</strong>
+            Returned items appear here once a return is recorded.
+        <?php else: ?>
+            <strong>No borrowing records yet</strong>
+            Use the form above to record the first release.
+        <?php endif; ?>
+        <?php if ($filter !== 'all'): ?>
+            <div class="btn-row">
+                <a class="btn btn-outline" href="<?= url('inventory/borrowings.php?filter=all') ?>">Show all records</a>
+            </div>
+        <?php endif; ?>
     </div>
 <?php else: ?>
-    <div class="card">
+    <div class="card card-flush">
         <div class="table-wrap">
             <table class="data">
                 <thead>
                     <tr>
-                        <th>Item</th><th>Borrower</th><th>Qty</th>
-                        <th>Released</th><th>Due back</th><th>Returned</th><th>Actions</th>
+                        <th>Item</th><th>Borrower</th><th class="num">Qty</th>
+                        <th>Released</th><th>Due back</th><th>Returned</th><th class="actions">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -353,20 +376,27 @@ require __DIR__ . '/../../includes/layout/header.php';
                         </td>
                         <td>
                             <?= e(full_name($borrowing, true)) ?>
-                            <div class="hint"><?= e($borrowing['student_number'] ?? '—') ?></div>
+                            <?php if ($borrowing['student_number']): ?>
+                                <div class="hint"><?= e($borrowing['student_number']) ?></div>
+                            <?php endif; ?>
                         </td>
-                        <td><?= (int) $borrowing['quantity'] ?></td>
-                        <td>
+                        <td class="num"><?= (int) $borrowing['quantity'] ?></td>
+                        <td class="nowrap">
                             <?= e(format_date($borrowing['released_at'])) ?>
                             <div class="hint">by <?= e($borrowing['released_by_first'] . ' ' . $borrowing['released_by_last']) ?></div>
                         </td>
-                        <td>
-                            <?= e(format_date($borrowing['expected_return_at'])) ?>
+                        <td class="nowrap">
                             <?php if (is_overdue($borrowing)): ?>
-                                <div><span class="badge badge-danger">Overdue</span></div>
+                                <?php $daysLate = max(1, (int) floor((time() - strtotime((string) $borrowing['expected_return_at'])) / 86400)); ?>
+                                <span class="text-danger"><?= e(format_date($borrowing['expected_return_at'])) ?></span>
+                                <div>
+                                    <span class="badge badge-danger">Overdue by <?= $daysLate ?> day<?= $daysLate === 1 ? '' : 's' ?></span>
+                                </div>
+                            <?php else: ?>
+                                <?= e(format_date($borrowing['expected_return_at'])) ?>
                             <?php endif; ?>
                         </td>
-                        <td>
+                        <td class="nowrap">
                             <?php if ($borrowing['returned_at']): ?>
                                 <?= e(format_date($borrowing['returned_at'])) ?>
                                 <div>
@@ -380,30 +410,39 @@ require __DIR__ . '/../../includes/layout/header.php';
                                     </span>
                                 </div>
                             <?php else: ?>
-                                <span class="hint">Still out</span>
+                                <span class="muted">Still out</span>
                             <?php endif; ?>
                         </td>
                         <td class="actions">
                             <?php if ($borrowing['returned_at'] === null): ?>
-                                <button type="button" class="btn btn-outline btn-sm"
-                                        onclick="document.getElementById('ret-<?= (int) $borrowing['borrowing_id'] ?>').hidden = false; this.hidden = true;">
-                                    Record return
-                                </button>
+                                <div class="btn-row">
+                                    <button type="button" class="btn btn-outline btn-sm"
+                                            aria-label="Record return of <?= e($borrowing['item_name']) ?>"
+                                            onclick="document.getElementById('ret-<?= (int) $borrowing['borrowing_id'] ?>').hidden = false; this.hidden = true;">
+                                        Record return
+                                    </button>
+                                </div>
                                 <form method="post" id="ret-<?= (int) $borrowing['borrowing_id'] ?>" hidden>
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="action" value="return">
                                     <input type="hidden" name="borrowing_id" value="<?= (int) $borrowing['borrowing_id'] ?>">
-                                    <select name="return_condition" style="font-size:.8rem;margin-bottom:.3rem;">
-                                        <option value="good">Returned in good condition</option>
-                                        <option value="damaged">Returned damaged</option>
-                                        <option value="lost">Reported lost</option>
-                                    </select>
-                                    <input type="text" name="return_remarks" placeholder="Remarks (optional)"
-                                           style="font-size:.8rem;margin-bottom:.3rem;">
-                                    <button type="submit" class="btn btn-primary btn-sm">Confirm</button>
+                                    <div class="form-row mb-2">
+                                        <select name="return_condition" class="input-sm" aria-label="Condition on return">
+                                            <option value="good">Returned in good condition</option>
+                                            <option value="damaged">Returned damaged</option>
+                                            <option value="lost">Reported lost</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-row mb-2">
+                                        <input type="text" name="return_remarks" class="input-sm" placeholder="Remarks (optional)"
+                                               aria-label="Return remarks (optional)">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-sm">Confirm return</button>
                                 </form>
+                            <?php elseif ($borrowing['return_remarks']): ?>
+                                <span class="hint"><?= e($borrowing['return_remarks']) ?></span>
                             <?php else: ?>
-                                <span class="hint"><?= e($borrowing['return_remarks'] ?? '—') ?></span>
+                                <span class="muted small">No remarks</span>
                             <?php endif; ?>
                         </td>
                     </tr>

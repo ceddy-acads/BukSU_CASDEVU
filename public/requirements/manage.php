@@ -9,7 +9,7 @@ require_once __DIR__ . '/../../includes/bootstrap.php';
 $activityId = get_id('activity_id') ?? (int) post('activity_id');
 if ($activityId <= 0) {
     http_response_code(404);
-    exit('404 — Activity not found.');
+    abort_page(404, 'Activity not found.');
 }
 
 require_activity_access($activityId);
@@ -17,7 +17,7 @@ require_activity_access($activityId);
 $activity = fetch_one('SELECT * FROM activities WHERE activity_id = ?', [$activityId]);
 if ($activity === null) {
     http_response_code(404);
-    exit('404 — Activity not found.');
+    abort_page(404, 'Activity not found.');
 }
 
 $errors = [];
@@ -51,7 +51,7 @@ if (is_post()) {
                 );
                 if (!$owns) {
                     http_response_code(403);
-                    exit('403 — That requirement belongs to another activity.');
+                    abort_page(403, 'That requirement belongs to another activity.');
                 }
 
                 query(
@@ -164,17 +164,15 @@ if ($editId !== null) {
     );
 }
 
-$pageTitle = 'Requirements — ' . $activity['title'];
+$pageTitle = 'Requirements: ' . $activity['title'];
 require __DIR__ . '/../../includes/layout/header.php';
 ?>
 
 <div class="page-head">
     <div>
+        <a class="crumb" href="<?= url('activities/view.php?id=' . $activityId) ?>">&larr; Back to activity</a>
         <h1>Requirements</h1>
-        <p>
-            <a href="<?= url('activities/view.php?id=' . $activityId) ?>"><?= e($activity['title']) ?></a>
-            &middot; what students must submit before participating
-        </p>
+        <p><?= e($activity['title']) ?> &middot; what students must submit before participating</p>
     </div>
     <div class="btn-row">
         <a class="btn btn-outline" href="<?= url('requirements/verify.php?activity_id=' . $activityId) ?>">
@@ -192,7 +190,64 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 <?php endif; ?>
 
-<div class="grid grid-2">
+<div class="split">
+    <section class="card">
+        <div class="card-head"><h2>Current requirements (<?= count($requirements) ?>)</h2></div>
+
+        <?php if ($requirements === []): ?>
+            <div class="empty">
+                <strong>No requirements yet</strong>
+                Students can register without submitting anything. Add one with the form on this page.
+            </div>
+        <?php else: ?>
+            <div class="feed">
+                <?php foreach ($requirements as $requirement): ?>
+                    <article>
+                        <div class="feed-row">
+                            <div>
+                                <h3>
+                                    <?= e($requirement['name']) ?>
+                                    <?php if (!$requirement['is_mandatory']): ?>
+                                        <span class="badge badge-muted">Optional</span>
+                                    <?php endif; ?>
+                                    <?php if (!$requirement['needs_file']): ?>
+                                        <span class="badge badge-info">No file</span>
+                                    <?php endif; ?>
+                                </h3>
+                                <p class="meta">
+                                    Deadline: <?= $requirement['deadline_at'] ? e(format_datetime($requirement['deadline_at'])) : 'None' ?>
+                                    &middot; <?= (int) $requirement['submitted_count'] ?> submitted
+                                    <?php if ((int) $requirement['pending_count'] > 0): ?>
+                                        &middot; <span class="text-warning"><?= (int) $requirement['pending_count'] ?> to verify</span>
+                                    <?php endif; ?>
+                                </p>
+                                <?php if ($requirement['description']): ?>
+                                    <p class="mb-0"><?= e($requirement['description']) ?></p>
+                                <?php endif; ?>
+                            </div>
+                            <div class="btn-row">
+                                <a class="btn btn-outline btn-sm"
+                                   href="<?= url('requirements/manage.php?activity_id=' . $activityId . '&edit=' . (int) $requirement['requirement_id']) ?>"
+                                   aria-label="Edit <?= e($requirement['name']) ?>">
+                                    Edit
+                                </a>
+                                <form method="post" class="inline-form"
+                                      onsubmit="return confirm('Delete this requirement? Any files students already submitted for it will be permanently deleted.');">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="activity_id" value="<?= $activityId ?>">
+                                    <input type="hidden" name="requirement_id" value="<?= (int) $requirement['requirement_id'] ?>">
+                                    <button type="submit" class="btn btn-danger btn-sm"
+                                            aria-label="Delete <?= e($requirement['name']) ?>">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </section>
+
     <section class="card">
         <div class="card-head">
             <h2><?= $editing ? 'Edit requirement' : 'Add a requirement' ?></h2>
@@ -212,36 +267,36 @@ require __DIR__ . '/../../includes/layout/header.php';
             </div>
 
             <div class="form-row">
-                <label for="description">Instructions for the student</label>
+                <label for="description">Instructions for the student <span class="optional">(optional)</span></label>
                 <textarea id="description" name="description"
-                          placeholder="Where to get it, what it must show…"><?= e(old('description', (string) ($editing['description'] ?? ''))) ?></textarea>
+                          placeholder="Where to get it, what it must show"><?= e(old('description', (string) ($editing['description'] ?? ''))) ?></textarea>
             </div>
 
             <div class="form-row">
-                <label for="deadline_at">Deadline</label>
+                <label for="deadline_at">Deadline <span class="optional">(optional)</span></label>
                 <input type="datetime-local" id="deadline_at" name="deadline_at"
                        value="<?= e(old('deadline_at', $editing && $editing['deadline_at']
                             ? date('Y-m-d\TH:i', strtotime((string) $editing['deadline_at'])) : '')) ?>">
-                <div class="hint">Leave blank if there is no fixed deadline.</div>
+                <p class="hint">Leave blank if there is no fixed deadline.</p>
             </div>
 
             <div class="form-row">
-                <label>
-                    <input type="checkbox" name="is_mandatory" value="1" style="width:auto;"
+                <label class="check">
+                    <input type="checkbox" name="is_mandatory" value="1"
                         <?= !$editing || (int) $editing['is_mandatory'] === 1 ? 'checked' : '' ?>>
-                    Mandatory — the student is not complete without it
+                    <span>Mandatory: the student is not complete without it</span>
                 </label>
             </div>
 
             <div class="form-row">
-                <label>
-                    <input type="checkbox" name="needs_file" value="1" style="width:auto;"
+                <label class="check">
+                    <input type="checkbox" name="needs_file" value="1"
                         <?= !$editing || (int) $editing['needs_file'] === 1 ? 'checked' : '' ?>>
-                    Requires a file upload (otherwise the student just acknowledges it)
+                    <span>Requires a file upload (otherwise the student just acknowledges it)</span>
                 </label>
             </div>
 
-            <div class="btn-row">
+            <div class="form-actions">
                 <button type="submit" class="btn btn-primary">
                     <?= $editing ? 'Save changes' : 'Add requirement' ?>
                 </button>
@@ -250,58 +305,6 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <?php endif; ?>
             </div>
         </form>
-    </section>
-
-    <section class="card">
-        <div class="card-head"><h2>Current requirements (<?= count($requirements) ?>)</h2></div>
-
-        <?php if ($requirements === []): ?>
-            <div class="empty">
-                <strong>No requirements yet</strong>
-                Students can register without submitting anything.
-            </div>
-        <?php else: ?>
-            <?php foreach ($requirements as $requirement): ?>
-                <article style="padding:.85rem 0;border-bottom:1px solid var(--line);">
-                    <div style="display:flex;justify-content:space-between;gap:.75rem;flex-wrap:wrap;">
-                        <div style="flex:1 1 200px;">
-                            <strong><?= e($requirement['name']) ?></strong>
-                            <?php if (!$requirement['is_mandatory']): ?>
-                                <span class="badge badge-muted">Optional</span>
-                            <?php endif; ?>
-                            <?php if (!$requirement['needs_file']): ?>
-                                <span class="badge badge-info">No file</span>
-                            <?php endif; ?>
-
-                            <?php if ($requirement['description']): ?>
-                                <div class="hint"><?= e($requirement['description']) ?></div>
-                            <?php endif; ?>
-                            <div class="hint">
-                                Deadline: <?= e(format_datetime($requirement['deadline_at'])) ?>
-                                &middot; <?= (int) $requirement['submitted_count'] ?> submitted
-                                <?php if ((int) $requirement['pending_count'] > 0): ?>
-                                    (<?= (int) $requirement['pending_count'] ?> to verify)
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <div class="btn-row" style="align-items:flex-start;">
-                            <a class="btn btn-outline btn-sm"
-                               href="<?= url('requirements/manage.php?activity_id=' . $activityId . '&edit=' . (int) $requirement['requirement_id']) ?>">
-                                Edit
-                            </a>
-                            <form method="post" style="display:inline;"
-                                  onsubmit="return confirm('Delete this requirement? Any files students already submitted for it will be permanently deleted.');">
-                                <?= csrf_field() ?>
-                                <input type="hidden" name="action" value="delete">
-                                <input type="hidden" name="activity_id" value="<?= $activityId ?>">
-                                <input type="hidden" name="requirement_id" value="<?= (int) $requirement['requirement_id'] ?>">
-                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                            </form>
-                        </div>
-                    </div>
-                </article>
-            <?php endforeach; ?>
-        <?php endif; ?>
     </section>
 </div>
 

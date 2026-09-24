@@ -79,6 +79,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 
 <div class="page-head">
     <div>
+        <a class="crumb" href="<?= url('reports/index.php') ?>">&larr; Back to reports</a>
         <h1>Participation report</h1>
         <p>
             <?= count($rows) ?> activit<?= count($rows) === 1 ? 'y' : 'ies' ?>
@@ -86,9 +87,8 @@ require __DIR__ . '/../../includes/layout/header.php';
         </p>
     </div>
     <div class="btn-row">
-        <a class="btn btn-gold" href="<?= e(participation_link(['export' => 'csv'])) ?>">Export CSV</a>
         <button type="button" class="btn btn-outline" onclick="window.print()">Print</button>
-        <a class="btn btn-outline" href="<?= url('reports/index.php') ?>">All reports</a>
+        <a class="btn btn-gold" href="<?= e(participation_link(['export' => 'csv'])) ?>">Export CSV</a>
     </div>
 </div>
 
@@ -98,6 +98,7 @@ require __DIR__ . '/../../includes/layout/header.php';
     by <?= e(full_name(current_user())) ?>
 </div>
 
+<?php $filtered = get('category') !== '' || get('status') !== '' || get('from') !== '' || get('to') !== ''; ?>
 <form method="get" class="filter-bar">
     <div class="form-row">
         <label for="category">Category</label>
@@ -130,32 +131,40 @@ require __DIR__ . '/../../includes/layout/header.php';
         <label for="to">To</label>
         <input type="date" id="to" name="to" value="<?= e(get('to')) ?>">
     </div>
-    <div class="form-row" style="flex:0 0 auto;">
+    <div class="form-row filter-actions">
         <button type="submit" class="btn btn-primary">Apply</button>
-    </div>
-    <?php if (get('category') !== '' || get('status') !== '' || get('from') !== '' || get('to') !== ''): ?>
-        <div class="form-row" style="flex:0 0 auto;">
+        <?php if ($filtered): ?>
             <a class="btn btn-outline" href="<?= url('reports/participation.php') ?>">Clear</a>
-        </div>
-    <?php endif; ?>
+        <?php endif; ?>
+    </div>
 </form>
 
 <?php if ($rows === []): ?>
     <div class="empty">
-        <strong>Nothing to report</strong>
-        No activities match these filters.
+        <?php if ($filtered): ?>
+            <strong>No activities match these filters</strong>
+            Try a different category, status, or date range, or clear the filters.
+            <div class="btn-row">
+                <a class="btn btn-outline" href="<?= url('reports/participation.php') ?>">Clear filters</a>
+            </div>
+        <?php else: ?>
+            <strong>Nothing to report yet</strong>
+            <?= is_office_staff()
+                ? 'Participation figures appear here once activities are created.'
+                : 'Participation figures appear here once you are assigned to an activity.' ?>
+        <?php endif; ?>
     </div>
 <?php else: ?>
-    <div class="grid grid-4" style="margin-bottom:1.5rem;">
+    <div class="stats">
         <div class="stat">
             <div class="stat-value"><?= number_format($totals['registered']) ?></div>
             <div class="stat-label">Registrations</div>
         </div>
-        <div class="stat stat-success">
+        <div class="stat <?= stat_tone($totals['approved'], 'stat-success') ?>">
             <div class="stat-value"><?= number_format($totals['approved']) ?></div>
             <div class="stat-label">Approved</div>
         </div>
-        <div class="stat stat-gold">
+        <div class="stat <?= stat_tone($totals['pending'], 'stat-gold') ?>">
             <div class="stat-value"><?= number_format($totals['pending']) ?></div>
             <div class="stat-label">Awaiting review</div>
         </div>
@@ -165,15 +174,15 @@ require __DIR__ . '/../../includes/layout/header.php';
         </div>
     </div>
 
-    <div class="card">
+    <section class="card card-flush">
         <div class="card-head"><h2>By activity</h2></div>
         <div class="table-wrap">
             <table class="data">
                 <thead>
                     <tr>
                         <th>Activity</th><th>Category</th><th>Starts</th><th>Status</th>
-                        <th>Registered</th><th>Approved</th><th>Pending</th>
-                        <th>Rejected</th><th>Attended</th>
+                        <th class="num">Registered</th><th class="num">Approved</th><th class="num">Pending</th>
+                        <th class="num">Rejected</th><th class="num">Attended</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -188,52 +197,54 @@ require __DIR__ . '/../../includes/layout/header.php';
                             <?php endif; ?>
                         </td>
                         <td><?= e($row['category']) ?></td>
-                        <td style="white-space:nowrap;"><?= e(format_date($row['start_at'])) ?></td>
+                        <td class="nowrap"><?= e(format_date($row['start_at'])) ?></td>
                         <td><?= status_badge($row['status']) ?></td>
-                        <td><?= (int) $row['total_registered'] ?></td>
-                        <td><strong><?= (int) $row['total_approved'] ?></strong></td>
-                        <td><?= (int) $row['total_pending'] ?></td>
-                        <td><?= (int) $row['total_rejected'] ?></td>
-                        <td><?= (int) $row['total_attended'] ?></td>
+                        <td class="num"><?= (int) $row['total_registered'] ?></td>
+                        <td class="num"><strong><?= (int) $row['total_approved'] ?></strong></td>
+                        <td class="num"><?= (int) $row['total_pending'] ?></td>
+                        <td class="num"><?= (int) $row['total_rejected'] ?></td>
+                        <td class="num"><?= (int) $row['total_attended'] ?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
                 <tfoot>
                     <tr>
-                        <th colspan="4">Total</th>
-                        <th><?= number_format($totals['registered']) ?></th>
-                        <th><?= number_format($totals['approved']) ?></th>
-                        <th><?= number_format($totals['pending']) ?></th>
-                        <th><?= number_format($totals['rejected']) ?></th>
-                        <th><?= number_format($totals['attended']) ?></th>
+                        <td colspan="4">Total</td>
+                        <td class="num"><?= number_format($totals['registered']) ?></td>
+                        <td class="num"><?= number_format($totals['approved']) ?></td>
+                        <td class="num"><?= number_format($totals['pending']) ?></td>
+                        <td class="num"><?= number_format($totals['rejected']) ?></td>
+                        <td class="num"><?= number_format($totals['attended']) ?></td>
                     </tr>
                 </tfoot>
             </table>
         </div>
-    </div>
+    </section>
 
     <?php if ($byYearLevel !== []): ?>
-        <div class="card">
-            <div class="card-head"><h2>Approved participants by year level and course</h2></div>
+        <section class="card card-flush">
+            <div class="card-head">
+                <h2>Approved participants by year level and course</h2>
+                <p class="hint">
+                    Counts every approved registration across all activities, so a
+                    student who joined two activities is counted twice.
+                </p>
+            </div>
             <div class="table-wrap">
-                <table class="data">
-                    <thead><tr><th>Year level</th><th>Course</th><th>Participants</th></tr></thead>
+                <table class="data table-stack">
+                    <thead><tr><th>Year level</th><th>Course</th><th class="num">Participants</th></tr></thead>
                     <tbody>
                     <?php foreach ($byYearLevel as $row): ?>
                         <tr>
-                            <td><?= e($row['year_level']) ?></td>
-                            <td><?= e($row['course']) ?></td>
-                            <td><?= (int) $row['participants'] ?></td>
+                            <td data-label="Year level"><?= e($row['year_level']) ?></td>
+                            <td data-label="Course"><?= e($row['course']) ?></td>
+                            <td data-label="Participants" class="num"><?= (int) $row['participants'] ?></td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
-            <p class="hint" style="margin-bottom:0;">
-                Counts every approved registration across all activities, so a
-                student who joined two activities is counted twice.
-            </p>
-        </div>
+        </section>
     <?php endif; ?>
 <?php endif; ?>
 

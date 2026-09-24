@@ -1,7 +1,12 @@
-# CASMS — Culture, Arts, and Sports Management System
+# CASDevU — Culture, Arts, and Sports Development Unit
 
-Bukidnon State University · Office of Culture, Arts, and Sports
+Bukidnon State University · Culture, Arts, and Sports Development Unit
 Native PHP 8 + MySQL (XAMPP)
+
+> The system was first built under the working name **CASMS**. The visible
+> name is now **CASDevU**; internal identifiers (the `casms` database, the
+> session cookie, `[CASMS]` log tags) keep the old name so existing installs,
+> data and sign-ins keep working.
 
 ---
 
@@ -62,13 +67,21 @@ http://localhost/casms/public/login.php
 | Email | `admin@buksu.edu.ph` |
 | Password | `admin123` |
 
+Every demo account, grouped by role, with a quick-start login per role and
+suggested things to try, is listed in `docs/test-accounts.pdf`.
+
+**5b. Optional — turn on real email (password reset, reminders)**
+
+See [Email delivery](#email-delivery) below. Without it, messages are written
+to `storage/logs/mail.log` instead of being sent.
+
 **6. Optional — schedule the deadline reminders**
 
 Reminders can be sent by hand from **Admin > Reminders**. To send them
 unattended, point Windows Task Scheduler (or cron) at the runner once a day:
 
 ```bash
-C:\xampp\php\php.exe "C:\path\to\CASMS\bin\send-reminders.php"
+C:\xampp\php\php.exe "C:\path\to\BukSU_CASDEVU\bin\send-reminders.php"
 ```
 
 It accepts `--dry-run` to report what would be sent without sending, and
@@ -78,26 +91,56 @@ It accepts `--dry-run` to report what would be sent without sending, and
 
 ## Configuration
 
-All settings live in `includes/config.php`. The defaults suit a local XAMPP
-install; the ones worth knowing about:
+All settings live in `includes/config.php`. Anything secret (the SMTP
+password) goes in `includes/config.local.php` instead, which is git-ignored and
+loaded automatically when present; a value defined there wins over the default.
+The defaults suit a local XAMPP install; the ones worth knowing about:
 
 | Constant | Default | What it controls |
 |----------|---------|------------------|
+| `APP_NAME` / `APP_TAGLINE` / `OFFICE_NAME` | `CASDevU` / `Culture, Arts, and Sports Development Unit` | The name shown on every page, email and printed report |
 | `APP_ENV` | `production` | `development` shows error detail on screen. Either way the detail is written to `storage/logs/php-error.log` and the user sees a reference code |
 | `BASE_URL` | auto-detected | URL path to `public/`. Override only if detection fails |
-| `MAIL_TRANSPORT` | `log` | `log` writes messages to `storage/logs/mail.log`; `mail` hands them to PHP's `mail()` |
+| `MAIL_TRANSPORT` | `smtp` when SMTP credentials exist, else `log` | `smtp` sends for real; `log` writes messages to `storage/logs/mail.log`; `mail` hands them to PHP's `mail()` |
+| `SMTP_HOST` / `SMTP_PORT` | `smtp.gmail.com` / `587` | Mail server; 587 uses STARTTLS, 465 uses SSL |
+| `SMTP_USERNAME` / `SMTP_PASSWORD` | empty | The sending account. Set these in `config.local.php`, never in `config.php` |
 | `MAIL_NOTIFICATIONS_ENABLED` | `true` | Whether reminders are emailed as well as shown in-app |
 | `LOGIN_MAX_ATTEMPTS` | `8` | Failed sign-ins per IP address before a lockout |
 | `LOGIN_LOCKOUT_MINUTES` | `15` | How long that lockout lasts |
 | `PASSWORD_RESET_TTL_MINUTES` | `60` | Lifetime of a reset link |
-| `MAX_UPLOAD_BYTES` | 5 MB | Largest accepted requirement file |
+| `MAX_UPLOAD_BYTES` | 5 MB | Largest accepted requirement file or item photo |
 | `MYSQL_BIN_PATH` | `C:/xampp/mysql/bin` | Where `mysqldump.exe` and `mysql.exe` live, used by Backup |
 
-**Email delivery.** `MAIL_TRANSPORT` ships as `log`, so nothing is actually
-sent — messages are appended to `storage/logs/mail.log`, which is enough to
-demonstrate password reset and reminders end to end without an SMTP account.
-Set it to `mail` only on a server that has a working mail transport; XAMPP
-does not provide one by default.
+### Email delivery
+
+XAMPP has no mail server, so the system sends through an SMTP account. Gmail
+works out of the box:
+
+1. On the Gmail account the system should send from, turn on
+   **2-Step Verification** (https://myaccount.google.com/security).
+2. Create an **App Password** at https://myaccount.google.com/apppasswords.
+   Google shows 16 letters; that is the password the system uses, not the
+   normal Gmail password.
+3. Copy `includes/config.local.example.php` to `includes/config.local.php`
+   and fill in `SMTP_USERNAME` and `SMTP_PASSWORD`.
+4. Test it:
+
+   ```bash
+   C:\xampp\php\php.exe bin\test-mail.php you@example.com
+   ```
+
+   It prints `Sent.` or the exact reason it failed (wrong App Password,
+   blocked port, and so on).
+
+Until both SMTP values are set, `MAIL_TRANSPORT` falls back to `log` and every
+message is appended to `storage/logs/mail.log`, so password reset and
+reminders can still be demonstrated end to end. The SMTP client is built in
+(`includes/mailer.php`, no Composer packages) and always verifies the server's
+TLS certificate using PHP's `openssl.cafile`.
+
+Links inside emails are built from the address the site was opened with. On a
+single XAMPP machine that is `localhost`, so a reset link only opens on that
+same computer; deploy under a real hostname for links that work anywhere.
 
 ---
 
@@ -108,10 +151,15 @@ BukSU CASDEVU/
 ├── database/
 │   ├── schema.sql           Clean installer: 22 tables, 3 views, seed data
 │   └── demo-data.sql        Optional realistic dataset for a walkthrough
-├── docs/                    Requirements, DB design, role matrix, build plan
-├── bin/send-reminders.php   Deadline reminder runner (command line only)
+├── docs/                    Requirements, DB design, role matrix, build plan,
+│                            test-accounts.pdf
+├── bin/
+│   ├── send-reminders.php   Deadline reminder runner (command line only)
+│   └── test-mail.php        Sends one test email and reports why it failed
 ├── includes/                Application code — NOT web-accessible
-│   ├── config.php           Credentials and settings
+│   ├── config.php           Settings and defaults
+│   ├── config.local.example.php  Template for config.local.php (SMTP secrets;
+│   │                        the real file is git-ignored)
 │   ├── bootstrap.php        Loaded first by every page
 │   ├── db.php               PDO connection + query helpers
 │   ├── auth.php             Sessions, login, role gates, audit log
@@ -122,11 +170,14 @@ BukSU CASDEVU/
 │   ├── uploads.php          Upload validation and safe storage
 │   ├── inventory.php        Availability maths, reservations, borrowing
 │   ├── reports.php          Report queries and CSV export
-│   ├── errors.php           Global exception and fatal-error handling
-│   ├── mailer.php           Outgoing email (log or mail transport)
+│   ├── errors.php           Global error handling and the designed status
+│   │                        pages (403 / 404 / 419 / 500) via abort_page()
+│   ├── mailer.php           Outgoing email (SMTP, log, or mail transport)
 │   ├── reminders.php        Deadline reminder rules
 │   ├── backup.php           Database dump, restore, and file guards
-│   └── layout/              header.php, footer.php
+│   └── layout/              header.php, footer.php (signed-in shell with the
+│                            sidebar); auth-header.php, auth-footer.php
+│                            (sign-in, register, password reset)
 ├── public/                  Web root — point the browser here
 │   ├── login.php  logout.php  register.php
 │   ├── index.php            Role-specific dashboard
@@ -136,16 +187,19 @@ BukSU CASDEVU/
 │   ├── participation/       register.php, my-activities.php, participants.php
 │   ├── requirements/        manage.php, submit.php, verify.php, download.php
 │   ├── inventory/           index.php, manage.php, reserve.php,
-│   │                        reservations.php, borrowings.php
+│   │                        reservations.php, borrowings.php, photo.php
 │   ├── announcements/       index.php, manage.php
 │   ├── reports/             index.php, participation.php, inventory.php,
 │   │                        students.php
 │   ├── admin/               users.php, venues.php, categories.php,
 │   │                        audit.php, backup.php, reminders.php
 │   ├── forgot-password.php  reset-password.php
-│   └── assets/css/style.css
+│   └── assets/
+│       ├── css/style.css    The whole design system (tokens + components)
+│       ├── js/app.js        Mobile navigation drawer (the only script)
+│       └── fonts/           Source Sans 3, Source Serif 4 (self-hosted, OFL)
 └── storage/                 NOT web-accessible
-    ├── uploads/             Submitted requirement files
+    ├── uploads/             Requirement files and inventory photos
     ├── backups/             Database dumps (git-ignored)
     └── logs/                php-error.log, mail.log (git-ignored)
 ```
@@ -156,7 +210,7 @@ the web root entirely.
 
 ---
 
-## Status — Weeks 1–4 complete
+## Status — Weeks 1–4 complete, plus the frontend redesign
 
 **Week 1 — foundation**
 
@@ -247,10 +301,52 @@ eligibility guard blocking with the correct message.
   out after 8 failures within 15 minutes
 - Optional demonstration dataset (`database/demo-data.sql`)
 
+**Frontend redesign and CASDevU rename**
+
+- One design system in `public/assets/css/style.css`: colour roles (BukSU
+  navy as the working colour, gold kept for "you are here" and each page's one
+  headline action), a 4px spacing scale, a type scale, two radii, two shadow
+  levels, and one keyboard focus ring. Every text colour pair passes WCAG AA
+- Self-hosted fonts, so the look holds on a campus network with no internet:
+  Source Sans 3 for the interface, Source Serif 4 for page titles
+- Navigation moved to a grouped left sidebar (main pages / Operations /
+  Administration). On phones and tablets it becomes a drawer opened from a
+  compact app bar; Esc, the backdrop and the close button dismiss it and focus
+  stays inside it while open. A skip-to-content link comes first
+- Shared components replace roughly 160 inline styles: page header, cards,
+  filter bar, stat tiles, record rows, lists, tables, progress bar. Stat tiles
+  only turn amber or red when their count is above zero
+- Tables scroll inside their own box on narrow screens; the ones people use on
+  a phone (participants, requirements, eligibility, venues) turn into labelled
+  rows instead
+- Staff and coordinator dashboard: a "Needs your attention" list of the
+  registrations and documents waiting on each activity, each with a direct
+  review button. Student dashboard leads with documents still to submit
+- Empty states say why a view is empty and offer the action that fills it, and
+  tell "nothing yet" apart from "no results for these filters"
+- Access denied (403), not found (404) and expired form (419) now show a
+  designed page with a way back instead of a line of plain text
+- Sign-in, registration and password reset share one layout
+  (`includes/layout/auth-*.php`); registration is grouped into three sections
+- Visible name changed to CASDevU everywhere: pages, emails, printed reports
+- Students have a **Costumes & equipment** catalog in their menu: photo,
+  category, size, and availability in words ("4 of 6 set available", "All 10
+  pc are on loan", "Not available: damaged"), with an "only items free to
+  borrow now" filter
+- Item photos (FR-6.1): staff upload, replace or remove a JPG/PNG on the item
+  form; photos are stored outside the web root and served to signed-in users
+  only through `inventory/photo.php`
+- Real email through SMTP (Gmail App Password) with a command-line test,
+  replacing the log-only default. See [Email delivery](#email-delivery)
+- The sidebar scrolls without a visible scrollbar when the admin menu is
+  taller than the screen
+
 ## Requirements status
 
 Measured against the 58 functional requirements in
-`docs/01-requirements-spec.md`, at commit `d4101c4`.
+`docs/01-requirements-spec.md`, at commit `d4101c4`. That count treated
+FR-6.1 as met, but item photos were not actually implemented until the
+redesign; they are now.
 
 | Priority | Implemented | Total |
 |----------|-------------|-------|
@@ -309,16 +405,27 @@ fatal errors, and nothing written to the application error log during the run.
 - File upload: a PHP script renamed `.pdf` was rejected by content-type
   sniffing
 
+**Browser testing after the redesign.** The redesigned frontend was checked in
+a real browser (Chromium via Playwright): 36 pages, as student, coordinator
+and administrator, at 390px, 768px and 1366px wide (324 page loads). No page
+scrolled sideways, no PHP errors or server errors appeared, and every 403 was
+an intended role restriction. A click-through confirmed sign-in errors,
+registration validation, the expired-form page, the 404 page, filters and
+empty states, the mobile drawer (open, Esc, backdrop, navigation), a profile
+save, keyboard focus order and the visible focus ring, and the item photo
+upload / reject-PDF / remove cycle.
+
 **What this testing did not cover.** These are limits of the method, not
 statements that the system fails them:
 
-- Tested over HTTP with a command-line client, **not a real browser**. Page
-  layout, JavaScript confirmation dialogs, mobile rendering and printed output
-  are unverified
+- Printed output and JavaScript confirmation dialogs were not checked in the
+  browser run
 - **No concurrency testing.** Reservation approval re-checks availability but
   takes no row lock, so two simultaneous approvals are untested
-- **No real email delivery tested.** `MAIL_TRANSPORT` was `log` throughout;
-  messages were verified in `storage/logs/mail.log`, not in an inbox
+- **Email reached Gmail's sign-in step, not an inbox.** The SMTP client
+  connected, completed TLS, and was refused only because test credentials were
+  used. Delivery to an inbox needs a real App Password; run
+  `bin/test-mail.php` after setting one
 - No load or performance testing beyond the 25-row pagination in ordinary use
 - No automated test suite exists; all testing was manual and must be repeated
   by hand after changes
@@ -338,14 +445,22 @@ statements that the system fails them:
 5. **A restore cannot be undone.** `admin/backup.php` takes a safety copy of
    the current data first and requires the filename to be typed, but the
    replacement itself is immediate and irreversible
-6. **Students cannot borrow equipment directly.** They can view the catalog and
-   availability; requesting a reservation is restricted to coordinators and
-   office staff, as specified in `docs/03-role-matrix.md`. This is a
-   documented decision, recorded as open assumption A-3 in
-   `docs/01-requirements-spec.md`, pending confirmation with the office
-7. **No scheduled task is installed by default.** Deadline reminders only go
+6. **Students cannot borrow equipment directly.** They browse the catalog and
+   live availability under **Costumes & equipment**; requesting a reservation
+   is restricted to coordinators and office staff, as specified in
+   `docs/03-role-matrix.md`. This is a documented decision, recorded as open
+   assumption A-3 in `docs/01-requirements-spec.md`, pending confirmation with
+   the office
+7. **Email needs an SMTP account.** Until `includes/config.local.php` has one,
+   reset links and reminders go to `storage/logs/mail.log`. Links in emails
+   point at the host the site was opened with (`localhost` on a single
+   machine)
+8. **The expired-form page returns HTTP 500 under Apache.** The code sends
+   419, which Apache does not recognise and replaces with 500. The page itself
+   reads correctly
+9. **No scheduled task is installed by default.** Deadline reminders only go
    out when the runner is invoked — see setup step 6
-8. **Default credentials ship in the repository.** `admin123` for the seeded
+10. **Default credentials ship in the repository.** `admin123` for the seeded
    administrator and `demo1234` for demo accounts. Change them before the
    system is used with real data
 
@@ -374,6 +489,23 @@ These are what make the security checklist pass at the end of Week 4.
     export always return the same rows
 12. Values written to CSV pass through `csv_cell()`, which neutralises a cell
     a spreadsheet would otherwise execute as a formula
+13. Inventory photos are shown only through `inventory/photo.php`, and
+    uploaded through `store_upload()` like every other file
+14. Stop a request with `abort_page($code, $message)`, never a bare `exit('...')`,
+    so the user gets the designed status page
+
+**Frontend**
+
+15. Build pages from the classes in `style.css` (`page-head`, `card`,
+    `filter-bar`, `stats`, `item`, `feed`, `table.data`, `empty`, `badge`, and
+    the rest). No inline `style=""` except a colour or width that comes from data
+16. One gold button (`btn-gold`) per page, for its headline action. Form
+    submits are `btn-primary`, everything else `btn-outline`
+17. Status is always shown in words (`status_badge()`, "4 available"), never
+    by colour alone; colour stat tiles with `stat_tone()` so a zero stays neutral
+18. Link CSS and JS with `asset()`, which adds a version stamp so browsers do
+    not keep an old copy after a change
+19. Check new screens at phone width (about 390px): nothing may scroll sideways
 
 ---
 

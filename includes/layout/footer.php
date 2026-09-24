@@ -1,12 +1,10 @@
 </main>
 
 <footer class="footer">
-    <p>
-        <strong><?= e(APP_TAGLINE) ?></strong><br>
-        <?= e(OFFICE_NAME) ?> &middot; <?= e(UNIVERSITY) ?>
-    </p>
-    <p class="footer-meta">&copy; <?= date('Y') ?></p>
+    <p><?= e(APP_NAME) ?> · <?= e(OFFICE_NAME) ?>, <?= e(UNIVERSITY) ?> · &copy; <?= date('Y') ?></p>
 </footer>
+</div><!-- .main -->
+</div><!-- .app -->
 
 </body>
 </html>

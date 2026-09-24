@@ -94,24 +94,26 @@ function calendar_link(int $year, int $month): string
     return url('activities/calendar.php?' . http_build_query($query));
 }
 
-$pageTitle = 'Calendar — ' . date('F Y', strtotime($firstDay));
+$pageTitle = 'Calendar: ' . date('F Y', strtotime($firstDay));
 require __DIR__ . '/../../includes/layout/header.php';
 ?>
 
 <div class="page-head">
     <div>
         <h1><?= e(date('F Y', strtotime($firstDay))) ?></h1>
-        <p><?= count($activities) ?> activit<?= count($activities) === 1 ? 'y' : 'ies' ?> this month</p>
+        <p><?= count($activities) ?> activit<?= count($activities) === 1 ? 'y' : 'ies' ?> this month. Select one to see its details.</p>
     </div>
     <div class="btn-row">
-        <a class="btn btn-outline" href="<?= e(calendar_link($prevYear, $prevMonth)) ?>">&laquo; <?= e(date('M', strtotime($previous . '-01'))) ?></a>
-        <a class="btn btn-outline" href="<?= e(calendar_link((int) date('Y'), (int) date('n'))) ?>">Today</a>
-        <a class="btn btn-outline" href="<?= e(calendar_link($nextYear, $nextMonth)) ?>"><?= e(date('M', strtotime($next . '-01'))) ?> &raquo;</a>
+        <a class="btn btn-outline" href="<?= e(calendar_link($prevYear, $prevMonth)) ?>"
+           aria-label="Previous month, <?= e(date('F Y', strtotime($previous . '-01'))) ?>">Previous: <?= e(date('M', strtotime($previous . '-01'))) ?></a>
+        <a class="btn btn-outline" href="<?= e(calendar_link((int) date('Y'), (int) date('n'))) ?>">This month</a>
+        <a class="btn btn-outline" href="<?= e(calendar_link($nextYear, $nextMonth)) ?>"
+           aria-label="Next month, <?= e(date('F Y', strtotime($next . '-01'))) ?>">Next: <?= e(date('M', strtotime($next . '-01'))) ?></a>
         <a class="btn btn-outline" href="<?= url('activities/index.php') ?>">List view</a>
     </div>
 </div>
 
-<form method="get" class="filter-bar">
+<form method="get" class="filter-bar filter-bar-compact">
     <input type="hidden" name="year"  value="<?= $year ?>">
     <input type="hidden" name="month" value="<?= $month ?>">
     <div class="form-row">
@@ -126,6 +128,9 @@ require __DIR__ . '/../../includes/layout/header.php';
             <?php endforeach; ?>
         </select>
     </div>
+    <div class="form-row filter-actions">
+        <button type="submit" class="btn btn-primary">Show</button>
+    </div>
 </form>
 
 <div class="cal-legend">
@@ -137,7 +142,7 @@ require __DIR__ . '/../../includes/layout/header.php';
     <?php endforeach; ?>
 </div>
 
-<div class="card" style="padding:0;overflow:hidden;">
+<section class="card cal-card" aria-label="Calendar for <?= e(date('F Y', strtotime($firstDay))) ?>">
     <div class="cal-wrap">
         <table class="calendar">
             <thead>
@@ -169,9 +174,9 @@ require __DIR__ . '/../../includes/layout/header.php';
 
                                 <?php foreach ($events as $event): ?>
                                     <a class="cal-event"
-                                       style="border-left-color: <?= e($event['color_hex'] ?: '#10284d') ?>"
+                                       style="--cat: <?= e($event['color_hex'] ?: '#10284d') ?>"
                                        href="<?= url('activities/view.php?id=' . (int) $event['activity_id']) ?>"
-                                       title="<?= e($event['title']) ?> — <?= e($event['category']) ?><?= $event['venue'] ? ' at ' . e($event['venue']) : '' ?>">
+                                       title="<?= e($event['title']) ?>, <?= e($event['category']) ?><?= $event['venue'] ? ' at ' . e($event['venue']) : '' ?>">
                                         <?php if ($event['is_first']): ?>
                                             <span class="cal-time"><?= e(date('g:i A', strtotime((string) $event['start_at']))) ?></span>
                                         <?php endif; ?>
@@ -190,12 +195,15 @@ require __DIR__ . '/../../includes/layout/header.php';
             </tbody>
         </table>
     </div>
-</div>
+</section>
 
 <?php if ($activities === []): ?>
-    <div class="empty" style="margin-top:1.25rem;">
+    <div class="empty">
         <strong>Nothing scheduled this month</strong>
-        Use the arrows above to look at another month.
+        <?= $categoryIn !== '' ? 'No activities in this category this month. Pick another category or month.' : 'Use Previous and Next above to look at another month.' ?>
+        <?php if ($categoryIn !== ''): ?>
+            <a class="btn btn-outline" href="<?= e(url('activities/calendar.php?year=' . $year . '&month=' . $month)) ?>">Show all categories</a>
+        <?php endif; ?>
     </div>
 <?php endif; ?>
 

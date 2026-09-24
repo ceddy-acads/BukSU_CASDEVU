@@ -96,7 +96,7 @@ if (get('download') !== '') {
 
     if ($path === null) {
         http_response_code(404);
-        exit('404 — Backup not found.');
+        abort_page(404, 'Backup not found.');
     }
 
     audit_log('view', 'backup', null, 'Downloaded backup ' . $filename);
@@ -121,10 +121,12 @@ require __DIR__ . '/../../includes/layout/header.php';
 <div class="page-head">
     <div>
         <h1>Backup &amp; restore</h1>
-        <p><?= count($backups) ?> backup<?= count($backups) === 1 ? '' : 's' ?> stored
-           <?= $backups !== [] ? '&middot; ' . e(format_filesize($totalSize)) . ' total' : '' ?></p>
+        <p><?= count($backups) ?> backup<?= count($backups) === 1 ? '' : 's' ?> stored<?= $backups !== [] ? ', ' . e(format_filesize($totalSize)) . ' total' : '' ?>.
+           Take a backup before any large change to the data.</p>
     </div>
-    <a class="btn btn-outline" href="<?= url('admin/audit.php') ?>">Audit trail</a>
+    <div class="btn-row">
+        <a class="btn btn-outline" href="<?= url('admin/audit.php') ?>">Audit trail</a>
+    </div>
 </div>
 
 <?php if (!$toolsOk): ?>
@@ -137,108 +139,121 @@ require __DIR__ . '/../../includes/layout/header.php';
 <?php endif; ?>
 
 <div class="alert alert-warning">
-    <strong>Backup files contain everything</strong> — including password
-    hashes. They are stored outside the web root and can only be downloaded
+    <strong>Backup files contain everything, including password hashes.</strong>
+    They are stored outside the web root and can only be downloaded
     from this page. Keep downloaded copies somewhere safe.
 </div>
 
-<section class="card">
-    <div class="card-head"><h2>Create a backup</h2></div>
-    <p style="font-size:.9rem;margin-top:0;">
-        Writes a complete SQL dump of the <code><?= e(DB_NAME) ?></code> database
-        to <code>storage/backups/</code>. Safe to run at any time; it does not
-        lock the system.
-    </p>
-    <form method="post">
-        <?= csrf_field() ?>
-        <input type="hidden" name="action" value="create">
-        <button type="submit" class="btn btn-gold" <?= $toolsOk ? '' : 'disabled' ?>>
-            Create backup now
-        </button>
-    </form>
-</section>
+<div class="split">
+    <section class="card">
+        <div class="card-head"><h2>Stored backups</h2></div>
 
-<section class="card">
-    <div class="card-head"><h2>Stored backups</h2></div>
-
-    <?php if ($backups === []): ?>
-        <div class="empty">
-            <strong>No backups yet</strong>
-            Create one before making any large change to the data.
-        </div>
-    <?php else: ?>
-        <?php if (count($backups) > BACKUP_KEEP): ?>
-            <div class="alert alert-info">
-                There are more than <?= BACKUP_KEEP ?> backups stored. Consider
-                deleting the oldest to save space.
+        <?php if ($backups === []): ?>
+            <div class="empty">
+                <strong>No backups yet</strong>
+                Create one before making any large change to the data.
             </div>
-        <?php endif; ?>
+        <?php else: ?>
+            <?php if (count($backups) > BACKUP_KEEP): ?>
+                <div class="alert alert-info">
+                    There are more than <?= BACKUP_KEEP ?> backups stored. Consider
+                    deleting the oldest to save space.
+                </div>
+            <?php endif; ?>
 
-        <div class="table-wrap">
-            <table class="data">
-                <thead><tr><th>Backup</th><th>Created</th><th>Size</th><th>Actions</th></tr></thead>
-                <tbody>
-                <?php foreach ($backups as $index => $backup): ?>
-                    <tr>
-                        <td>
-                            <strong><?= e($backup['filename']) ?></strong>
-                            <?php if ($index === 0): ?>
-                                <span class="badge badge-success">Newest</span>
-                            <?php endif; ?>
-                        </td>
-                        <td style="white-space:nowrap;">
-                            <?= e(date('d M Y, g:i A', $backup['created_at'])) ?>
-                        </td>
-                        <td><?= e(format_filesize($backup['size'])) ?></td>
-                        <td class="actions">
-                            <div class="btn-row">
-                                <a class="btn btn-outline btn-sm"
-                                   href="<?= url('admin/backup.php?download=' . rawurlencode($backup['filename'])) ?>">
-                                    Download
-                                </a>
+            <ul class="feed">
+            <?php foreach ($backups as $index => $backup): ?>
+                <li>
+                    <div class="feed-row">
+                        <div>
+                            <h3>
+                                <?= str_replace(['_', '-'], ['_<wbr>', '-<wbr>'], e($backup['filename'])) ?>
+                                <?php if ($index === 0): ?>
+                                    <span class="badge badge-success">Newest</span>
+                                <?php endif; ?>
+                            </h3>
+                            <p class="meta">
+                                Created <span class="nowrap"><?= e(date('d M Y, g:i A', $backup['created_at'])) ?></span>
+                                &middot; <?= e(format_filesize($backup['size'])) ?>
+                            </p>
+                        </div>
+                        <div class="btn-row">
+                            <a class="btn btn-outline btn-sm"
+                               href="<?= url('admin/backup.php?download=' . rawurlencode($backup['filename'])) ?>"
+                               aria-label="Download <?= e($backup['filename']) ?>">
+                                Download
+                            </a>
 
-                                <button type="button" class="btn btn-outline btn-sm"
-                                        onclick="document.getElementById('restore-<?= $index ?>').hidden = false; this.hidden = true;">
-                                    Restore
-                                </button>
+                            <button type="button" class="btn btn-outline btn-sm"
+                                    aria-label="Restore <?= e($backup['filename']) ?>"
+                                    onclick="document.getElementById('restore-<?= $index ?>').hidden = false; this.hidden = true;">
+                                Restore
+                            </button>
 
-                                <form method="post" style="display:inline;"
-                                      onsubmit="return confirm('Delete this backup file permanently?');">
-                                    <?= csrf_field() ?>
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="hidden" name="filename" value="<?= e($backup['filename']) ?>">
-                                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                                </form>
-                            </div>
-
-                            <form method="post" id="restore-<?= $index ?>" hidden style="margin-top:.5rem;"
-                                  onsubmit="return confirm('This REPLACES the entire live database with this backup. Continue?');">
+                            <form method="post" class="inline-form"
+                                  onsubmit="return confirm('Delete this backup file permanently?');">
                                 <?= csrf_field() ?>
-                                <input type="hidden" name="action" value="restore">
+                                <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="filename" value="<?= e($backup['filename']) ?>">
-                                <div class="alert alert-error" style="margin:0 0 .4rem;font-size:.8rem;">
-                                    This replaces <strong>all</strong> current data.
-                                    Type the filename to confirm.
-                                </div>
-                                <input type="text" name="confirm_filename" required
-                                       placeholder="<?= e($backup['filename']) ?>"
-                                       style="font-size:.8rem;margin-bottom:.35rem;">
-                                <button type="submit" class="btn btn-danger btn-sm" <?= $toolsOk ? '' : 'disabled' ?>>
-                                    Restore this backup
-                                </button>
+                                <button type="submit" class="btn btn-danger btn-sm"
+                                        aria-label="Delete <?= e($backup['filename']) ?>">Delete</button>
                             </form>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
+                        </div>
+                    </div>
 
-        <p class="hint" style="margin-bottom:0;">
-            A restore takes a safety copy of the current data first, then signs
-            you out — the restored data may not contain your account.
-        </p>
-    <?php endif; ?>
-</section>
+                    <form method="post" id="restore-<?= $index ?>" hidden class="mt-4"
+                          onsubmit="return confirm('This REPLACES the entire live database with this backup. Continue?');">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="action" value="restore">
+                        <input type="hidden" name="filename" value="<?= e($backup['filename']) ?>">
+                        <div class="alert alert-error">
+                            Restoring replaces <strong>all</strong> current data with this backup.
+                            Anything changed since <?= e(date('d M Y, g:i A', $backup['created_at'])) ?> will be lost.
+                        </div>
+                        <div class="form-row">
+                            <label for="confirm-<?= $index ?>">Type the filename to confirm</label>
+                            <input type="text" id="confirm-<?= $index ?>" name="confirm_filename" required
+                                   autocomplete="off" placeholder="<?= e($backup['filename']) ?>">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-danger" <?= $toolsOk ? '' : 'disabled' ?>>
+                                Restore this backup
+                            </button>
+                        </div>
+                    </form>
+                </li>
+            <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    </section>
+
+    <div class="stack">
+        <section class="card">
+            <div class="card-head"><h2>Create a backup</h2></div>
+            <p class="card-intro">
+                Writes a complete SQL dump of the <code><?= e(DB_NAME) ?></code> database
+                to <code>storage/backups/</code>. Safe to run at any time; it does not
+                lock the system.
+            </p>
+            <form method="post">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="create">
+                <button type="submit" class="btn btn-gold" <?= $toolsOk ? '' : 'disabled' ?>>
+                    Create backup now
+                </button>
+            </form>
+        </section>
+
+        <section class="card">
+            <div class="card-head"><h2>What a restore does</h2></div>
+            <ul class="bullets">
+                <li>Replaces the live database with the contents of the backup.</li>
+                <li>Takes a safety copy of the current data first, so a bad restore can itself be undone.</li>
+                <li>Signs you out, because the restored data may not contain your account.</li>
+                <li>Asks you to type the filename, so a stray click cannot start it.</li>
+            </ul>
+        </section>
+    </div>
+</div>
 
 <?php require __DIR__ . '/../../includes/layout/footer.php'; ?>

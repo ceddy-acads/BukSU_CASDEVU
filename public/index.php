@@ -1,6 +1,10 @@
 <?php
 /**
  * CASMS — Role-specific dashboard (Week 1 milestone)
+ *
+ * Built around the one question each role opens it with:
+ *   students  — "what do I still need to do?"
+ *   office    — "what is waiting on me?"
  */
 
 declare(strict_types=1);
@@ -32,29 +36,38 @@ $announcements = fetch_all(
 );
 
 // --------------------------------------------------------- Role statistics
+// Each tile: label, value, the class it earns when non-zero, and where it leads.
 $stats = [];
 
 if ($role === 'student') {
     $stats = [
         ['label' => 'My registrations', 'value' => fetch_value(
-            'SELECT COUNT(*) FROM registrations WHERE user_id = ?', [$user['user_id']]), 'class' => ''],
+            'SELECT COUNT(*) FROM registrations WHERE user_id = ?', [$user['user_id']]),
+            'class' => '', 'href' => 'participation/my-activities.php'],
         ['label' => 'Approved',         'value' => fetch_value(
-            "SELECT COUNT(*) FROM registrations WHERE user_id = ? AND status = 'approved'", [$user['user_id']]), 'class' => 'stat-success'],
+            "SELECT COUNT(*) FROM registrations WHERE user_id = ? AND status = 'approved'", [$user['user_id']]),
+            'class' => 'stat-success', 'href' => 'participation/my-activities.php'],
         ['label' => 'Awaiting review',  'value' => fetch_value(
-            "SELECT COUNT(*) FROM registrations WHERE user_id = ? AND status = 'pending'", [$user['user_id']]), 'class' => 'stat-gold'],
+            "SELECT COUNT(*) FROM registrations WHERE user_id = ? AND status = 'pending'", [$user['user_id']]),
+            'class' => 'stat-gold', 'href' => 'participation/my-activities.php'],
         ['label' => 'Missing requirements', 'value' => fetch_value(
-            'SELECT COUNT(*) FROM v_missing_requirements WHERE user_id = ?', [$user['user_id']]), 'class' => 'stat-danger'],
+            'SELECT COUNT(*) FROM v_missing_requirements WHERE user_id = ?', [$user['user_id']]),
+            'class' => 'stat-danger', 'href' => 'participation/my-activities.php'],
     ];
 } else {
     $stats = [
         ['label' => 'Active activities', 'value' => fetch_value(
-            "SELECT COUNT(*) FROM activities WHERE status IN ('upcoming','ongoing')"), 'class' => ''],
+            "SELECT COUNT(*) FROM activities WHERE status IN ('upcoming','ongoing')"),
+            'class' => '', 'href' => 'activities/index.php'],
         ['label' => 'Pending registrations', 'value' => fetch_value(
-            "SELECT COUNT(*) FROM registrations WHERE status = 'pending'"), 'class' => 'stat-gold'],
+            "SELECT COUNT(*) FROM registrations WHERE status = 'pending'"),
+            'class' => 'stat-gold', 'href' => null],
         ['label' => 'Requirements to verify', 'value' => fetch_value(
-            "SELECT COUNT(*) FROM requirement_submissions WHERE status = 'pending'"), 'class' => 'stat-danger'],
+            "SELECT COUNT(*) FROM requirement_submissions WHERE status = 'pending'"),
+            'class' => 'stat-gold', 'href' => null],
         ['label' => 'Items on loan', 'value' => fetch_value(
-            'SELECT COUNT(*) FROM borrowings WHERE returned_at IS NULL'), 'class' => 'stat-success'],
+            'SELECT COUNT(*) FROM borrowings WHERE returned_at IS NULL'),
+            'class' => '', 'href' => is_office_staff() ? 'inventory/borrowings.php' : null],
     ];
 }
 
@@ -62,6 +75,30 @@ if ($role === 'student') {
 $pendingAccounts = is_office_staff()
     ? (int) fetch_value("SELECT COUNT(*) FROM users WHERE status = 'pending'")
     : 0;
+
+// Office work queue: activities with registrations or documents waiting for
+// review. Coordinators only see the activities they are assigned to.
+$workQueue = [];
+if ($role !== 'student') {
+    $candidates = fetch_all(
+        "SELECT a.activity_id, a.title, a.start_at,
+                (SELECT COUNT(*) FROM registrations r
+                  WHERE r.activity_id = a.activity_id AND r.status = 'pending') AS pending_registrations,
+                (SELECT COUNT(*) FROM requirement_submissions rs
+                   JOIN activity_requirements ar ON ar.requirement_id = rs.requirement_id
+                  WHERE ar.activity_id = a.activity_id AND rs.status = 'pending') AS pending_documents
+           FROM activities a
+          WHERE a.status NOT IN ('cancelled', 'completed')
+         HAVING pending_registrations > 0 OR pending_documents > 0
+          ORDER BY a.start_at ASC
+          LIMIT 8"
+    );
+    foreach ($candidates as $candidate) {
+        if (can_manage_activity((int) $candidate['activity_id'])) {
+            $workQueue[] = $candidate;
+        }
+    }
+}
 
 $pageTitle = 'Dashboard';
 require __DIR__ . '/../includes/layout/header.php';
@@ -79,15 +116,21 @@ require __DIR__ . '/../includes/layout/header.php';
         </p>
     </div>
     <?php if (is_office_staff()): ?>
-        <a class="btn btn-gold" href="<?= url('activities/manage.php') ?>">+ New activity</a>
+        <div class="btn-row">
+            <a class="btn btn-gold" href="<?= url('activities/manage.php') ?>">New activity</a>
+        </div>
+    <?php elseif ($role === 'student'): ?>
+        <div class="btn-row">
+            <a class="btn btn-outline" href="<?= url('activities/index.php') ?>">Browse activities</a>
+        </div>
     <?php endif; ?>
 </div>
 
 <?php if ($pendingAccounts > 0): ?>
     <div class="alert alert-warning">
-        <strong><?= $pendingAccounts ?></strong> student account<?= $pendingAccounts === 1 ? '' : 's' ?>
-        awaiting approval.
-        <a href="<?= url('admin/users.php?status=pending') ?>">Review now</a>
+        <strong><?= $pendingAccounts ?></strong> student account<?= $pendingAccounts === 1 ? ' is' : 's are' ?>
+        waiting for approval.
+        <a href="<?= url('admin/users.php?status=pending') ?>">Review accounts</a>
     </div>
 <?php endif; ?>
 
@@ -97,77 +140,147 @@ require __DIR__ . '/../includes/layout/header.php';
         <div class="alert alert-error">
             <strong><?= $overdueItems ?></strong> borrowed item<?= $overdueItems === 1 ? ' is' : 's are' ?>
             past the expected return date.
-            <a href="<?= url('inventory/borrowings.php?filter=overdue') ?>">Review now</a>
+            <a href="<?= url('inventory/borrowings.php?filter=overdue') ?>">See overdue items</a>
         </div>
     <?php endif; ?>
 <?php endif; ?>
 
-<div class="grid grid-4" style="margin-bottom:1.5rem;">
+<?php if ($role === 'student' && (int) $stats[3]['value'] > 0): ?>
+    <div class="alert alert-warning">
+        You still have <strong><?= (int) $stats[3]['value'] ?></strong>
+        document<?= (int) $stats[3]['value'] === 1 ? '' : 's' ?> to submit.
+        <a href="<?= url('participation/my-activities.php') ?>">See what is missing</a>
+    </div>
+<?php endif; ?>
+
+<div class="stats">
     <?php foreach ($stats as $stat): ?>
-        <div class="stat <?= e($stat['class']) ?>">
-            <div class="stat-value"><?= (int) $stat['value'] ?></div>
-            <div class="stat-label"><?= e($stat['label']) ?></div>
-        </div>
+        <?php
+        $value = (int) $stat['value'];
+        // Colour is earned: a zero is not an alarm.
+        $class = $value > 0 ? $stat['class'] : '';
+        $tag   = $stat['href'] ? 'a' : 'div';
+        ?>
+        <<?= $tag ?> class="stat <?= e($class) ?>"<?= $stat['href'] ? ' href="' . e(url($stat['href'])) . '"' : '' ?>>
+            <span class="stat-value"><?= $value ?></span>
+            <span class="stat-label"><?= e($stat['label']) ?></span>
+        </<?= $tag ?>>
     <?php endforeach; ?>
 </div>
 
 <div class="grid grid-2">
+    <?php if ($role !== 'student'): ?>
+        <section class="card">
+            <div class="card-head">
+                <h2>Needs your attention</h2>
+                <p class="hint">Registrations and documents waiting for a decision.</p>
+            </div>
+
+            <?php if ($workQueue === []): ?>
+                <div class="empty">
+                    <strong>You are all caught up</strong>
+                    No registrations or documents are waiting for review.
+                </div>
+            <?php else: ?>
+                <ul class="feed">
+                    <?php foreach ($workQueue as $item): ?>
+                        <li>
+                            <h3>
+                                <a href="<?= url('activities/view.php?id=' . (int) $item['activity_id']) ?>">
+                                    <?= e($item['title']) ?>
+                                </a>
+                            </h3>
+                            <p class="meta"><?= e(format_datetime($item['start_at'])) ?></p>
+                            <div class="btn-row">
+                                <?php if ((int) $item['pending_registrations'] > 0): ?>
+                                    <a class="btn btn-outline btn-sm"
+                                       href="<?= url('participation/participants.php?activity_id=' . (int) $item['activity_id'] . '&status=pending') ?>">
+                                        Review <?= (int) $item['pending_registrations'] ?>
+                                        registration<?= (int) $item['pending_registrations'] === 1 ? '' : 's' ?>
+                                    </a>
+                                <?php endif; ?>
+                                <?php if ((int) $item['pending_documents'] > 0): ?>
+                                    <a class="btn btn-outline btn-sm"
+                                       href="<?= url('requirements/verify.php?activity_id=' . (int) $item['activity_id']) ?>">
+                                        Verify <?= (int) $item['pending_documents'] ?>
+                                        document<?= (int) $item['pending_documents'] === 1 ? '' : 's' ?>
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        </section>
+    <?php endif; ?>
+
     <section class="card">
-        <div class="card-head"><h2>Upcoming activities</h2></div>
+        <div class="card-head">
+            <h2>Upcoming activities</h2>
+            <?php if ($upcoming !== []): ?>
+                <a class="btn btn-ghost btn-sm" href="<?= url('activities/index.php') ?>">View all</a>
+            <?php endif; ?>
+        </div>
 
         <?php if ($upcoming === []): ?>
             <div class="empty">
                 <strong>Nothing scheduled yet</strong>
-                <?= is_office_staff() ? 'Create the first activity to get started.' : 'Check back soon.' ?>
+                <?php if (is_office_staff()): ?>
+                    Create the first activity so students can register.
+                    <div><a class="btn btn-primary" href="<?= url('activities/manage.php') ?>">Create an activity</a></div>
+                <?php else: ?>
+                    New activities appear here as soon as the office publishes them.
+                <?php endif; ?>
             </div>
         <?php else: ?>
-            <div class="table-wrap">
-                <table class="data">
-                    <thead>
-                        <tr><th>Activity</th><th>Category</th><th>When</th><th>Status</th></tr>
-                    </thead>
-                    <tbody>
-                    <?php foreach ($upcoming as $activity): ?>
-                        <tr>
-                            <td>
-                                <a href="<?= url('activities/view.php?id=' . (int) $activity['activity_id']) ?>">
-                                    <?= e($activity['title']) ?>
-                                </a>
-                                <?php if ($activity['venue']): ?>
-                                    <div class="hint"><?= e($activity['venue']) ?></div>
-                                <?php endif; ?>
-                            </td>
-                            <td><?= e($activity['category']) ?></td>
-                            <td><?= e(format_datetime($activity['start_at'])) ?></td>
-                            <td><?= status_badge($activity['status']) ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-            <div class="btn-row" style="margin-top:1rem;">
-                <a class="btn btn-outline btn-sm" href="<?= url('activities/index.php') ?>">View all activities</a>
-            </div>
+            <ul class="agenda">
+                <?php foreach ($upcoming as $activity): ?>
+                    <?php $start = strtotime((string) $activity['start_at']); ?>
+                    <li>
+                        <span class="agenda-date" aria-hidden="true">
+                            <span class="mon"><?= e(date('M', $start)) ?></span>
+                            <span class="day"><?= e(date('j', $start)) ?></span>
+                        </span>
+                        <div class="agenda-body">
+                            <a href="<?= url('activities/view.php?id=' . (int) $activity['activity_id']) ?>">
+                                <?= e($activity['title']) ?>
+                            </a>
+                            <p class="meta">
+                                <?= e(format_datetime($activity['start_at'])) ?>
+                                &middot; <?= e($activity['category']) ?>
+                                <?= $activity['venue'] ? ' &middot; ' . e($activity['venue']) : '' ?>
+                            </p>
+                        </div>
+                        <span class="agenda-status"><?= status_badge($activity['status']) ?></span>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
         <?php endif; ?>
     </section>
 
-    <section class="card">
-        <div class="card-head"><h2>Latest announcements</h2></div>
+    <?php // Office roles have three cards; the news row takes the full width below. ?>
+    <section class="card<?= $role !== 'student' ? ' span-all' : '' ?>">
+        <div class="card-head">
+            <h2>Latest announcements</h2>
+            <?php if ($announcements !== []): ?>
+                <a class="btn btn-ghost btn-sm" href="<?= url('announcements/index.php') ?>">View all</a>
+            <?php endif; ?>
+        </div>
 
         <?php if ($announcements === []): ?>
-            <div class="empty"><strong>No announcements</strong> Nothing has been posted yet.</div>
+            <div class="empty">
+                <strong>No announcements yet</strong>
+                Office news and schedule changes will be posted here.
+            </div>
         <?php else: ?>
-            <?php foreach ($announcements as $announcement): ?>
-                <article style="padding-bottom:.85rem;margin-bottom:.85rem;border-bottom:1px solid var(--line);">
-                    <h3 style="margin:0 0 .25rem;font-size:.98rem;"><?= e($announcement['title']) ?></h3>
-                    <p class="hint" style="margin:0 0 .35rem;"><?= e(format_date($announcement['published_at'])) ?></p>
-                    <p style="margin:0;font-size:.88rem;">
-                        <?= e(mb_strimwidth(strip_tags($announcement['body']), 0, 180, '…')) ?>
-                    </p>
-                </article>
-            <?php endforeach; ?>
-            <div class="btn-row" style="margin-top:1rem;">
-                <a class="btn btn-outline btn-sm" href="<?= url('announcements/index.php') ?>">All announcements</a>
+            <div class="feed<?= $role !== 'student' ? ' feed-cols' : '' ?>">
+                <?php foreach ($announcements as $announcement): ?>
+                    <article>
+                        <h3><?= e($announcement['title']) ?></h3>
+                        <p class="meta"><?= e(format_date($announcement['published_at'])) ?></p>
+                        <p><?= e(mb_strimwidth(strip_tags($announcement['body']), 0, 180, '…')) ?></p>
+                    </article>
+                <?php endforeach; ?>
             </div>
         <?php endif; ?>
     </section>

@@ -70,7 +70,7 @@ if (is_post()) {
         );
         if (!$allowed) {
             http_response_code(403);
-            exit('403 — You are not assigned to that activity.');
+            abort_page(403, 'You are not assigned to that activity.');
         }
     }
 
@@ -139,10 +139,10 @@ require __DIR__ . '/../../includes/layout/header.php';
 
 <div class="page-head">
     <div>
+        <a class="crumb" href="<?= url('inventory/index.php') ?>">&larr; Back to inventory</a>
         <h1>Request a reservation</h1>
         <p>Hold costumes or equipment for a specific period.</p>
     </div>
-    <a class="btn btn-outline" href="<?= url('inventory/index.php') ?>">Back to inventory</a>
 </div>
 
 <?php if ($errors !== []): ?>
@@ -164,7 +164,11 @@ require __DIR__ . '/../../includes/layout/header.php';
 <?php if ($items === []): ?>
     <div class="empty">
         <strong>Nothing to reserve</strong>
-        The catalog has no items available.
+        No catalog items can be reserved right now. Items that are damaged, under maintenance,
+        or unavailable are left out.
+        <div class="btn-row">
+            <a class="btn btn-outline" href="<?= url('inventory/index.php') ?>">View inventory</a>
+        </div>
     </div>
 <?php else: ?>
 <form method="post" novalidate>
@@ -187,9 +191,9 @@ require __DIR__ . '/../../includes/layout/header.php';
         </div>
 
         <div class="form-row">
-            <label for="activity_id">For which activity?</label>
+            <label for="activity_id">For which activity? <span class="optional">(optional)</span></label>
             <select id="activity_id" name="activity_id">
-                <option value="">— Not tied to an activity —</option>
+                <option value="">Not tied to an activity</option>
                 <?php foreach ($activities as $activity): ?>
                     <option value="<?= (int) $activity['activity_id'] ?>"
                         <?= old('activity_id') === (string) $activity['activity_id'] ? 'selected' : '' ?>>
@@ -200,38 +204,47 @@ require __DIR__ . '/../../includes/layout/header.php';
         </div>
 
         <div class="form-row">
-            <label for="purpose">Purpose</label>
+            <label for="purpose">Purpose <span class="optional">(optional)</span></label>
             <textarea id="purpose" name="purpose"
                       placeholder="What the items will be used for"><?= e(old('purpose')) ?></textarea>
         </div>
     </section>
 
-    <section class="card">
-        <div class="card-head"><h2>Items</h2></div>
-        <p class="hint" style="margin-top:0;">
-            Enter a quantity beside each item you need. Leave the rest blank.
-        </p>
+    <section class="card card-flush">
+        <div class="card-head">
+            <h2>Items</h2>
+            <p class="hint">Enter a quantity beside each item you need. Leave the rest blank.</p>
+        </div>
 
         <div class="table-wrap">
-            <table class="data">
+            <table class="data table-stack">
                 <thead>
-                    <tr><th>Item</th><th>Category</th><th>Size</th><th>Owned</th><th>Quantity needed</th></tr>
+                    <tr><th>Item</th><th>Category</th><th>Size</th><th class="num">Owned</th><th>Quantity needed</th></tr>
                 </thead>
                 <tbody>
                 <?php foreach ($items as $item): ?>
                     <tr>
-                        <td>
-                            <strong><?= e($item['name']) ?></strong>
-                            <div class="hint"><?= e($item['item_code']) ?></div>
+                        <td data-label="Item">
+                            <div>
+                                <strong><?= e($item['name']) ?></strong>
+                                <div class="hint"><?= e($item['item_code']) ?></div>
+                            </div>
                         </td>
-                        <td><?= e($item['category']) ?></td>
-                        <td><?= e($item['size'] ?? '—') ?></td>
-                        <td><?= (int) $item['quantity_total'] ?> <?= e($item['unit']) ?></td>
-                        <td>
+                        <td data-label="Category"><?= e($item['category']) ?></td>
+                        <td data-label="Size">
+                            <?php if ($item['size'] !== null && $item['size'] !== ''): ?>
+                                <?= e($item['size']) ?>
+                            <?php else: ?>
+                                <span class="muted">None</span>
+                            <?php endif; ?>
+                        </td>
+                        <td data-label="Owned" class="num nowrap"><?= (int) $item['quantity_total'] ?> <?= e($item['unit']) ?></td>
+                        <td data-label="Quantity needed">
                             <input type="number" min="0" max="<?= (int) $item['quantity_total'] ?>"
                                    name="quantity[<?= (int) $item['item_id'] ?>]"
                                    value="<?= e((string) ($_POST['quantity'][$item['item_id']] ?? '')) ?>"
-                                   style="max-width:110px;">
+                                   class="input-auto" size="4"
+                                   aria-label="Quantity of <?= e($item['name']) ?> needed">
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -240,7 +253,7 @@ require __DIR__ . '/../../includes/layout/header.php';
         </div>
     </section>
 
-    <div class="btn-row">
+    <div class="form-actions">
         <button type="submit" class="btn btn-primary">Submit request</button>
         <a class="btn btn-outline" href="<?= url('inventory/index.php') ?>">Cancel</a>
     </div>

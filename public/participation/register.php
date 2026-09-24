@@ -139,7 +139,7 @@ $requirementCount = (int) fetch_value(
 );
 
 flash('success', $requirementCount > 0
-    ? 'You are registered. Your registration is awaiting review — please submit the required documents in the meantime.'
+    ? 'You are registered. Your registration is awaiting review. Upload the required documents below in the meantime.'
     : 'You are registered. Your registration is awaiting review by the office.');
 
 redirect($requirementCount > 0

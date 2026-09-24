@@ -30,7 +30,7 @@ $startedAt = date('Y-m-d H:i:s');
 $result    = send_due_reminders($dryRun);
 
 if (!$quiet) {
-    echo 'CASMS deadline reminders — ' . $startedAt . PHP_EOL;
+    echo APP_NAME . ' deadline reminders: ' . $startedAt . PHP_EOL;
     echo 'Lead time: ' . reminder_lead_days() . ' day(s) before the deadline' . PHP_EOL;
     echo str_repeat('-', 62) . PHP_EOL;
 

@@ -64,17 +64,17 @@ if (is_post()) {
 
                 send_mail(
                     (string) $user['email'],
-                    'Reset your CASMS password',
+                    'Reset your ' . APP_NAME . ' password',
                     'Hi ' . $user['first_name'] . ',' . PHP_EOL . PHP_EOL
-                    . 'Someone asked to reset the password for your account at the '
-                    . OFFICE_NAME . '.' . PHP_EOL . PHP_EOL
+                    . 'Someone asked to reset the password for your ' . APP_NAME . ' account at the '
+                    . OFFICE_NAME . ', ' . UNIVERSITY . '.' . PHP_EOL . PHP_EOL
                     . 'Open this link to choose a new password:' . PHP_EOL . PHP_EOL
                     . '  ' . $link . PHP_EOL . PHP_EOL
                     . 'The link works once and expires in '
                     . PASSWORD_RESET_TTL_MINUTES . ' minutes.' . PHP_EOL . PHP_EOL
-                    . 'If this was not you, ignore this message — your password '
+                    . 'If this was not you, ignore this message. Your password '
                     . 'stays as it is.' . PHP_EOL . PHP_EOL
-                    . '— ' . OFFICE_NAME . PHP_EOL . UNIVERSITY
+                    . OFFICE_NAME . PHP_EOL . UNIVERSITY
                 );
 
                 audit_log('request', 'password_reset', (int) $user['user_id'],
@@ -92,61 +92,46 @@ if (is_post()) {
         $sent = true;
     }
 }
+$pageTitle = 'Reset your password';
+require __DIR__ . '/../includes/layout/auth-header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset your password — <?= e(APP_NAME) ?></title>
-    <link rel="stylesheet" href="<?= url('assets/css/style.css') ?>">
-</head>
-<body>
-<div class="auth-wrap">
-    <div class="auth-card">
-        <div class="auth-head">
-            <h1>Reset your password</h1>
-            <p><?= e(OFFICE_NAME) ?> &middot; <?= e(UNIVERSITY) ?></p>
-        </div>
 
-        <?php if ($errors !== []): ?>
-            <div class="alert alert-error">
-                <?php foreach ($errors as $error): ?><div><?= e($error) ?></div><?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-
-        <?php if ($sent): ?>
-            <div class="alert alert-success">
-                If that email address belongs to an active account, a reset link
-                is on its way. It works once and expires in
-                <?= PASSWORD_RESET_TTL_MINUTES ?> minutes.
-            </div>
-            <p class="hint">
-                Nothing arrived? Check that you typed the address you registered
-                with, or contact the office.
-            </p>
-            <a class="btn btn-primary btn-block" href="<?= url('login.php') ?>">Back to sign in</a>
-        <?php else: ?>
-            <p style="font-size:.9rem;margin-top:0;">
-                Enter the email address you registered with and we will send you
-                a link to choose a new password.
-            </p>
-
-            <form method="post" novalidate>
-                <?= csrf_field() ?>
-                <div class="form-row">
-                    <label for="email">Email address <span class="req">*</span></label>
-                    <input type="email" id="email" name="email" required autofocus
-                           value="<?= e(post('email')) ?>" autocomplete="username">
-                </div>
-                <button type="submit" class="btn btn-primary btn-block">Send reset link</button>
-            </form>
-
-            <div class="auth-foot">
-                Remembered it? <a href="<?= url('login.php') ?>">Sign in</a>
-            </div>
-        <?php endif; ?>
+<?php if ($errors !== []): ?>
+    <div class="alert alert-error" role="alert">
+        <?php foreach ($errors as $error): ?><div><?= e($error) ?></div><?php endforeach; ?>
     </div>
-</div>
-</body>
-</html>
+<?php endif; ?>
+
+<?php if ($sent): ?>
+    <div class="alert alert-success" role="status">
+        If that email address belongs to an active account, a reset link
+        is on its way. It works once and expires in
+        <?= PASSWORD_RESET_TTL_MINUTES ?> minutes.
+    </div>
+    <p class="muted">
+        Nothing arrived? Check that you typed the address you registered
+        with, or contact the office.
+    </p>
+    <a class="btn btn-primary btn-block" href="<?= url('login.php') ?>">Back to sign in</a>
+<?php else: ?>
+    <p class="muted">
+        Enter the email address you registered with and we will send you
+        a link to choose a new password.
+    </p>
+
+    <form method="post" novalidate>
+        <?= csrf_field() ?>
+        <div class="form-row">
+            <label for="email">Email address</label>
+            <input type="email" id="email" name="email" required autofocus
+                   value="<?= e(post('email')) ?>" autocomplete="username">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Send reset link</button>
+    </form>
+
+    <div class="auth-foot">
+        <p>Remembered it? <a href="<?= url('login.php') ?>">Sign in</a></p>
+    </div>
+<?php endif; ?>
+
+<?php require __DIR__ . '/../includes/layout/auth-footer.php'; ?>

@@ -14,7 +14,7 @@ require_once __DIR__ . '/../../includes/bootstrap.php';
 $activityId = get_id('activity_id') ?? (int) post('activity_id');
 if ($activityId <= 0) {
     http_response_code(404);
-    exit('404 — Activity not found.');
+    abort_page(404, 'Activity not found.');
 }
 
 // Staff and admin unrestricted; a coordinator only for their own activity.
@@ -28,7 +28,7 @@ $activity = fetch_one(
 );
 if ($activity === null) {
     http_response_code(404);
-    exit('404 — Activity not found.');
+    abort_page(404, 'Activity not found.');
 }
 
 $yearLevels = fetch_all('SELECT year_level_id, label FROM year_levels ORDER BY sort_order');
@@ -169,24 +169,21 @@ $eligibleCount = $rules === []
         [$activityId]
     );
 
-$pageTitle = 'Eligibility — ' . $activity['title'];
+$pageTitle = 'Eligibility: ' . $activity['title'];
 require __DIR__ . '/../../includes/layout/header.php';
 ?>
 
 <div class="page-head">
     <div>
+        <a class="crumb" href="<?= url('activities/view.php?id=' . $activityId) ?>">&larr; Back to activity</a>
         <h1>Who may join</h1>
-        <p>
-            <a href="<?= url('activities/view.php?id=' . $activityId) ?>"><?= e($activity['title']) ?></a>
-            &middot; <?= e($activity['category']) ?>
-        </p>
+        <p><?= e($activity['title']) ?> &middot; <?= e($activity['category']) ?></p>
     </div>
-    <div class="btn-row">
-        <?php if (is_office_staff()): ?>
+    <?php if (is_office_staff()): ?>
+        <div class="btn-row">
             <a class="btn btn-outline" href="<?= url('activities/coordinators.php?activity_id=' . $activityId) ?>">Coordinators</a>
-        <?php endif; ?>
-        <a class="btn btn-outline" href="<?= url('activities/view.php?id=' . $activityId) ?>">Back to activity</a>
-    </div>
+        </div>
+    <?php endif; ?>
 </div>
 
 <?php if ($errors !== []): ?>
@@ -199,17 +196,65 @@ require __DIR__ . '/../../includes/layout/header.php';
     <div class="alert alert-info">
         <strong>No restrictions.</strong> This activity is open to all
         <?= $eligibleCount ?> active student<?= $eligibleCount === 1 ? '' : 's' ?>.
-        Adding a rule below restricts it to students who match at least one rule.
+        Adding a rule restricts it to students who match at least one rule.
     </div>
 <?php else: ?>
     <div class="alert alert-warning">
         <strong>Restricted.</strong> Only students matching one of the
-        <?= count($rules) ?> rule<?= count($rules) === 1 ? '' : 's' ?> below may register —
+        <?= count($rules) ?> rule<?= count($rules) === 1 ? '' : 's' ?> below may register,
         currently <?= $eligibleCount ?> student<?= $eligibleCount === 1 ? '' : 's' ?>.
     </div>
 <?php endif; ?>
 
-<div class="grid grid-2">
+<div class="split">
+    <section class="card<?= $rules !== [] ? ' card-flush' : '' ?>">
+        <div class="card-head"><h2>Current rules (<?= count($rules) ?>)</h2></div>
+
+        <?php if ($rules === []): ?>
+            <div class="empty">
+                <strong>No rules set</strong>
+                Every active student may register for this activity.
+            </div>
+        <?php else: ?>
+            <div class="table-wrap">
+                <table class="data table-stack">
+                    <thead><tr><th>Year level</th><th>Course</th><th class="actions"><span class="sr-only">Actions</span></th></tr></thead>
+                    <tbody>
+                    <?php foreach ($rules as $rule): ?>
+                        <tr>
+                            <td data-label="Year level">
+                                <?= $rule['year_label']
+                                    ? e($rule['year_label'])
+                                    : '<span class="muted">Any year level</span>' ?>
+                            </td>
+                            <td data-label="Course">
+                                <?php if ($rule['course_code']): ?>
+                                    <div>
+                                        <strong><?= e($rule['course_code']) ?></strong>
+                                        <div class="hint"><?= e($rule['course_name']) ?></div>
+                                    </div>
+                                <?php else: ?>
+                                    <span class="muted">Any course</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="actions">
+                                <form method="post" class="inline-form"
+                                      onsubmit="return confirm('Remove this eligibility rule?');">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="activity_id" value="<?= $activityId ?>">
+                                    <input type="hidden" name="rule_id" value="<?= (int) $rule['rule_id'] ?>">
+                                    <button type="submit" class="btn btn-outline btn-sm">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    </section>
+
     <section class="card">
         <div class="card-head"><h2>Add a rule</h2></div>
 
@@ -236,65 +281,21 @@ require __DIR__ . '/../../includes/layout/header.php';
                     <option value="">Any course</option>
                     <?php foreach ($courses as $course): ?>
                         <option value="<?= (int) $course['course_id'] ?>">
-                            <?= e($course['code']) ?> — <?= e($course['name']) ?>
+                            <?= e($course['code']) ?>: <?= e($course['name']) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
             </div>
 
-            <div class="hint" style="margin-bottom:1rem;">
+            <p class="hint mb-4">
                 Leaving one field as "Any" makes the rule broader. Setting both
                 restricts it to that exact combination. At least one must be chosen.
-            </div>
+            </p>
 
-            <button type="submit" class="btn btn-primary">Add rule</button>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Add rule</button>
+            </div>
         </form>
-    </section>
-
-    <section class="card">
-        <div class="card-head"><h2>Current rules (<?= count($rules) ?>)</h2></div>
-
-        <?php if ($rules === []): ?>
-            <div class="empty">
-                <strong>No rules set</strong>
-                Every active student may register for this activity.
-            </div>
-        <?php else: ?>
-            <div class="table-wrap">
-                <table class="data">
-                    <thead><tr><th>Year level</th><th>Course</th><th></th></tr></thead>
-                    <tbody>
-                    <?php foreach ($rules as $rule): ?>
-                        <tr>
-                            <td>
-                                <?= $rule['year_label']
-                                    ? e($rule['year_label'])
-                                    : '<span class="hint">Any year level</span>' ?>
-                            </td>
-                            <td>
-                                <?php if ($rule['course_code']): ?>
-                                    <strong><?= e($rule['course_code']) ?></strong>
-                                    <div class="hint"><?= e($rule['course_name']) ?></div>
-                                <?php else: ?>
-                                    <span class="hint">Any course</span>
-                                <?php endif; ?>
-                            </td>
-                            <td class="actions">
-                                <form method="post" style="display:inline;"
-                                      onsubmit="return confirm('Remove this eligibility rule?');">
-                                    <?= csrf_field() ?>
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="hidden" name="activity_id" value="<?= $activityId ?>">
-                                    <input type="hidden" name="rule_id" value="<?= (int) $rule['rule_id'] ?>">
-                                    <button type="submit" class="btn btn-outline btn-sm">Remove</button>
-                                </form>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php endif; ?>
     </section>
 </div>
 

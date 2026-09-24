@@ -146,7 +146,7 @@ function send_due_reminders(bool $dryRun = false): array
                 . 'Submit it here: '
                 . absolute_url(url('requirements/submit.php?activity_id=' . (int) $row['activity_id']))
                 . PHP_EOL . PHP_EOL
-                . '— ' . OFFICE_NAME . PHP_EOL . UNIVERSITY . PHP_EOL . PHP_EOL
+                . OFFICE_NAME . PHP_EOL . UNIVERSITY . PHP_EOL . PHP_EOL
                 . 'This is an automated message. Please do not reply.'
             );
             if ($ok) {

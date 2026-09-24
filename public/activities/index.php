@@ -84,14 +84,19 @@ $pageTitle = 'Activities';
 require __DIR__ . '/../../includes/layout/header.php';
 ?>
 
+<?php $hasFilters = $keyword !== '' || $categoryId !== '' || $status !== ''; ?>
+
 <div class="page-head">
     <div>
         <h1>Activities</h1>
-        <p><?= $total ?> activit<?= $total === 1 ? 'y' : 'ies' ?> found</p>
+        <p><?= $total ?> activit<?= $total === 1 ? 'y' : 'ies' ?> found. Open one to see details and register.</p>
     </div>
-    <?php if (is_office_staff()): ?>
-        <a class="btn btn-gold" href="<?= url('activities/manage.php') ?>">+ New activity</a>
-    <?php endif; ?>
+    <div class="btn-row">
+        <a class="btn btn-outline" href="<?= url('activities/calendar.php') ?>">Calendar view</a>
+        <?php if (is_office_staff()): ?>
+            <a class="btn btn-gold" href="<?= url('activities/manage.php') ?>">New activity</a>
+        <?php endif; ?>
+    </div>
 </div>
 
 <form method="get" class="filter-bar">
@@ -123,21 +128,32 @@ require __DIR__ . '/../../includes/layout/header.php';
             <?php endforeach; ?>
         </select>
     </div>
-    <div class="form-row" style="flex:0 0 auto;">
+    <div class="form-row filter-actions">
         <button type="submit" class="btn btn-primary">Filter</button>
-    </div>
-    <?php if ($keyword !== '' || $categoryId !== '' || $status !== ''): ?>
-        <div class="form-row" style="flex:0 0 auto;">
+        <?php if ($hasFilters): ?>
             <a class="btn btn-outline" href="<?= url('activities/index.php') ?>">Clear</a>
-        </div>
-    <?php endif; ?>
+        <?php endif; ?>
+    </div>
 </form>
 
 <?php if ($activities === []): ?>
-    <div class="empty">
-        <strong>No activities match your search</strong>
-        Try a different keyword or clear the filters.
-    </div>
+    <?php if ($hasFilters): ?>
+        <div class="empty">
+            <strong>No activities match these filters</strong>
+            Try a different keyword, category, or status.
+            <a class="btn btn-outline" href="<?= url('activities/index.php') ?>">Clear filters</a>
+        </div>
+    <?php else: ?>
+        <div class="empty">
+            <strong>No activities yet</strong>
+            <?php if (is_office_staff()): ?>
+                Create an activity so students can find and register for it.
+                <a class="btn btn-primary" href="<?= url('activities/manage.php') ?>">Create the first activity</a>
+            <?php else: ?>
+                The office has not published any activities. Check back soon.
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 <?php else: ?>
     <div class="grid grid-3">
         <?php foreach ($activities as $activity): ?>
@@ -150,39 +166,40 @@ require __DIR__ . '/../../includes/layout/header.php';
                             <?= e($activity['title']) ?>
                         </a>
                     </h3>
-                    <p class="meta"><?= e($activity['category']) ?></p>
+                    <p class="meta"><strong><?= e($activity['category']) ?></strong></p>
                     <p class="meta"><?= e(format_datetime($activity['start_at'])) ?></p>
                     <?php if ($activity['venue']): ?>
                         <p class="meta"><?= e($activity['venue']) ?></p>
                     <?php endif; ?>
                 </div>
                 <div class="foot">
-                    <span class="hint">
+                    <?php if ($activity['max_participants']): ?>
+                        <?= (int) $activity['approved_count'] ?> of <?= (int) $activity['max_participants'] ?> places filled
+                    <?php else: ?>
                         <?= (int) $activity['approved_count'] ?>
-                        <?= $activity['max_participants'] ? ' / ' . (int) $activity['max_participants'] : '' ?>
                         participant<?= (int) $activity['approved_count'] === 1 ? '' : 's' ?>
-                    </span>
+                    <?php endif; ?>
                 </div>
             </article>
         <?php endforeach; ?>
     </div>
 
     <?php if ($pages > 1): ?>
-        <nav class="pagination">
+        <nav class="pagination" aria-label="Pagination">
             <?php if ($page > 1): ?>
-                <a href="<?= e(page_link($page - 1)) ?>">&laquo; Previous</a>
+                <a href="<?= e(page_link($page - 1)) ?>">Previous</a>
             <?php endif; ?>
 
             <?php for ($p = max(1, $page - 2); $p <= min($pages, $page + 2); $p++): ?>
                 <?php if ($p === $page): ?>
-                    <span class="current"><?= $p ?></span>
+                    <span class="current" aria-current="page"><?= $p ?></span>
                 <?php else: ?>
                     <a href="<?= e(page_link($p)) ?>"><?= $p ?></a>
                 <?php endif; ?>
             <?php endfor; ?>
 
             <?php if ($page < $pages): ?>
-                <a href="<?= e(page_link($page + 1)) ?>">Next &raquo;</a>
+                <a href="<?= e(page_link($page + 1)) ?>">Next</a>
             <?php endif; ?>
         </nav>
     <?php endif; ?>

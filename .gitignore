@@ -6,10 +6,12 @@ includes/config.local.php
 storage/uploads/**
 !storage/uploads/
 !storage/uploads/requirements/
+!storage/uploads/inventory/
 !storage/uploads/**/.gitkeep
 
 # Tooling caches
 .impeccable/
+.playwright-mcp/
 
 # Editor and OS noise
 .vscode/

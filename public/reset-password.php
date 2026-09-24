@@ -81,86 +81,71 @@ if (is_post() && $target !== null) {
             // Tell the account holder, so an unexpected change is noticed.
             send_mail(
                 (string) $target['email'],
-                'Your CASMS password was changed',
+                'Your ' . APP_NAME . ' password was changed',
                 'Hi ' . $target['first_name'] . ',' . PHP_EOL . PHP_EOL
                 . 'The password for your account was changed on '
                 . date('d M Y \a\t g:i A') . '.' . PHP_EOL . PHP_EOL
                 . 'If this was not you, contact the ' . OFFICE_NAME
                 . ' immediately.' . PHP_EOL . PHP_EOL
-                . '— ' . OFFICE_NAME . PHP_EOL . UNIVERSITY
+                . OFFICE_NAME . PHP_EOL . UNIVERSITY
             );
 
             $done = true;
         }
     }
 }
+$pageTitle = 'Choose a new password';
+require __DIR__ . '/../includes/layout/auth-header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Choose a new password — <?= e(APP_NAME) ?></title>
-    <link rel="stylesheet" href="<?= url('assets/css/style.css') ?>">
-</head>
-<body>
-<div class="auth-wrap">
-    <div class="auth-card">
-        <div class="auth-head">
-            <h1>Choose a new password</h1>
-            <p><?= e(OFFICE_NAME) ?> &middot; <?= e(UNIVERSITY) ?></p>
+
+<?php if ($done): ?>
+    <div class="alert alert-success" role="status">
+        Your password has been changed. You can sign in with it now.
+    </div>
+    <a class="btn btn-primary btn-block" href="<?= url('login.php') ?>">Go to sign in</a>
+
+<?php elseif ($target === null): ?>
+    <div class="alert alert-error" role="alert">
+        This reset link is not valid. It may have expired, been used
+        already, or been replaced by a newer one.
+    </div>
+    <a class="btn btn-primary btn-block" href="<?= url('forgot-password.php') ?>">
+        Request a new link
+    </a>
+    <div class="auth-foot">
+        <p><a href="<?= url('login.php') ?>">Back to sign in</a></p>
+    </div>
+
+<?php else: ?>
+    <?php if ($errors !== []): ?>
+        <div class="alert alert-error" role="alert">
+            <?php foreach ($errors as $error): ?><div><?= e($error) ?></div><?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
+    <p class="muted">
+        Setting a new password for <strong><?= e($target['email']) ?></strong>.
+    </p>
+
+    <form method="post" novalidate>
+        <?= csrf_field() ?>
+        <input type="hidden" name="token" value="<?= e($rawToken) ?>">
+
+        <div class="form-row">
+            <label for="password">New password</label>
+            <input type="password" id="password" name="password" required autofocus
+                   autocomplete="new-password">
+            <p class="hint">At least 8 characters.</p>
         </div>
 
-        <?php if ($done): ?>
-            <div class="alert alert-success">
-                Your password has been changed. You can sign in with it now.
-            </div>
-            <a class="btn btn-primary btn-block" href="<?= url('login.php') ?>">Go to sign in</a>
+        <div class="form-row">
+            <label for="password_confirm">Confirm new password</label>
+            <input type="password" id="password_confirm" name="password_confirm" required
+                   autocomplete="new-password">
+        </div>
 
-        <?php elseif ($target === null): ?>
-            <div class="alert alert-error">
-                This reset link is not valid. It may have expired, been used
-                already, or been replaced by a newer one.
-            </div>
-            <a class="btn btn-primary btn-block" href="<?= url('forgot-password.php') ?>">
-                Request a new link
-            </a>
-            <div class="auth-foot">
-                <a href="<?= url('login.php') ?>">Back to sign in</a>
-            </div>
+        <button type="submit" class="btn btn-primary btn-block">Change password</button>
+    </form>
+<?php endif; ?>
 
-        <?php else: ?>
-            <?php if ($errors !== []): ?>
-                <div class="alert alert-error">
-                    <?php foreach ($errors as $error): ?><div><?= e($error) ?></div><?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-
-            <p style="font-size:.9rem;margin-top:0;">
-                Setting a new password for <strong><?= e($target['email']) ?></strong>.
-            </p>
-
-            <form method="post" novalidate>
-                <?= csrf_field() ?>
-                <input type="hidden" name="token" value="<?= e($rawToken) ?>">
-
-                <div class="form-row">
-                    <label for="password">New password <span class="req">*</span></label>
-                    <input type="password" id="password" name="password" required autofocus
-                           autocomplete="new-password">
-                    <div class="hint">At least 8 characters.</div>
-                </div>
-
-                <div class="form-row">
-                    <label for="password_confirm">Confirm new password <span class="req">*</span></label>
-                    <input type="password" id="password_confirm" name="password_confirm" required
-                           autocomplete="new-password">
-                </div>
-
-                <button type="submit" class="btn btn-primary btn-block">Change password</button>
-            </form>
-        <?php endif; ?>
-    </div>
-</div>
-</body>
-</html>
+<?php require __DIR__ . '/../includes/layout/auth-footer.php'; ?>

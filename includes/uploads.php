@@ -138,7 +138,7 @@ function delete_upload(?string $relativePath): void
 function format_filesize(?int $bytes): string
 {
     if (!$bytes) {
-        return '—';
+        return 'Unknown';
     }
     if ($bytes >= 1048576) {
         return round($bytes / 1048576, 1) . ' MB';

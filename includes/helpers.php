@@ -33,6 +33,17 @@ function url(string $path = ''): string
     return BASE_URL . '/' . ltrim($path, '/');
 }
 
+/**
+ * URL for a file under public/assets, stamped with its modification time so
+ * browsers pick up a changed stylesheet or script instead of a cached copy.
+ */
+function asset(string $path): string
+{
+    $file = dirname(__DIR__) . '/public/assets/' . ltrim($path, '/');
+    $version = is_file($file) ? '?v=' . filemtime($file) : '';
+    return url('assets/' . ltrim($path, '/')) . $version;
+}
+
 /** Redirect and stop. Always followed by exit, never by more output. */
 function redirect(string $path): never
 {
@@ -115,11 +126,20 @@ function clear_old_input(): void
 // Formatting
 // =====================================================================
 
+/**
+ * Stat tile tone: the colour class only when there is something to count.
+ * A zero is not an alarm, so it stays neutral.
+ */
+function stat_tone(int|float|string|null $value, string $class): string
+{
+    return (float) $value > 0 ? $class : '';
+}
+
 /** '05 Oct 2026, 2:00 PM' */
 function format_datetime(?string $datetime): string
 {
     if (!$datetime) {
-        return '—';
+        return 'Not set';
     }
     return date('d M Y, g:i A', strtotime($datetime));
 }
@@ -128,7 +148,7 @@ function format_datetime(?string $datetime): string
 function format_date(?string $datetime): string
 {
     if (!$datetime) {
-        return '—';
+        return 'Not set';
     }
     return date('d M Y', strtotime($datetime));
 }

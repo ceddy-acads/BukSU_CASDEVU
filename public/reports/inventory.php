@@ -84,14 +84,14 @@ require __DIR__ . '/../../includes/layout/header.php';
 
 <div class="page-head">
     <div>
+        <a class="crumb" href="<?= url('reports/index.php') ?>">&larr; Back to reports</a>
         <h1>Inventory report</h1>
         <p><?= count($items) ?> item<?= count($items) === 1 ? '' : 's' ?>
            &middot; <?= number_format($summary['available']) ?> units available</p>
     </div>
     <div class="btn-row">
-        <a class="btn btn-gold" href="<?= e(inventory_report_link(['export' => 'items'])) ?>">Export items</a>
         <button type="button" class="btn btn-outline" onclick="window.print()">Print</button>
-        <a class="btn btn-outline" href="<?= url('reports/index.php') ?>">All reports</a>
+        <a class="btn btn-gold" href="<?= e(inventory_report_link(['export' => 'items'])) ?>">Export items</a>
     </div>
 </div>
 
@@ -108,25 +108,26 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 <?php endif; ?>
 
-<div class="grid grid-4" style="margin-bottom:1.5rem;">
+<div class="stats">
     <div class="stat">
         <div class="stat-value"><?= number_format($summary['owned']) ?></div>
         <div class="stat-label">Units owned</div>
     </div>
-    <div class="stat stat-gold">
+    <div class="stat <?= stat_tone($summary['out'], 'stat-gold') ?>">
         <div class="stat-value"><?= number_format($summary['out']) ?></div>
         <div class="stat-label">Units on loan</div>
     </div>
-    <div class="stat stat-success">
+    <div class="stat <?= stat_tone($summary['available'], 'stat-success') ?>">
         <div class="stat-value"><?= number_format($summary['available']) ?></div>
         <div class="stat-label">Units available</div>
     </div>
-    <div class="stat stat-danger">
+    <div class="stat <?= stat_tone($summary['out_of_service'], 'stat-danger') ?>">
         <div class="stat-value"><?= number_format($summary['out_of_service']) ?></div>
         <div class="stat-label">Items out of service</div>
     </div>
 </div>
 
+<?php $itemFiltered = get('category') !== '' || get('status') !== ''; ?>
 <form method="get" class="filter-bar">
     <div class="form-row">
         <label for="category">Category</label>
@@ -151,22 +152,36 @@ require __DIR__ . '/../../includes/layout/header.php';
             <?php endforeach; ?>
         </select>
     </div>
-    <div class="form-row" style="flex:0 0 auto;">
+    <div class="form-row filter-actions">
         <button type="submit" class="btn btn-primary">Apply</button>
+        <?php if ($itemFiltered): ?>
+            <a class="btn btn-outline" href="<?= url('reports/inventory.php') ?>">Clear</a>
+        <?php endif; ?>
     </div>
 </form>
 
 <?php if ($items === []): ?>
-    <div class="empty"><strong>No items match</strong> Try different filters.</div>
+    <div class="empty">
+        <?php if ($itemFiltered): ?>
+            <strong>No items match these filters</strong>
+            Try a different category or status, or clear the filters.
+            <div class="btn-row">
+                <a class="btn btn-outline" href="<?= url('reports/inventory.php') ?>">Clear filters</a>
+            </div>
+        <?php else: ?>
+            <strong>No items in the catalog yet</strong>
+            The stock position appears here once items are added to the inventory.
+        <?php endif; ?>
+    </div>
 <?php else: ?>
-    <div class="card">
+    <section class="card card-flush">
         <div class="card-head"><h2>Stock position</h2></div>
         <div class="table-wrap">
             <table class="data">
                 <thead>
                     <tr>
-                        <th>Item</th><th>Category</th><th>Owned</th><th>On loan</th>
-                        <th>Available</th><th>Status</th><th>Overdue</th><th>Damaged</th>
+                        <th>Item</th><th>Category</th><th class="num">Owned</th><th class="num">On loan</th>
+                        <th class="num">Available</th><th>Status</th><th>Overdue</th><th class="num">Damaged</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -178,61 +193,79 @@ require __DIR__ . '/../../includes/layout/header.php';
                             <div class="hint"><?= e($item['item_code']) ?><?= $item['size'] ? ' · ' . e($item['size']) : '' ?></div>
                         </td>
                         <td><?= e($item['category']) ?></td>
-                        <td><?= (int) $item['quantity_total'] ?></td>
-                        <td><?= (int) $item['quantity_out'] ?></td>
-                        <td><strong><?= $available ?></strong></td>
+                        <td class="num"><?= (int) $item['quantity_total'] ?></td>
+                        <td class="num"><?= (int) $item['quantity_out'] ?></td>
+                        <td class="num"><strong><?= $available ?></strong></td>
                         <td><?= status_badge($item['status']) ?></td>
-                        <td><?= (int) $item['overdue_loans'] > 0
-                                ? '<span class="badge badge-danger">' . (int) $item['overdue_loans'] . '</span>'
-                                : '—' ?></td>
-                        <td><?= (int) $item['times_damaged'] ?: '—' ?></td>
+                        <td class="nowrap">
+                            <?php if ((int) $item['overdue_loans'] > 0): ?>
+                                <span class="badge badge-danger"><?= (int) $item['overdue_loans'] ?> overdue</span>
+                            <?php else: ?>
+                                <span class="muted">None</span>
+                            <?php endif; ?>
+                        </td>
+                        <td class="num">
+                            <?php if ((int) $item['times_damaged'] > 0): ?>
+                                <?= (int) $item['times_damaged'] ?>
+                            <?php else: ?>
+                                <span class="muted">None</span>
+                            <?php endif; ?>
+                        </td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
                 <tfoot>
                     <tr>
-                        <th colspan="2">Total</th>
-                        <th><?= number_format($summary['owned']) ?></th>
-                        <th><?= number_format($summary['out']) ?></th>
-                        <th><?= number_format($summary['available']) ?></th>
-                        <th colspan="3"></th>
+                        <td colspan="2">Total</td>
+                        <td class="num"><?= number_format($summary['owned']) ?></td>
+                        <td class="num"><?= number_format($summary['out']) ?></td>
+                        <td class="num"><?= number_format($summary['available']) ?></td>
+                        <td colspan="3"></td>
                     </tr>
                 </tfoot>
             </table>
         </div>
-    </div>
+    </section>
 <?php endif; ?>
 
-<div class="card">
-    <div class="card-head">
-        <h2>Borrowing log</h2>
+<h2 class="section-title">Borrowing log</h2>
+
+<form method="get" class="filter-bar">
+    <input type="hidden" name="category" value="<?= e(get('category')) ?>">
+    <input type="hidden" name="status" value="<?= e(get('status')) ?>">
+    <div class="form-row">
+        <label for="loans">Show</label>
+        <select id="loans" name="loans" onchange="this.form.submit()">
+            <option value="open"     <?= $loanState === 'open'     ? 'selected' : '' ?>>Currently out</option>
+            <option value="overdue"  <?= $loanState === 'overdue'  ? 'selected' : '' ?>>Overdue only</option>
+            <option value="returned" <?= $loanState === 'returned' ? 'selected' : '' ?>>Returned</option>
+        </select>
     </div>
+    <div class="form-row filter-actions">
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a class="btn btn-outline" href="<?= e(inventory_report_link(['export' => 'loans'])) ?>">Export this log</a>
+    </div>
+</form>
 
-    <form method="get" class="filter-bar">
-        <input type="hidden" name="category" value="<?= e(get('category')) ?>">
-        <input type="hidden" name="status" value="<?= e(get('status')) ?>">
-        <div class="form-row">
-            <label for="loans">Show</label>
-            <select id="loans" name="loans" onchange="this.form.submit()">
-                <option value="open"     <?= $loanState === 'open'     ? 'selected' : '' ?>>Currently out</option>
-                <option value="overdue"  <?= $loanState === 'overdue'  ? 'selected' : '' ?>>Overdue only</option>
-                <option value="returned" <?= $loanState === 'returned' ? 'selected' : '' ?>>Returned</option>
-            </select>
-        </div>
-        <div class="form-row" style="flex:0 0 auto;">
-            <a class="btn btn-outline btn-sm" href="<?= e(inventory_report_link(['export' => 'loans'])) ?>">
-                Export this log
-            </a>
-        </div>
-    </form>
-
-    <?php if ($borrowings === []): ?>
-        <div class="empty"><strong>Nothing to show</strong> No records match.</div>
-    <?php else: ?>
+<?php if ($borrowings === []): ?>
+    <div class="empty">
+        <?php if ($loanState === 'overdue'): ?>
+            <strong>No overdue loans</strong>
+            Everything that is out is still within its expected return date.
+        <?php elseif ($loanState === 'returned'): ?>
+            <strong>No returns recorded yet</strong>
+            Returned loans appear here once a return is recorded.
+        <?php else: ?>
+            <strong>Nothing is out right now</strong>
+            No items are currently on loan.
+        <?php endif; ?>
+    </div>
+<?php else: ?>
+    <section class="card card-flush">
         <div class="table-wrap">
             <table class="data">
                 <thead>
-                    <tr><th>Item</th><th>Borrower</th><th>Qty</th><th>Released</th>
+                    <tr><th>Item</th><th>Borrower</th><th class="num">Qty</th><th>Released</th>
                         <th>Due back</th><th>Returned</th><th>Condition</th></tr>
                 </thead>
                 <tbody>
@@ -244,17 +277,25 @@ require __DIR__ . '/../../includes/layout/header.php';
                         </td>
                         <td>
                             <?= e(full_name($borrowing, true)) ?>
-                            <div class="hint"><?= e($borrowing['student_number'] ?? '—') ?></div>
+                            <?php if ($borrowing['student_number']): ?>
+                                <div class="hint"><?= e($borrowing['student_number']) ?></div>
+                            <?php endif; ?>
                         </td>
-                        <td><?= (int) $borrowing['quantity'] ?></td>
-                        <td><?= e(format_date($borrowing['released_at'])) ?></td>
-                        <td>
+                        <td class="num"><?= (int) $borrowing['quantity'] ?></td>
+                        <td class="nowrap"><?= e(format_date($borrowing['released_at'])) ?></td>
+                        <td class="nowrap">
                             <?= e(format_date($borrowing['expected_return_at'])) ?>
                             <?php if (is_overdue($borrowing)): ?>
                                 <div><span class="badge badge-danger">Overdue</span></div>
                             <?php endif; ?>
                         </td>
-                        <td><?= $borrowing['returned_at'] ? e(format_date($borrowing['returned_at'])) : '<span class="hint">Still out</span>' ?></td>
+                        <td class="nowrap">
+                            <?php if ($borrowing['returned_at']): ?>
+                                <?= e(format_date($borrowing['returned_at'])) ?>
+                            <?php else: ?>
+                                <span class="muted">Still out</span>
+                            <?php endif; ?>
+                        </td>
                         <td>
                             <?php if ($borrowing['return_condition']): ?>
                                 <?php $cls = match ($borrowing['return_condition']) {
@@ -263,7 +304,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                                 }; ?>
                                 <span class="badge <?= $cls ?>"><?= e(ucfirst((string) $borrowing['return_condition'])) ?></span>
                             <?php else: ?>
-                                <span class="hint">—</span>
+                                <span class="muted">Not returned</span>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -271,7 +312,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                 </tbody>
             </table>
         </div>
-    <?php endif; ?>
-</div>
+    </section>
+<?php endif; ?>
 
 <?php require __DIR__ . '/../../includes/layout/footer.php'; ?>
