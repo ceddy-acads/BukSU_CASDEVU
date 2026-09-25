@@ -398,6 +398,7 @@ img    { max-width: 100%; height: auto; }
     margin: 0 0 var(--s4);
 }
 .card-head h2 { margin: 0; font-size: var(--fs-md); }
+.card-head > .btn { margin-left: auto; }
 .card-head p, .card-head .hint { margin: 0; flex-basis: 100%; }
 .card-intro { color: var(--ink-soft); margin: 0 0 var(--s4); }
 .card-foot {
@@ -752,8 +753,13 @@ table.data tfoot td { font-weight: 700; background: var(--surface-2); border-top
 /* A card that spans the full dashboard grid, its feed flowing into columns. */
 .span-all { grid-column: 1 / -1; }
 @media (min-width: 900px) {
-    .feed.feed-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s6); }
-    .feed.feed-cols > * { padding: 0; border-bottom: 0; }
+    /* Landscape row: a thin rule between columns keeps each item distinct
+       without boxing it in a card. */
+    .feed.feed-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
+    .feed.feed-cols > * { padding: 0 var(--s6); border-bottom: 0; }
+    .feed.feed-cols > :first-child { padding-left: 0; }
+    .feed.feed-cols > :last-child { padding-right: 0; }
+    .feed.feed-cols > * + * { border-left: 1px solid var(--line); }
 }
 
 /* Unread notification */
@@ -1008,6 +1014,7 @@ table.calendar tr:last-child td { border-bottom: 0; }
     font: inherit; color: inherit; cursor: pointer; white-space: nowrap;
 }
 .sort-btn:hover { color: var(--navy); background: var(--navy-100); }
+a.sort-btn { text-decoration: none; }
 .sort-icon { width: 14px; height: 14px; opacity: .45; }
 th[aria-sort="ascending"] .sort-btn, th[aria-sort="descending"] .sort-btn { color: var(--navy); }
 th[aria-sort="ascending"] .sort-icon, th[aria-sort="descending"] .sort-icon { opacity: 1; }
@@ -1082,10 +1089,93 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 /* Padding for a plain line inside a flush (table) card. */
 .card-pad { margin: 0; padding: 0 var(--s5) var(--s5); }
 @media (min-width: 640px) { .card-pad { padding: 0 var(--s6) var(--s6); } }
-.card-flush > .card-head { margin-bottom: var(--s4); }
 
 /* On a narrow screen the side column holds the page's task (register,
    submit documents, manage), so it comes before the long description. */
 @media (max-width: 899px) {
     .split-aside-first > :last-child { order: -1; }
 }
+
+/* Announcement item: optional label, then title, then date and linked activity. */
+.news-item > .badge { margin-bottom: var(--s2); }
+.news-item h3 { margin-bottom: var(--s1); }
+
+/* Segmented control: switch between views of the same data (Month / List).
+   The current view is a filled navy segment with bold text; the others are
+   plain. Square inner edges and the system radius, not a pill. */
+.segmented {
+    display: inline-flex; align-items: stretch;
+    border: 1px solid var(--line-input); border-radius: var(--r-sm);
+    background: var(--surface); overflow: hidden;
+}
+.segmented-option {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 40px; min-width: 72px; padding: 0 var(--s4);
+    font-weight: 600; font-size: var(--fs-base); line-height: 1;
+    color: var(--navy); text-decoration: none;
+}
+.segmented-option + .segmented-option { border-left: 1px solid var(--line-input); }
+.segmented-option:hover { background: var(--navy-50); color: var(--navy); }
+.segmented-option[aria-current="page"] { background: var(--navy); color: #fff; font-weight: 700; cursor: default; }
+.segmented-option:focus-visible { position: relative; z-index: 1; box-shadow: inset 0 0 0 2px var(--navy-700), inset 0 0 0 4px #fff; border-radius: 0; }
+.segmented-option[aria-current="page"]:focus-visible { box-shadow: inset 0 0 0 2px var(--gold); }
+
+/* Button group: adjacent actions on the same thing (previous / today / next). */
+.btn-group { display: inline-flex; }
+.btn-group > .btn { border-radius: 0; }
+.btn-group > .btn:first-child { border-radius: var(--r-sm) 0 0 var(--r-sm); }
+.btn-group > .btn:last-child { border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+.btn-group > .btn + .btn { margin-left: -1px; }
+.btn-group > .btn:hover, .btn-group > .btn:focus-visible { position: relative; z-index: 1; }
+.btn-group > .btn[aria-current="date"] { background: var(--navy-50); }
+.btn .icon { width: 16px; height: 16px; }
+.icon.flip { transform: rotate(180deg); }
+
+@media (max-width: 639px) {
+    .page-head .btn-row > .segmented { flex: 1 1 100%; }
+    .page-head .btn-row > .segmented .segmented-option { flex: 1; min-height: 44px; }
+    .page-head .btn-row > .btn-group { flex: 1 1 100%; }
+    .page-head .btn-row > .btn-group > .btn { flex: 1; }
+}
+
+/* Live search: results dim while fresh ones load. */
+[data-live-region].is-loading { opacity: .55; transition: opacity .15s; }
+
+/* Time group heading (This week / Next week / Later / Earlier): a quiet
+   label with its date range and a rule, so the list reads as sections. */
+.group-title {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s1) var(--s3);
+    margin: var(--s8) 0 var(--s4); padding-bottom: var(--s2);
+    border-bottom: 1px solid var(--line);
+    font-size: var(--fs-md); font-weight: 700; color: var(--navy);
+}
+.group-title:first-of-type { margin-top: 0; }
+.group-range { font-size: var(--fs-sm); font-weight: 400; color: var(--ink-soft); }
+
+/* ---------------------------------------------------------- Bar charts */
+/* Rows: label, bar, and the numbers in words. On a phone the label sits
+   above its bar. Bars print in colour. */
+.chart { margin: 0; container-type: inline-size; }
+.chart figcaption h2 { margin: 0; font-size: var(--fs-md); }
+.chart figcaption .hint { margin: var(--s1) 0 var(--s3); }
+.chart-legend { list-style: none; margin: 0 0 var(--s4); padding: 0; display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); font-size: var(--fs-sm); color: var(--ink-soft); }
+.chart-legend li { display: inline-flex; align-items: center; gap: var(--s2); }
+.chart-key { width: 12px; height: 12px; border-radius: 3px; display: inline-block; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.chart-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s3); }
+.chart-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s1); align-items: center; }
+.chart-label { font-weight: 600; font-size: var(--fs-sm); color: var(--ink); overflow-wrap: anywhere; }
+.chart-track { display: flex; gap: 2px; height: 14px; background: var(--muted-bg); border-radius: 3px; overflow: hidden; }
+.chart-seg { display: block; height: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.chart-value { font-size: var(--fs-sm); color: var(--ink-soft); }
+.chart-success { background: var(--success); }
+.chart-warning { background: #a86f00; }
+.chart-danger  { background: var(--danger); }
+.chart-info    { background: var(--info); }
+.chart-muted   { background: #6b7584; }
+.chart-navy    { background: var(--navy); }
+/* Side-by-side rows only when the chart itself is wide enough, so a chart in
+   a half-width card keeps a usable bar. */
+@container (min-width: 620px) {
+    .chart-row { grid-template-columns: minmax(8rem, 14rem) minmax(0, 1fr) minmax(7rem, 13rem); gap: var(--s4); }
+}
+@media print { .chart { break-inside: avoid; } }

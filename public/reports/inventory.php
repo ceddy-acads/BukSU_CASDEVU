@@ -174,7 +174,46 @@ require __DIR__ . '/../../includes/layout/header.php';
         <?php endif; ?>
     </div>
 <?php else: ?>
-    <section class="card card-flush">
+    <?php
+    // Units on hand per category, and items per status, from the rows below.
+    $byCategory = [];
+    $byStatus   = [];
+    foreach ($items as $chartItem) {
+        $owned = (int) $chartItem['quantity_total'];
+        $out   = (int) $chartItem['quantity_out'];
+        $byCategory[$chartItem['category']]['available'] = ($byCategory[$chartItem['category']]['available'] ?? 0) + max(0, $owned - $out);
+        $byCategory[$chartItem['category']]['out']       = ($byCategory[$chartItem['category']]['out'] ?? 0) + $out;
+        $byStatus[$chartItem['status']] = ($byStatus[$chartItem['status']] ?? 0) + 1;
+    }
+    ksort($byCategory, SORT_NATURAL | SORT_FLAG_CASE);
+    $categoryRows = [];
+    foreach ($byCategory as $categoryName => $units) {
+        $categoryRows[] = ['label' => $categoryName, 'segments' => [
+            ['value' => $units['available'], 'tone' => 'success', 'name' => 'available'],
+            ['value' => $units['out'],       'tone' => 'info',    'name' => 'on loan'],
+        ]];
+    }
+    $statusRows = [];
+    foreach (inventory_statuses() as $statusKey) {
+        if (!isset($byStatus[$statusKey])) {
+            continue;
+        }
+        [$tone, $statusLabel] = status_meta($statusKey, 'inventory');
+        $statusRows[] = ['label' => $statusLabel, 'segments' => [
+            ['value' => $byStatus[$statusKey], 'tone' => $tone, 'name' => $byStatus[$statusKey] === 1 ? 'item' : 'items'],
+        ]];
+    }
+    ?>
+    <div class="grid grid-2">
+        <section class="card">
+            <?= bar_chart('Units by category', 'Units available now and units out on loan, per category.', $categoryRows) ?>
+        </section>
+        <section class="card">
+            <?= bar_chart('Items by status', 'How many catalog items are in each status.', $statusRows, false) ?>
+        </section>
+    </div>
+
+    <section class="card card-flush mt-6">
         <div class="card-head"><h2>Stock position</h2></div>
         <div class="table-wrap">
             <table class="data" data-sortable>

@@ -111,6 +111,8 @@ if (is_post()) {
         'status' => get('status'),
         'role'   => get('role'),
         'q'      => get('q'),
+        'sort'   => get('sort'),
+        'dir'    => get('dir'),
     ])));
 }
 
@@ -138,6 +140,15 @@ if ($keyword !== '') {
 
 $where = $conditions === [] ? '' : ' WHERE ' . implode(' AND ', $conditions);
 
+// Sort: accounts awaiting approval first, then by name, unless the viewer
+// sorts by name, which then orders purely by the displayed "Last, First".
+// The ORDER BY comes from this fixed map, never from the request.
+[$sortKey, $sortDir] = sort_param(['name'], '');
+$orderBy = $sortKey === 'name'
+    ? "u.last_name $sortDir, u.first_name $sortDir, u.user_id"
+    : "FIELD(u.status, 'pending') DESC, u.last_name, u.first_name, u.user_id";
+$sortFilters = ['status' => get('status'), 'role' => get('role'), 'q' => get('q')];
+
 $page   = max(1, (int) (get('page') ?: 1));
 $total  = (int) fetch_value("SELECT COUNT(*) FROM users u$where", $params);
 $pages  = max(1, (int) ceil($total / PER_PAGE));
@@ -151,7 +162,7 @@ $users = fetch_all(
        LEFT JOIN courses c     ON c.course_id     = u.course_id
        LEFT JOIN year_levels y ON y.year_level_id = u.year_level_id
        $where
-      ORDER BY FIELD(u.status, 'pending') DESC, u.last_name, u.first_name
+      ORDER BY $orderBy
       LIMIT " . PER_PAGE . " OFFSET $offset",
     $params
 );
@@ -168,18 +179,20 @@ require __DIR__ . '/../../includes/layout/header.php';
 <div class="page-head">
     <div>
         <h1>User accounts</h1>
-        <p><?= $total ?> account<?= $total === 1 ? '' : 's' ?><?= $isFiltered ? ' match these filters' : '' ?>. Approve new sign-ups and manage who can sign in.</p>
+        <p data-live-region="summary"><?= $total ?> account<?= $total === 1 ? '' : 's' ?><?= $isFiltered ? ' match these filters' : '' ?>. Approve new sign-ups and manage who can sign in.</p>
     </div>
 </div>
 
+<div data-live-region="notice">
 <?php if ($pendingCount > 0 && $statusFilter !== 'pending'): ?>
     <div class="alert alert-warning">
         <strong><?= $pendingCount ?></strong> account<?= $pendingCount === 1 ? '' : 's' ?> awaiting approval.
         <a href="<?= url('admin/users.php?status=pending') ?>">Show only pending</a>
     </div>
 <?php endif; ?>
+</div>
 
-<form method="get" class="filter-bar">
+<form method="get" class="filter-bar" data-live-search>
     <div class="form-row">
         <label for="q">Search</label>
         <input type="search" id="q" name="q" value="<?= e($keyword) ?>" placeholder="Name, email, student number">
@@ -207,13 +220,19 @@ require __DIR__ . '/../../includes/layout/header.php';
             <?php endforeach; ?>
         </select>
     </div>
-    <div class="form-row filter-actions">
+    <?php if ($sortKey !== ''): ?>
+        <input type="hidden" name="sort" value="<?= e($sortKey) ?>">
+        <input type="hidden" name="dir" value="<?= e($sortDir) ?>">
+    <?php endif; ?>
+    <div class="form-row filter-actions" data-live-region="actions">
         <button type="submit" class="btn btn-primary">Filter</button>
         <?php if ($isFiltered): ?>
             <a class="btn btn-outline" href="<?= url('admin/users.php') ?>">Clear</a>
         <?php endif; ?>
     </div>
 </form>
+
+<div data-live-region="results">
 
 <?php if ($users === []): ?>
     <?php if ($statusFilter === 'pending' && $roleFilter === '' && $keyword === ''): ?>
@@ -237,7 +256,8 @@ require __DIR__ . '/../../includes/layout/header.php';
             <table class="data">
                 <thead>
                     <tr>
-                        <th>Name</th><th>Email</th><th>Student no.</th>
+                        <?= sort_th('Name', 'name', $sortKey, $sortDir, 'admin/users.php', $sortFilters) ?>
+                        <th>Email</th><th>Student no.</th>
                         <th>Course / Year</th><th>Role</th><th>Status</th><th class="actions">Actions</th>
                     </tr>
                 </thead>
@@ -312,12 +332,15 @@ require __DIR__ . '/../../includes/layout/header.php';
                     <span class="current" aria-current="page"><?= $p ?></span>
                 <?php else: ?>
                     <a href="<?= e(url('admin/users.php?' . http_build_query(array_filter([
-                        'status' => $statusFilter, 'role' => $roleFilter, 'q' => $keyword, 'page' => $p,
+                        'status' => $statusFilter, 'role' => $roleFilter, 'q' => $keyword,
+                        'sort' => $sortKey, 'dir' => $sortKey !== '' ? $sortDir : '', 'page' => $p,
                     ])))) ?>"><?= $p ?></a>
                 <?php endif; ?>
             <?php endfor; ?>
         </nav>
     <?php endif; ?>
 <?php endif; ?>
+
+</div>
 
 <?php require __DIR__ . '/../../includes/layout/footer.php'; ?>

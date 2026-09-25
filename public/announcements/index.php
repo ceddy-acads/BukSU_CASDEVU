@@ -35,15 +35,51 @@ $pages  = max(1, (int) ceil($total / PER_PAGE));
 $page   = min($page, $pages);
 $offset = ($page - 1) * PER_PAGE;
 
+// ---------------------------------------------------------- Time grouping
+// Each announcement is placed by the date it is about: the start of its
+// linked activity when it has one, otherwise when it was published. The
+// week boundaries come from today, so items move from "Next week" to "This
+// week" on their own. Weeks start on Monday.
+$weekStart     = new DateTimeImmutable('monday this week');
+$nextWeekStart = $weekStart->modify('+1 week');
+$laterStart    = $weekStart->modify('+2 weeks');
+
+$groupLabels = [0 => 'This week', 1 => 'Next week', 2 => 'Later', 3 => 'Earlier'];
+$groupRanges = [
+    0 => $weekStart->format('j M') . ' to ' . $nextWeekStart->modify('-1 day')->format('j M'),
+    1 => $nextWeekStart->format('j M') . ' to ' . $laterStart->modify('-1 day')->format('j M'),
+    2 => 'From ' . $laterStart->format('j M'),
+    3 => 'Before ' . $weekStart->format('j M'),
+];
+
+// Upcoming groups run soonest first; the earlier group runs most recent
+// first. Pinned notices lead their own group. Sorting in SQL keeps
+// pagination consistent with the grouping.
 $announcements = fetch_all(
-    "SELECT a.*, u.first_name, u.last_name, act.title AS activity_title
-       FROM announcements a
-       JOIN users u            ON u.user_id     = a.posted_by
-       LEFT JOIN activities act ON act.activity_id = a.activity_id
-       $where
-      ORDER BY a.is_pinned DESC, COALESCE(a.published_at, a.created_at) DESC
+    "SELECT * FROM (
+        SELECT a.*, u.first_name, u.last_name,
+               act.title AS activity_title, act.start_at AS activity_start,
+               COALESCE(act.start_at, a.published_at, a.created_at) AS relevant_at,
+               CASE
+                   WHEN COALESCE(act.start_at, a.published_at, a.created_at) < ? THEN 3
+                   WHEN COALESCE(act.start_at, a.published_at, a.created_at) < ? THEN 0
+                   WHEN COALESCE(act.start_at, a.published_at, a.created_at) < ? THEN 1
+                   ELSE 2
+               END AS time_group
+          FROM announcements a
+          JOIN users u             ON u.user_id     = a.posted_by
+          LEFT JOIN activities act ON act.activity_id = a.activity_id
+          $where
+     ) grouped
+      ORDER BY time_group, is_pinned DESC,
+               CASE WHEN time_group = 3 THEN NULL ELSE relevant_at END ASC,
+               relevant_at DESC, announcement_id DESC
       LIMIT " . PER_PAGE . " OFFSET $offset",
-    $params
+    array_merge([
+        $weekStart->format('Y-m-d H:i:s'),
+        $nextWeekStart->format('Y-m-d H:i:s'),
+        $laterStart->format('Y-m-d H:i:s'),
+    ], $params)
 );
 
 $pageTitle = 'Announcements';
@@ -55,7 +91,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 <div class="page-head">
     <div>
         <h1>Announcements</h1>
-        <p><?= $total ?> announcement<?= $total === 1 ? '' : 's' ?> from the office. Pinned notices are listed first.</p>
+        <p><?= $total ?> announcement<?= $total === 1 ? '' : 's' ?> from the office, grouped by when they matter.</p>
     </div>
     <?php if ($canPost): ?>
         <div class="btn-row">
@@ -105,7 +141,15 @@ require __DIR__ . '/../../includes/layout/header.php';
         </div>
     <?php endif; ?>
 <?php else: ?>
+    <?php $currentGroup = null; ?>
     <?php foreach ($announcements as $announcement): ?>
+        <?php if ((int) $announcement['time_group'] !== $currentGroup): ?>
+            <?php $currentGroup = (int) $announcement['time_group']; ?>
+            <h2 class="group-title">
+                <?= e($groupLabels[$currentGroup]) ?>
+                <span class="group-range"><?= e($groupRanges[$currentGroup]) ?></span>
+            </h2>
+        <?php endif; ?>
         <article class="card">
             <div class="item">
                 <div class="item-main">
@@ -122,11 +166,14 @@ require __DIR__ . '/../../includes/layout/header.php';
 
                     <h2 class="item-title"><?= e($announcement['title']) ?></h2>
                     <p class="meta">
-                        <?= e(format_datetime($announcement['published_at'] ?? $announcement['created_at'])) ?>
-                        &middot; <?= e($announcement['first_name'] . ' ' . $announcement['last_name']) ?>
-                        <?php if ($announcement['activity_title']): ?>
-                            &middot; <?= e($announcement['activity_title']) ?>
+                        <?php if ($announcement['activity_start']): ?>
+                            <strong>Event: <?= e(date('D, j M Y · g:i A', strtotime((string) $announcement['activity_start']))) ?></strong>
+                            &middot; <a href="<?= url('activities/view.php?id=' . (int) $announcement['activity_id']) ?>"><?= e($announcement['activity_title']) ?></a>
+                            &middot; Posted <?= e(format_date($announcement['published_at'] ?? $announcement['created_at'])) ?>
+                        <?php else: ?>
+                            <strong>Posted: <?= e(date('D, j M Y', strtotime((string) ($announcement['published_at'] ?? $announcement['created_at'])))) ?></strong>
                         <?php endif; ?>
+                        &middot; <?= e($announcement['first_name'] . ' ' . $announcement['last_name']) ?>
                     </p>
                     <div class="item-body preline"><?= e($announcement['body']) ?></div>
                 </div>

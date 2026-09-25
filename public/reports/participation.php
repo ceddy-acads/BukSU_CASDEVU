@@ -174,6 +174,32 @@ require __DIR__ . '/../../includes/layout/header.php';
         </div>
     </div>
 
+    <?php
+    // Registrations per activity, largest first, split by review outcome.
+    $chartRows = $rows;
+    usort($chartRows, static fn (array $a, array $b): int =>
+        [(int) $b['total_registered'], $a['title']] <=> [(int) $a['total_registered'], $b['title']]);
+    $chartRows = array_map(static fn (array $row): array => [
+        'label'    => $row['title'],
+        'segments' => [
+            ['value' => (int) $row['total_approved'], 'tone' => 'success', 'name' => 'approved'],
+            ['value' => (int) $row['total_pending'],  'tone' => 'warning', 'name' => 'pending'],
+            ['value' => (int) $row['total_rejected'], 'tone' => 'danger',  'name' => 'rejected'],
+            // Registered total minus the three above: completed or withdrawn.
+            ['value' => max(0, (int) $row['total_registered'] - (int) $row['total_approved']
+                                 - (int) $row['total_pending'] - (int) $row['total_rejected']),
+             'tone' => 'muted', 'name' => 'completed or withdrawn'],
+        ],
+    ], $chartRows);
+    ?>
+    <section class="card">
+        <?= bar_chart(
+            'Registrations by activity',
+            'Each bar is one activity, split by review outcome. Largest first. The table below lists every number.',
+            $chartRows
+        ) ?>
+    </section>
+
     <section class="card card-flush">
         <div class="card-head"><h2>By activity</h2></div>
         <div class="table-wrap">
@@ -222,6 +248,25 @@ require __DIR__ . '/../../includes/layout/header.php';
     </section>
 
     <?php if ($byYearLevel !== []): ?>
+        <?php
+        // Approved participants per year level, in year order.
+        $perYear = [];
+        foreach ($byYearLevel as $yearRow) {
+            $perYear[$yearRow['year_level']] = ($perYear[$yearRow['year_level']] ?? 0) + (int) $yearRow['participants'];
+        }
+        $yearRows = [];
+        foreach ($perYear as $yearLabel => $count) {
+            $yearRows[] = ['label' => $yearLabel, 'segments' => [['value' => $count, 'tone' => 'navy', 'name' => 'approved']]];
+        }
+        ?>
+        <section class="card">
+            <?= bar_chart(
+                'Approved participants by year level',
+                'All courses combined. A student in two activities counts twice. The table below breaks this down by course.',
+                $yearRows
+            ) ?>
+        </section>
+
         <section class="card card-flush">
             <div class="card-head">
                 <h2>Approved participants by year level and course</h2>

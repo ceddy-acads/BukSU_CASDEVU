@@ -50,6 +50,15 @@ if ($availableOnly) {
 
 $where = $conditions === [] ? '' : ' WHERE ' . implode(' AND ', $conditions);
 
+// Sort: by the item's name A to Z unless the viewer picks otherwise. The
+// ORDER BY comes from this fixed map, never from the request.
+[$sortKey, $sortDir] = sort_param(['name', 'category'], 'name');
+$orderBy = [
+    'name'     => "i.name $sortDir, ic.name, i.item_id",
+    'category' => "ic.name $sortDir, i.name, i.item_id",
+][$sortKey];
+$sortFilters = ['q' => get('q'), 'category' => get('category'), 'status' => get('status'), 'available' => get('available')];
+
 $page   = max(1, (int) (get('page') ?: 1));
 $total  = (int) fetch_value("SELECT COUNT(*) FROM inventory_items i$where", $params);
 $pages  = max(1, (int) ceil($total / PER_PAGE));
@@ -64,7 +73,7 @@ $items = fetch_all(
        FROM inventory_items i
        JOIN inventory_categories ic ON ic.inv_category_id = i.inv_category_id
        $where
-      ORDER BY ic.name, i.name
+      ORDER BY $orderBy
       LIMIT " . PER_PAGE . " OFFSET $offset",
     $params
 );
@@ -82,7 +91,8 @@ function inventory_page_link(int $page): string
 {
     $query = array_filter([
         'q' => get('q'), 'category' => get('category'),
-        'status' => get('status'), 'available' => get('available'), 'page' => $page,
+        'status' => get('status'), 'available' => get('available'),
+        'sort' => get('sort'), 'dir' => get('dir'), 'page' => $page,
     ], static fn($v): bool => $v !== '' && $v !== null);
 
     return url('inventory/index.php?' . http_build_query($query));
@@ -96,9 +106,9 @@ require __DIR__ . '/../../includes/layout/header.php';
     <div>
         <h1>Costumes &amp; equipment</h1>
         <?php if ($isBrowser): ?>
-            <p>What the office has, and how many are free to borrow right now.</p>
+            <p data-live-region="summary">What the office has, and how many are free to borrow right now.</p>
         <?php else: ?>
-            <p><?= $total ?> item<?= $total === 1 ? '' : 's' ?> in the catalog</p>
+            <p data-live-region="summary"><?= $total ?> item<?= $total === 1 ? '' : 's' ?> in the catalog</p>
         <?php endif; ?>
     </div>
     <div class="btn-row">
@@ -153,7 +163,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 <?php endif; ?>
 
 <?php $filtered = $keyword !== '' || $categoryId !== '' || $statusFilter !== '' || $availableOnly; ?>
-<form method="get" class="filter-bar">
+<form method="get" class="filter-bar" data-live-search>
     <div class="form-row">
         <label for="q">Search</label>
         <input type="search" id="q" name="q" value="<?= e($keyword) ?>" placeholder="Name, code, description">
@@ -190,13 +200,18 @@ require __DIR__ . '/../../includes/layout/header.php';
         </select>
     </div>
     <?php endif; ?>
-    <div class="form-row filter-actions">
+    <input type="hidden" name="sort" value="<?= e($sortKey) ?>">
+    <input type="hidden" name="dir" value="<?= e($sortDir) ?>">
+    <div class="form-row filter-actions" data-live-region="actions">
         <button type="submit" class="btn btn-primary">Filter</button>
         <?php if ($filtered): ?>
             <a class="btn btn-outline" href="<?= url('inventory/index.php') ?>">Clear</a>
         <?php endif; ?>
     </div>
 </form>
+
+<div data-live-region="results">
+<p class="sr-only" data-live-status><?= $total ?> item<?= $total === 1 ? '' : 's' ?> found</p>
 
 <?php if ($items === []): ?>
     <?php if ((int) $summary['items'] === 0): ?>
@@ -281,7 +296,9 @@ require __DIR__ . '/../../includes/layout/header.php';
             <table class="data">
                 <thead>
                     <tr>
-                        <th>Item</th><th>Category</th><th>Size</th>
+                        <?= sort_th('Item', 'name', $sortKey, $sortDir, 'inventory/index.php', $sortFilters) ?>
+                        <?= sort_th('Category', 'category', $sortKey, $sortDir, 'inventory/index.php', $sortFilters) ?>
+                        <th>Size</th>
                         <th class="num">Owned</th><th class="num">On loan</th><th>Available</th>
                         <th>Status</th>
                         <?php if (is_office_staff()): ?><th class="actions">Actions</th><?php endif; ?>
@@ -359,5 +376,7 @@ require __DIR__ . '/../../includes/layout/header.php';
         </nav>
     <?php endif; ?>
 <?php endif; ?>
+
+</div>
 
 <?php require __DIR__ . '/../../includes/layout/footer.php'; ?>

@@ -230,3 +230,67 @@ function student_participation_history(int $userId): array
         [$userId]
     );
 }
+
+/**
+ * A horizontal bar chart in plain HTML and CSS: no chart library, prints
+ * cleanly, and reads without the picture. Every row states its numbers in
+ * words beside the bar, and the detailed table stays on the page under it.
+ *
+ * Each row: ['label' => string, 'segments' => [['value' => int, 'tone' => string, 'name' => string], ...]]
+ * Tones are the status tones: success, warning, danger, info, muted, navy.
+ * Bars share one scale (the largest row total), so lengths compare honestly.
+ *
+ * @param array<int, array{label: string, segments: array<int, array{value: int, tone: string, name: string}>}> $rows
+ */
+function bar_chart(string $title, string $caption, array $rows, bool $withLegend = true): string
+{
+    // Values are counts: whole and never negative, whatever the caller passed.
+    foreach ($rows as $i => $row) {
+        foreach ($row['segments'] as $j => $segment) {
+            $rows[$i]['segments'][$j]['value'] = max(0, (int) $segment['value']);
+        }
+    }
+
+    $max = 0;
+    $legend = [];
+    foreach ($rows as $row) {
+        $max = max($max, array_sum(array_column($row['segments'], 'value')));
+        foreach ($row['segments'] as $segment) {
+            $legend[$segment['tone']] = $segment['name'];
+        }
+    }
+
+    $html = '<figure class="chart"><figcaption><h2>' . e($title) . '</h2>'
+          . '<p class="hint">' . e($caption) . '</p>';
+    if ($withLegend && count($legend) > 1) {
+        $html .= '<ul class="chart-legend">';
+        foreach ($legend as $tone => $name) {
+            $html .= '<li><span class="chart-key chart-' . e($tone) . '" aria-hidden="true"></span>' . e(ucfirst($name)) . '</li>';
+        }
+        $html .= '</ul>';
+    }
+    $html .= '</figcaption>';
+
+    if ($max === 0) {
+        return $html . '<p class="muted">Nothing to chart yet.</p></figure>';
+    }
+
+    $html .= '<ul class="chart-rows">';
+    foreach ($rows as $row) {
+        $parts = [];
+        $bars  = '';
+        foreach ($row['segments'] as $segment) {
+            if ($segment['value'] <= 0) {
+                continue;
+            }
+            $width  = round($segment['value'] / $max * 100, 2);
+            $bars  .= '<span class="chart-seg chart-' . e($segment['tone']) . '" style="width: ' . $width . '%"></span>';
+            $parts[] = $segment['value'] . ' ' . $segment['name'];
+        }
+        $html .= '<li class="chart-row"><span class="chart-label">' . e($row['label']) . '</span>'
+               . '<span class="chart-track" aria-hidden="true">' . $bars . '</span>'
+               . '<span class="chart-value">' . e($parts === [] ? 'None' : implode(', ', $parts)) . '</span></li>';
+    }
+
+    return $html . '</ul></figure>';
+}

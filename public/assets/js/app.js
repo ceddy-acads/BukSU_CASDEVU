@@ -133,6 +133,8 @@
    Without JavaScript the headers are plain text and the server order stands.
    Each sortable header becomes a button, and aria-sort reports the order.
    A cell can supply its own key with data-sort-value. */
+window.CASDevU = window.CASDevU || {};
+
 (function () {
     'use strict';
 
@@ -144,40 +146,147 @@
         return raw.toLowerCase();
     }
 
-    document.querySelectorAll('table[data-sortable]').forEach(function (table) {
-        var body = table.tBodies[0];
-        if (!body) { return; }
-        var headers = table.tHead ? table.tHead.rows[0].cells : [];
+    function initSortable(root) {
+        (root || document).querySelectorAll('table[data-sortable]:not([data-sort-ready])').forEach(function (table) {
+            table.setAttribute('data-sort-ready', '');
+            var body = table.tBodies[0];
+            if (!body) { return; }
+            var headers = table.tHead ? table.tHead.rows[0].cells : [];
 
-        Array.prototype.forEach.call(headers, function (th, index) {
-            var type = th.getAttribute('data-sort');
-            if (!type) { return; }
+            Array.prototype.forEach.call(headers, function (th, index) {
+                var type = th.getAttribute('data-sort');
+                if (!type) { return; }
 
-            var button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'sort-btn';
-            button.innerHTML = th.innerHTML +
-                '<svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="sort-up" d="m8 10 4-4 4 4"/><path class="sort-down" d="m8 14 4 4 4-4"/></svg>';
-            th.innerHTML = '';
-            th.appendChild(button);
-            th.setAttribute('aria-sort', 'none');
+                var button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'sort-btn';
+                button.innerHTML = th.innerHTML +
+                    '<svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="sort-up" d="m8 10 4-4 4 4"/><path class="sort-down" d="m8 14 4 4 4-4"/></svg>';
+                th.innerHTML = '';
+                th.appendChild(button);
+                th.setAttribute('aria-sort', 'none');
 
-            button.addEventListener('click', function () {
-                var ascending = th.getAttribute('aria-sort') !== 'ascending';
-                Array.prototype.forEach.call(headers, function (other) {
-                    if (other.hasAttribute('aria-sort')) { other.setAttribute('aria-sort', 'none'); }
+                button.addEventListener('click', function () {
+                    var ascending = th.getAttribute('aria-sort') !== 'ascending';
+                    Array.prototype.forEach.call(headers, function (other) {
+                        if (other.hasAttribute('aria-sort')) { other.setAttribute('aria-sort', 'none'); }
+                    });
+                    th.setAttribute('aria-sort', ascending ? 'ascending' : 'descending');
+
+                    var rows = Array.prototype.slice.call(body.rows);
+                    rows.sort(function (a, b) {
+                        var x = key(a.cells[index], type), y = key(b.cells[index], type);
+                        if (x < y) { return ascending ? -1 : 1; }
+                        if (x > y) { return ascending ? 1 : -1; }
+                        return 0;
+                    });
+                    rows.forEach(function (row) { body.appendChild(row); });
                 });
-                th.setAttribute('aria-sort', ascending ? 'ascending' : 'descending');
-
-                var rows = Array.prototype.slice.call(body.rows);
-                rows.sort(function (a, b) {
-                    var x = key(a.cells[index], type), y = key(b.cells[index], type);
-                    if (x < y) { return ascending ? -1 : 1; }
-                    if (x > y) { return ascending ? 1 : -1; }
-                    return 0;
-                });
-                rows.forEach(function (row) { body.appendChild(row); });
             });
+        });
+    }
+
+    window.CASDevU.initSortable = initSortable;
+    initSortable(document);
+})();
+
+/* Live search for filter forms: <form data-live-search>.
+   Typing (debounced) or changing a filter fetches the same page with the
+   form's query and swaps only the parts marked data-live-region="name".
+   The server renders the results exactly as for a normal visit, so the same
+   authorization, filtering and escaping apply; nothing is filtered in the
+   browser. The URL is kept in step (reload, share, pagination all work),
+   stale requests are cancelled, the new count is announced, and any
+   failure falls back to an ordinary form submit. */
+(function () {
+    'use strict';
+    if (!window.fetch || !window.DOMParser) { return; }
+
+    var DELAY = 300;
+
+    document.querySelectorAll('form[data-live-search]').forEach(function (form) {
+        var timer = null;
+        var controller = null;
+
+        // The query a search would send: filled fields only, never the page.
+        function queryOf() {
+            var params = new URLSearchParams();
+            new FormData(form).forEach(function (value, name) {
+                if (value !== '' && name !== 'page') { params.append(name, value); }
+            });
+            return params.toString();
+        }
+        var lastQuery = queryOf();
+
+        // One polite status line per form for screen readers.
+        var status = document.createElement('p');
+        status.className = 'sr-only';
+        status.setAttribute('role', 'status');
+        status.setAttribute('aria-live', 'polite');
+        form.appendChild(status);
+
+        function regions(doc) { return doc.querySelectorAll('[data-live-region]'); }
+
+        function run() {
+            var query = queryOf();                     // new criteria start at page 1
+            if (query === lastQuery) { return; }
+            lastQuery = query;
+
+            var url = form.getAttribute('action') || window.location.pathname;
+            url = url.split('?')[0] + (query ? '?' + query : '');
+
+            if (controller) { controller.abort(); }
+            controller = new AbortController();
+
+            regions(document).forEach(function (el) { el.setAttribute('aria-busy', 'true'); el.classList.add('is-loading'); });
+
+            fetch(url, { signal: controller.signal, credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
+                .then(function (response) {
+                    if (!response.ok || response.redirected) { throw new Error('HTTP ' + response.status); }
+                    return response.text();
+                })
+                .then(function (html) {
+                    var doc = new DOMParser().parseFromString(html, 'text/html');
+                    regions(document).forEach(function (el) {
+                        var fresh = doc.querySelector('[data-live-region="' + el.getAttribute('data-live-region') + '"]');
+                        if (fresh) { el.innerHTML = fresh.innerHTML; }
+                        el.removeAttribute('aria-busy');
+                        el.classList.remove('is-loading');
+                    });
+                    window.history.replaceState(null, '', url);
+                    if (window.CASDevU.initSortable) { window.CASDevU.initSortable(document); }
+                    // Announce what changed: the empty-state heading, else the
+                    // page's own count ([data-live-status]), else its summary line.
+                    var empty = document.querySelector('[data-live-region="results"] .empty strong');
+                    var count = document.querySelector('[data-live-region="results"] [data-live-status]');
+                    var summary = document.querySelector('[data-live-region="summary"]');
+                    status.textContent = (empty || count || summary)
+                        ? (empty || count || summary).textContent.trim()
+                        : 'Results updated';
+                })
+                .catch(function (error) {
+                    if (error.name === 'AbortError') { return; }
+                    form.submit();                       // fall back to a normal page load
+                });
+        }
+
+        form.addEventListener('input', function (event) {
+            if (event.target.type !== 'search' && event.target.type !== 'text') { return; }
+            window.clearTimeout(timer);
+            timer = window.setTimeout(run, DELAY);
+        });
+        form.addEventListener('change', function (event) {
+            if (event.target.tagName === 'SELECT' || event.target.type === 'checkbox') {
+                window.clearTimeout(timer);
+                run();
+            }
+        });
+        // Enter / the Filter button still work, now without a reload.
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            window.clearTimeout(timer);
+            lastQuery = null;
+            run();
         });
     });
 })();

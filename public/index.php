@@ -28,10 +28,12 @@ $upcoming = fetch_all(
 );
 
 $announcements = fetch_all(
-    "SELECT announcement_id, title, body, published_at
-       FROM announcements
-      WHERE status = 'published'
-      ORDER BY is_pinned DESC, published_at DESC
+    "SELECT an.announcement_id, an.title, an.body, an.published_at, an.is_pinned,
+            act.activity_id, act.title AS activity_title
+       FROM announcements an
+       LEFT JOIN activities act ON act.activity_id = an.activity_id
+      WHERE an.status = 'published'
+      ORDER BY an.is_pinned DESC, an.published_at DESC
       LIMIT 3"
 );
 
@@ -276,9 +278,17 @@ require __DIR__ . '/../includes/layout/header.php';
         <?php else: ?>
             <div class="feed<?= $role !== 'student' ? ' feed-cols' : '' ?>">
                 <?php foreach ($announcements as $announcement): ?>
-                    <article>
+                    <article class="news-item">
+                        <?php if ($announcement['is_pinned']): ?>
+                            <span class="badge badge-info">Pinned</span>
+                        <?php endif; ?>
                         <h3><?= e($announcement['title']) ?></h3>
-                        <p class="meta"><?= e(format_date($announcement['published_at'])) ?></p>
+                        <p class="meta">
+                            <?= e(format_date($announcement['published_at'])) ?>
+                            <?php if ($announcement['activity_title']): ?>
+                                &middot; <a href="<?= url('activities/view.php?id=' . (int) $announcement['activity_id']) ?>"><?= e($announcement['activity_title']) ?></a>
+                            <?php endif; ?>
+                        </p>
                         <p><?= e(mb_strimwidth(strip_tags($announcement['body']), 0, 180, '…')) ?></p>
                     </article>
                 <?php endforeach; ?>

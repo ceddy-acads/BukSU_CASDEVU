@@ -62,7 +62,7 @@ $activities = fetch_all(
        JOIN activity_categories c ON c.category_id = a.category_id
        LEFT JOIN venues v         ON v.venue_id    = a.venue_id
        $where
-      ORDER BY a.start_at",
+      ORDER BY a.start_at, a.title",
     $params
 );
 
@@ -104,12 +104,14 @@ require __DIR__ . '/../../includes/layout/header.php';
         <p><?= count($activities) ?> activit<?= count($activities) === 1 ? 'y' : 'ies' ?> this month. Select one to see its details.</p>
     </div>
     <div class="btn-row">
-        <a class="btn btn-outline" href="<?= e(calendar_link($prevYear, $prevMonth)) ?>"
-           aria-label="Previous month, <?= e(date('F Y', strtotime($previous . '-01'))) ?>">Previous: <?= e(date('M', strtotime($previous . '-01'))) ?></a>
-        <a class="btn btn-outline" href="<?= e(calendar_link((int) date('Y'), (int) date('n'))) ?>">This month</a>
-        <a class="btn btn-outline" href="<?= e(calendar_link($nextYear, $nextMonth)) ?>"
-           aria-label="Next month, <?= e(date('F Y', strtotime($next . '-01'))) ?>">Next: <?= e(date('M', strtotime($next . '-01'))) ?></a>
-        <a class="btn btn-outline" href="<?= url('activities/index.php') ?>">List view</a>
+        <?= activity_view_switch('month') ?>
+        <nav class="btn-group" aria-label="Change month">
+            <a class="btn btn-outline" href="<?= e(calendar_link($prevYear, $prevMonth)) ?>"
+               aria-label="Previous month, <?= e(date('F Y', strtotime($previous . '-01'))) ?>"><?= icon('chevron-right', 'icon flip') ?><span><?= e(date('M', strtotime($previous . '-01'))) ?></span></a>
+            <a class="btn btn-outline" href="<?= e(calendar_link((int) date('Y'), (int) date('n'))) ?>"<?= $isThisMonth ? ' aria-current="date"' : '' ?>>Today</a>
+            <a class="btn btn-outline" href="<?= e(calendar_link($nextYear, $nextMonth)) ?>"
+               aria-label="Next month, <?= e(date('F Y', strtotime($next . '-01'))) ?>"><span><?= e(date('M', strtotime($next . '-01'))) ?></span><?= icon('chevron-right') ?></a>
+        </nav>
     </div>
 </div>
 
@@ -200,7 +202,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 <?php if ($activities === []): ?>
     <div class="empty">
         <strong>Nothing scheduled this month</strong>
-        <?= $categoryIn !== '' ? 'No activities in this category this month. Pick another category or month.' : 'Use Previous and Next above to look at another month.' ?>
+        <?= $categoryIn !== '' ? 'No activities in this category this month. Pick another category or month.' : 'Use the month buttons above to look at another month.' ?>
         <?php if ($categoryIn !== ''): ?>
             <a class="btn btn-outline" href="<?= e(url('activities/calendar.php?year=' . $year . '&month=' . $month)) ?>">Show all categories</a>
         <?php endif; ?>

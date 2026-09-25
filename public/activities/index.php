@@ -67,7 +67,11 @@ $activities = fetch_all(
        JOIN activity_categories c ON c.category_id = a.category_id
        LEFT JOIN venues v         ON v.venue_id    = a.venue_id
        $where
-      ORDER BY a.start_at DESC
+      -- Upcoming and ongoing first, soonest first; then past ones, most
+      -- recent first. An activity counts as past once its end has gone by.
+      ORDER BY (COALESCE(a.end_at, a.start_at) < NOW()),
+               CASE WHEN COALESCE(a.end_at, a.start_at) >= NOW() THEN a.start_at END ASC,
+               a.start_at DESC, a.title
       LIMIT " . PER_PAGE . " OFFSET $offset",
     array_merge([(int) current_user_id()], $params)
 );
@@ -94,17 +98,17 @@ require __DIR__ . '/../../includes/layout/header.php';
 <div class="page-head">
     <div>
         <h1>Activities</h1>
-        <p><?= $total ?> activit<?= $total === 1 ? 'y' : 'ies' ?> found. Open one to see details and register.</p>
+        <p data-live-region="summary"><?= $total ?> activit<?= $total === 1 ? 'y' : 'ies' ?> found. Open one to see details and register.</p>
     </div>
     <div class="btn-row">
-        <a class="btn btn-outline" href="<?= url('activities/calendar.php') ?>">Calendar view</a>
+        <?= activity_view_switch('list') ?>
         <?php if (is_office_staff()): ?>
             <a class="btn btn-gold" href="<?= url('activities/manage.php') ?>">New activity</a>
         <?php endif; ?>
     </div>
 </div>
 
-<form method="get" class="filter-bar">
+<form method="get" class="filter-bar" data-live-search>
     <div class="form-row">
         <label for="q">Search</label>
         <input type="search" id="q" name="q" value="<?= e($keyword) ?>" placeholder="Title or description">
@@ -133,13 +137,15 @@ require __DIR__ . '/../../includes/layout/header.php';
             <?php endforeach; ?>
         </select>
     </div>
-    <div class="form-row filter-actions">
+    <div class="form-row filter-actions" data-live-region="actions">
         <button type="submit" class="btn btn-primary">Filter</button>
         <?php if ($hasFilters): ?>
             <a class="btn btn-outline" href="<?= url('activities/index.php') ?>">Clear</a>
         <?php endif; ?>
     </div>
 </form>
+
+<div data-live-region="results">
 
 <?php if ($activities === []): ?>
     <?php if ($hasFilters): ?>
@@ -221,5 +227,7 @@ require __DIR__ . '/../../includes/layout/header.php';
         </nav>
     <?php endif; ?>
 <?php endif; ?>
+
+</div>
 
 <?php require __DIR__ . '/../../includes/layout/footer.php'; ?>
