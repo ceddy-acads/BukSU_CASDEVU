@@ -1179,3 +1179,204 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
     .chart-row { grid-template-columns: minmax(8rem, 14rem) minmax(0, 1fr) minmax(7rem, 13rem); gap: var(--s4); }
 }
 @media print { .chart { break-inside: avoid; } }
+
+/* ======================================================= Sign-in portal */
+/* Login page only (includes/layout/portal-*.php). A navy brand field tells
+   what the unit is, over an optional campus photo. Phone: compact identity
+   header over a full-width panel. Tablet: a brand band the panel rises
+   into. Desktop: the navy and photo fill the screen; text on the left 58%,
+   the panel floating in the right 42%, within a 1360px frame. */
+
+.portal-body { background: var(--bg); }
+.portal {
+    --portal-cap: 1360px;
+    min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column;
+}
+
+/* ---- Brand field */
+.portal-brand {
+    position: relative; overflow: hidden;
+    background: var(--navy); color: #fff;
+    padding: var(--s5) var(--s5) var(--s10);
+}
+/* Campus photo (set by portal-header.php when the file exists) under a
+   navy overlay. Where text sits the overlay is at least 82% navy, which
+   keeps every text colour here at AA even over a white patch of photo. */
+.portal.has-photo .portal-brand {
+    background:
+        linear-gradient(rgba(16, 40, 77, .9), rgba(16, 40, 77, .82)),
+        var(--portal-photo) center / cover no-repeat,
+        var(--navy);
+}
+.portal-brand-inner { position: relative; z-index: 1; max-width: 34rem; }
+.portal-mark { margin: 0; line-height: 1.15; display: flex; align-items: center; gap: var(--s3); }
+.portal-logo { flex: none; width: auto; height: 2.5rem; }
+.portal-mark .brand-mark { display: block; color: #fff; font-size: 1.35rem; }
+.portal-mark-sub { display: block; font-size: var(--fs-sm); color: #b8c6dc; margin-top: 2px; }
+
+/* The one loud element: the unit's three fields, set as a stack. */
+.portal-headline {
+    margin: var(--s4) 0 0;
+    font-family: var(--font-serif); font-weight: 650; color: #fff;
+    font-size: 1.35rem; line-height: 1.05; letter-spacing: -.01em;
+}
+.portal-headline span { display: inline; }
+.portal-headline span + span::before { content: " "; }
+.portal-lede { display: none; }
+
+/* ---- Sign-in panel */
+.portal-main {
+    flex: 1; position: relative; z-index: 1;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 0 var(--s4) var(--s8);
+    margin-top: calc(var(--s6) * -1);
+}
+/* The card follows Apple's HIG: one typeface, one prominent button, items
+   grouped by space rather than rules, a single left edge, 44px targets. */
+.portal-panel {
+    width: 100%; max-width: 440px;
+    background: var(--surface);
+    border-radius: 20px;
+    box-shadow: 0 1px 2px rgba(11, 29, 58, .08), 0 24px 56px rgba(11, 29, 58, .22);
+    padding: var(--s5) var(--s4);
+}
+.portal-panel-head { margin-bottom: var(--s6); }
+.portal-panel-head h1 {
+    margin: 0; font-family: inherit; font-weight: 700;
+    font-size: 1.75rem; line-height: 1.2; color: var(--ink); letter-spacing: -.015em;
+}
+.portal-panel-head p { margin: var(--s1) 0 0; color: var(--ink-soft); }
+
+.portal-form .form-row { margin-bottom: var(--s5); }
+.portal-form label { font-size: var(--fs-base); }
+.portal-form input[type="email"],
+.portal-form input[type="password"],
+.portal-form input[type="text"] { min-height: 48px; font-size: 1rem; border-radius: var(--r); }
+
+/* Password with an inline Show / Hide button. */
+.password-field { position: relative; }
+.password-field input { padding-right: 5rem; }
+.password-toggle {
+    position: absolute; top: 2px; right: 2px; bottom: 2px;   /* 44px tall in a 48px field */
+    min-width: 64px; padding: 0 var(--s3);
+    border: 0; border-radius: calc(var(--r) - 2px);
+    background: var(--navy-50); color: var(--navy);
+    font: inherit; font-size: var(--fs-sm); font-weight: 700; cursor: pointer;
+}
+.password-toggle:hover { background: var(--navy-100); }
+.password-toggle:focus-visible { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--navy-700); }
+.password-toggle[aria-pressed="true"] { background: var(--navy); color: #fff; }
+
+/* A field with a problem: red edge, and the reason in words under it. */
+.has-error input:not(:focus), .portal-form input[aria-invalid="true"]:not(:focus) { border-color: var(--danger); }
+.field-error { margin: var(--s1) 0 0; font-size: var(--fs-sm); font-weight: 600; color: var(--danger); }
+
+.portal-submit { min-height: 48px; font-size: 1rem; font-weight: 600; margin-top: var(--s6); border-radius: var(--r); }
+/* A visible press state, not only the 1px shift every button has. */
+.portal-submit:active { background: var(--navy-900); }
+
+/* Secondary actions: grouped by space under the button, each a 44px target. */
+.portal-secondary { margin-top: var(--s3); color: var(--ink-soft); }
+.portal-secondary p { margin: 0; }
+.portal-secondary a { font-weight: 600; }
+.portal-secondary > a { display: inline-flex; align-items: center; min-height: 44px; }
+/* Inline in a sentence: vertical padding makes the hit area 44px without
+   spreading the lines apart when the sentence wraps. */
+.portal-secondary p { padding: var(--s2) 0; }
+.portal-secondary p a { padding: 11px 0; }
+.portal-legal { margin: var(--s5) 0 0; font-size: var(--fs-sm); color: var(--ink-soft); text-align: center; }
+
+/* ---- Tablet: a brand band the panel rises into */
+@media (min-width: 640px) {
+    .portal-brand { padding: var(--s8) var(--s8) calc(var(--s12) + var(--s8)); }
+    .portal-mark .brand-mark { font-size: 1.6rem; }
+    .portal-logo { height: 3rem; }
+    .portal-headline { font-size: 3rem; margin-top: var(--s6); }
+    .portal-lede { display: block; margin: var(--s4) 0 0; max-width: 32rem; color: #dbe3ef; font-size: var(--fs-md); line-height: 1.5; }
+    .portal-main { margin-top: calc(var(--s12) * -1); }
+    .portal-panel { max-width: 480px; padding: var(--s6); border-radius: 24px; }
+}
+
+/* ---- Desktop: navy and photo fill the screen; text and panel split 58 / 42
+   of a frame capped at --portal-cap, so wide screens keep them together. */
+@media (min-width: 1024px) {
+    .portal { flex-direction: row; --portal-gutter: max(0px, (100% - var(--portal-cap)) / 2); background: var(--navy); }
+    .portal-brand {
+        flex: 0 0 calc(min(100%, var(--portal-cap)) * .58 + var(--portal-gutter));
+        display: flex; flex-direction: column;
+        padding: var(--s10) var(--s12) var(--s10) calc(var(--portal-gutter) + var(--s12));
+    }
+    /* The name sits top left, the headline and description bottom left, and
+       the photo shows most between them. A 55% base tint plus a 70% scrim
+       behind each text zone gives 86.5% navy under text (AA over any photo).
+       The bottom scrim is solid for 26rem, which covers the headline,
+       description and office line at every desktop size; the top one covers
+       the name. The layers sit on .portal, so the photo fills the screen. */
+    .portal.has-photo {
+        background:
+            linear-gradient(rgba(16, 40, 77, .7), rgba(16, 40, 77, .7) 7rem, rgba(16, 40, 77, 0) 13rem),
+            linear-gradient(to top, rgba(16, 40, 77, .7), rgba(16, 40, 77, .7) 26rem, rgba(16, 40, 77, 0) 36rem),
+            linear-gradient(rgba(16, 40, 77, .55), rgba(16, 40, 77, .55)),
+            var(--portal-photo) center / cover no-repeat,
+            var(--navy);
+    }
+    .portal-brand, .portal.has-photo .portal-brand { background: none; }
+    .portal-brand-inner { max-width: 38rem; flex: 1; display: flex; flex-direction: column; }
+    /* Auto top margin pushes the headline and description to the bottom. */
+    .portal-headline {
+        margin-top: auto; padding-top: var(--s10);
+        font-size: clamp(3.5rem, 5vw, 5rem); line-height: .98; letter-spacing: -.02em;
+    }
+    .portal-headline span { display: block; }
+    .portal-headline span + span::before { content: none; }
+    .portal-lede { margin-top: var(--s6); font-size: 1.125rem; max-width: 32rem; }
+
+    .portal-main {
+        flex: 1; margin-top: 0; justify-content: flex-start; align-items: center;
+        padding: var(--s10) calc(var(--portal-gutter) + var(--s10)) var(--s10) var(--s10);
+    }
+    /* Auto margins centre the panel in the column's height, whatever it
+       holds (an alert makes it taller); the office line sits at the foot. */
+    .portal-panel { max-width: 440px; margin: auto 0; }
+    /* On the navy now, so it takes the light text colour. */
+    .portal-legal { width: 100%; max-width: 440px; color: #dbe3ef; }
+}
+
+/* Over the photo the card is a thick material: 90% white with a blur, which
+   separates it from the background while keeping every text colour on it
+   at AA (5.3:1 or better even over the darkest navy). Solid white where
+   backdrop blur is unsupported or Reduce Transparency is on. */
+@media (min-width: 640px) {
+    @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        .portal-panel {
+            background: rgba(255, 255, 255, .9);
+            -webkit-backdrop-filter: blur(24px) saturate(160%);
+            backdrop-filter: blur(24px) saturate(160%);
+        }
+    }
+}
+@media (prefers-reduced-transparency: reduce) {
+    .portal-panel { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+
+/* Wide screens: a slightly wider panel. */
+@media (min-width: 1280px) {
+    .portal-panel { max-width: 480px; padding: var(--s8); }
+    .portal-legal { max-width: 480px; }
+}
+
+/* Short desktop windows: a smaller headline and tighter spacing keep the
+   whole page on screen. Last, so it wins over the width rules above. */
+@media (min-width: 1024px) and (max-height: 760px) {
+    .portal-brand { padding-top: var(--s8); padding-bottom: var(--s8); }
+    .portal-headline { padding-top: var(--s6); font-size: clamp(3rem, 4vw, 3.75rem); }
+    .portal-lede { margin-top: var(--s4); }
+    .portal-main { padding-top: var(--s8); padding-bottom: var(--s6); }
+    .portal-panel { padding-top: var(--s5); padding-bottom: var(--s5); }
+    .portal-form .form-row { margin-bottom: var(--s4); }
+    .portal-panel-head { margin-bottom: var(--s4); }
+    .portal-submit { margin-top: var(--s4); }
+    .portal-secondary { margin-top: 0; }
+    .portal-panel-head p { margin-top: 0; }
+    .portal-legal { margin-top: var(--s3); }
+}

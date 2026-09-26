@@ -290,3 +290,31 @@ window.CASDevU = window.CASDevU || {};
         });
     });
 })();
+
+/* Password visibility: <button data-password-toggle="inputId" hidden>.
+   The button ships hidden and is revealed here, so without JavaScript the
+   field just stays masked. Its accessible name says what it will do, and
+   aria-pressed reports whether the password is showing. */
+(function () {
+    'use strict';
+    document.querySelectorAll('[data-password-toggle]').forEach(function (button) {
+        var input = document.getElementById(button.getAttribute('data-password-toggle'));
+        if (!input) { return; }
+        function render(showing) {
+            button.textContent = showing ? 'Hide' : 'Show';
+            button.setAttribute('aria-label', showing ? 'Hide password' : 'Show password');
+            button.setAttribute('aria-pressed', showing ? 'true' : 'false');
+        }
+        render(false);
+        button.hidden = false;
+        button.addEventListener('click', function () {
+            var showing = input.type === 'password';
+            input.type = showing ? 'text' : 'password';
+            render(showing);
+        });
+        // Never submit (or let the browser remember) the password as plain text.
+        if (input.form) {
+            input.form.addEventListener('submit', function () { input.type = 'password'; render(false); });
+        }
+    });
+})();
