@@ -33,7 +33,6 @@ function csrf_verify(): void
 
     // hash_equals: constant-time comparison, not vulnerable to timing analysis.
     if ($submitted === '' || !hash_equals($_SESSION['csrf_token'] ?? '', $submitted)) {
-        http_response_code(419);
         abort_page(419, 'Your session expired or the request could not be verified. Please go back and try again.');
     }
 }

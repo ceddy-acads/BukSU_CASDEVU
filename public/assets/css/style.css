@@ -162,7 +162,13 @@ img    { max-width: 100%; height: auto; }
     display: flex; align-items: center; justify-content: space-between; gap: var(--s3);
     padding: var(--s5) var(--s5) var(--s4);
 }
-.brand { color: #fff; text-decoration: none; line-height: 1.15; display: block; }
+.brand {
+    color: #fff; text-decoration: none; line-height: 1.15;
+    display: flex; align-items: center; gap: var(--s3);
+}
+/* The white BukSU logo beside the name; sized to the name and university line. */
+.brand-logo { flex: none; width: auto; height: 2.625rem; }
+.brand-text { display: block; min-width: 0; }
 .brand:hover { color: #fff; }
 .brand-mark {
     display: block; font-family: var(--font-serif);
@@ -244,10 +250,8 @@ img    { max-width: 100%; height: auto; }
     min-height: 56px; padding: 0 var(--s3);
     background: var(--navy); color: #fff;
 }
-.topbar-brand { margin-right: auto; }
-.topbar-brand .brand-mark { font-size: 1.2rem; }
 .topbar .breadcrumb { display: none; }
-.topbar-actions { display: flex; align-items: center; gap: var(--s1); }
+.topbar-actions { display: flex; align-items: center; gap: var(--s1); margin-left: auto; }
 .topbar-bell.is-current { background: var(--topbar-hover, rgba(255, 255, 255, .12)); }
 
 .breadcrumb ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); }
@@ -323,7 +327,7 @@ img    { max-width: 100%; height: auto; }
 }
 
 @media (min-width: 960px) {
-    .nav-backdrop, .sidebar .nav-close, .topbar-menu, .topbar-brand { display: none; }
+    .nav-backdrop, .sidebar .nav-close, .topbar-menu { display: none; }
     .sidebar {
         width: var(--sidebar-w);
         transform: none; visibility: visible; transition: none;
@@ -709,6 +713,12 @@ table.data tfoot td { font-weight: 700; background: var(--surface-2); border-top
 .item-main > .badge:first-child + .item-title { margin-top: var(--s2); }
 .item-main > .item-title:first-child { margin-top: 0; }
 .item-body { margin: var(--s3) 0 0; }
+/* Announcement text: a tidy block without justification's stretched gaps.
+   Left-aligned, with the browser balancing line breaks (no jagged edge, no
+   lone last word) and hyphenating long words (the pages are lang="en") so
+   lines end at similar lengths. About 70 characters a line keeps each
+   paragraph a compact, readable block on wide screens. */
+.announcement-body { max-width: 70ch; text-align: left; text-wrap: pretty; -webkit-hyphens: auto; hyphens: auto; }
 .item-main > .alert { margin: var(--s3) 0 0; }
 @media (max-width: 639px) { .item-aside { flex-basis: 100%; } }
 
@@ -1284,6 +1294,12 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
    spreading the lines apart when the sentence wraps. */
 .portal-secondary p { padding: var(--s2) 0; }
 .portal-secondary p a { padding: 11px 0; }
+
+/* Status screens (errors.php) in the portal: the way out as a full-width
+   primary button like Sign in, any second option as an outline button. */
+.portal-actions { display: flex; flex-direction: column; gap: var(--s3); margin-top: var(--s6); }
+.portal-actions .btn { width: 100%; min-height: 48px; font-size: 1rem; font-weight: 600; border-radius: var(--r); }
+.portal-actions .btn-primary:active { background: var(--navy-900); }
 .portal-legal { margin: var(--s5) 0 0; font-size: var(--fs-sm); color: var(--ink-soft); text-align: center; }
 
 /* ---- Tablet: a brand band the panel rises into */
@@ -1363,6 +1379,45 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 @media (min-width: 1280px) {
     .portal-panel { max-width: 480px; padding: var(--s8); }
     .portal-legal { max-width: 480px; }
+}
+
+/* ---- Status screens (errors.php): from tablet width up, the card sits in
+   the middle of the page under the logo. The headline and description are
+   left out so nothing can collide with the card, and the navy overlay is an
+   even 82%, which keeps every text colour here at AA over any part of the
+   photo. Phones keep the usual header band over the card. */
+@media (min-width: 640px) {
+    .portal.portal-status { flex-direction: column; background: var(--navy); }
+    .portal.portal-status.has-photo {
+        background:
+            linear-gradient(rgba(16, 40, 77, .82), rgba(16, 40, 77, .82)),
+            var(--portal-photo) center / cover no-repeat,
+            var(--navy);
+    }
+    /* The logo is pinned top left and the office line to the foot, both out
+       of the flow, so the card is centred on the whole screen. The main
+       column reserves 7rem above and below for them, so nothing overlaps. */
+    .portal.portal-status .portal-brand {
+        position: absolute; top: 0; left: 0; right: 0; z-index: 2;
+        flex: none; background: none;
+        padding: var(--s8) var(--s8) 0;
+    }
+    .portal-status .portal-brand-inner { flex: none; }
+    .portal-status .portal-headline, .portal-status .portal-lede { display: none; }
+    .portal-status .portal-main {
+        flex: 1; min-height: 100vh; min-height: 100dvh; margin-top: 0;
+        align-items: center; justify-content: center;
+        padding: 7rem var(--s5);
+    }
+    .portal-status .portal-panel { margin: 0; }
+    .portal-status .portal-legal {
+        position: absolute; left: 0; right: 0; bottom: var(--s6);
+        max-width: 480px; margin: 0 auto; padding: 0 var(--s5);
+        color: #dbe3ef; text-align: center;
+    }
+}
+@media (min-width: 1024px) {
+    .portal.portal-status .portal-brand { padding: var(--s10) var(--s12) 0 calc(var(--portal-gutter) + var(--s12)); }
 }
 
 /* Short desktop windows: a smaller headline and tighter spacing keep the

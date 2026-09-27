@@ -138,9 +138,9 @@ require __DIR__ . '/../includes/layout/auth-header.php';
                        value="<?= e(old('student_number')) ?>" required>
             </div>
             <div class="form-row">
-                <label for="email">University email <span class="req">*</span></label>
+                <label for="email">Email address <span class="req">*</span></label>
                 <input type="email" id="email" name="email"
-                       value="<?= e(old('email')) ?>" autocomplete="email" required>
+                       value="<?= e(old('email')) ?>" autocomplete="username" required>
             </div>
 
             <div class="form-row">

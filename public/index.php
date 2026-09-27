@@ -289,7 +289,7 @@ require __DIR__ . '/../includes/layout/header.php';
                                 &middot; <a href="<?= url('activities/view.php?id=' . (int) $announcement['activity_id']) ?>"><?= e($announcement['activity_title']) ?></a>
                             <?php endif; ?>
                         </p>
-                        <p><?= e(mb_strimwidth(strip_tags($announcement['body']), 0, 180, '…')) ?></p>
+                        <p class="announcement-body"><?= e(mb_strimwidth(strip_tags($announcement['body']), 0, 180, '…')) ?></p>
                     </article>
                 <?php endforeach; ?>
             </div>

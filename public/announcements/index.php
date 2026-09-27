@@ -175,10 +175,11 @@ require __DIR__ . '/../../includes/layout/header.php';
                         <?php endif; ?>
                         &middot; <?= e($announcement['first_name'] . ' ' . $announcement['last_name']) ?>
                     </p>
-                    <div class="item-body preline"><?= e($announcement['body']) ?></div>
+                    <div class="item-body preline announcement-body"><?= e($announcement['body']) ?></div>
                 </div>
 
-                <?php if ($canPost): ?>
+                <?php // Same rule as manage.php: the office edits any post, a coordinator only their own. ?>
+                <?php if (is_office_staff() || (int) $announcement['posted_by'] === current_user_id()): ?>
                     <div class="btn-row">
                         <a class="btn btn-outline btn-sm"
                            href="<?= url('announcements/manage.php?id=' . (int) $announcement['announcement_id']) ?>"

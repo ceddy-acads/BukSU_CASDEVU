@@ -28,6 +28,22 @@ if ($activity === null) {
     abort_page(404, 'Activity not found.');
 }
 
+/**
+ * Which review actions a registration still allows. Approve works on a
+ * pending registration or a rejected one being reconsidered; reject on a
+ * pending or approved one. Completed and withdrawn are final: approving a
+ * completed participant would erase the completion.
+ *
+ * @return array{approve: bool, reject: bool}
+ */
+function registration_actions(string $status): array
+{
+    return [
+        'approve' => in_array($status, ['pending', 'rejected'], true),
+        'reject'  => in_array($status, ['pending', 'approved'], true),
+    ];
+}
+
 // =====================================================================
 // Actions
 // =====================================================================
@@ -50,8 +66,20 @@ if (is_post()) {
     }
 
     $studentName = full_name($registration);
+    $allowed     = registration_actions($registration['status']);
+
+    // The buttons are hidden for these, but a stale page or a crafted
+    // request could still send them.
+    if (($action === 'approve' || $action === 'reject') && !$allowed[$action]) {
+        flash('error', $studentName . "'s registration is " . status_meta($registration['status'], 'registration')[1]
+            . ' and can no longer be ' . ($action === 'approve' ? 'approved' : 'rejected') . '.');
+        $action = '';
+    }
 
     switch ($action) {
+        case '':
+            break;
+
         case 'approve':
             // Re-check capacity at the moment of approval: several pending
             // registrations may have been queued while slots ran out.
@@ -352,9 +380,13 @@ require __DIR__ . '/../../includes/layout/header.php';
                                 <span class="muted">Not applicable</span>
                             <?php endif; ?>
                         </td>
+                        <?php $rowActions = registration_actions($participant['status']); ?>
                         <td class="actions">
+                            <?php if (!$rowActions['approve'] && !$rowActions['reject']): ?>
+                                <span class="muted">Not applicable</span>
+                            <?php endif; ?>
                             <div class="btn-row">
-                                <?php if ($participant['status'] !== 'approved'): ?>
+                                <?php if ($rowActions['approve']): ?>
                                     <form method="post" class="inline-form">
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="approve">
@@ -365,7 +397,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                                     </form>
                                 <?php endif; ?>
 
-                                <?php if ($participant['status'] !== 'rejected'): ?>
+                                <?php if ($rowActions['reject']): ?>
                                     <button type="button" class="btn btn-outline btn-sm"
                                             aria-label="Reject <?= e($rowName) ?>"
                                             onclick="document.getElementById('reject-<?= (int) $participant['registration_id'] ?>').hidden = false; this.hidden = true;">
@@ -373,7 +405,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                                     </button>
                                 <?php endif; ?>
                             </div>
-                            <?php if ($participant['status'] !== 'rejected'): ?>
+                            <?php if ($rowActions['reject']): ?>
                                 <form method="post" id="reject-<?= (int) $participant['registration_id'] ?>" hidden class="mt-2">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="action" value="reject">

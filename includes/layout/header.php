@@ -101,8 +101,12 @@ $initials = $user
     <aside class="sidebar" id="sidebar" aria-label="Main navigation">
         <div class="sidebar-brand">
             <a class="brand" href="<?= url('index.php') ?>">
-                <span class="brand-mark"><?= e(APP_NAME) ?></span>
-                <span class="brand-sub"><?= e(UNIVERSITY) ?></span>
+                <?php // The university name is written beside it, so the logo is decorative. ?>
+                <img class="brand-logo" src="<?= asset('img/buksu-logo-white.png') ?>" alt="" width="126" height="128">
+                <span class="brand-text">
+                    <span class="brand-mark"><?= e(APP_NAME) ?></span>
+                    <span class="brand-sub"><?= e(UNIVERSITY) ?></span>
+                </span>
             </a>
             <button type="button" class="icon-btn nav-close" data-nav-close aria-label="Close menu">
                 <?= icon('close') ?>
@@ -161,9 +165,8 @@ $initials = $user
     ?>
     <header class="topbar">
         <button type="button" class="icon-btn topbar-menu" data-nav-open aria-controls="sidebar" aria-expanded="false">
-            <?= icon('menu') ?><span>Menu</span>
+            <?= icon('menu') ?><span class="sr-only">Menu</span>
         </button>
-        <a class="brand topbar-brand" href="<?= url('index.php') ?>"><span class="brand-mark"><?= e(APP_NAME) ?></span></a>
 
         <nav class="breadcrumb" aria-label="Breadcrumb">
             <ol>

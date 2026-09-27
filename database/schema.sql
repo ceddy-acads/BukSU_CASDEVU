@@ -9,6 +9,11 @@
 -- Tables are grouped by module and created in dependency order.
 -- =====================================================================
 
+-- The file is UTF-8. Say so to the server, or the Windows mysql client
+-- reads it in its own default code page and garbles characters such
+-- as the em dash.
+SET NAMES utf8mb4;
+
 DROP DATABASE IF EXISTS casms;
 CREATE DATABASE casms CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE casms;

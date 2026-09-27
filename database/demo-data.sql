@@ -15,6 +15,11 @@
 -- rather than duplicated.
 -- =====================================================================
 
+-- The file is UTF-8. Say so to the server, or the Windows mysql client
+-- reads it in its own default code page and garbles characters such
+-- as the em dash.
+SET NAMES utf8mb4;
+
 USE casms;
 
 -- =====================================================================

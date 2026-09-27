@@ -9,6 +9,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/portal.php';
+
 /** Has an error page already been sent? Prevents a second one on shutdown. */
 function error_page_sent(?bool $set = null): bool
 {
@@ -57,14 +59,14 @@ function render_error_page(string $detail, string $reference): void
 
 /**
  * The shared frame for full-page status screens (errors, access denied,
- * not found, expired session). Self-contained: it only needs BASE_URL, so
- * it still renders when a failure happens before the helpers are loaded.
+ * not found, expired session): the sign-in portal (includes/portal.php) with
+ * the message in its panel. Self-contained: it only needs BASE_URL, so it
+ * still renders when a failure happens before the helpers are loaded.
  */
 function status_page_html(string $title, string $lead, string $bodyHtml, string $actionsHtml): string
 {
     $baseUrl   = defined('BASE_URL') ? BASE_URL : '';
     $appName   = defined('APP_NAME') ? APP_NAME : 'CASDevU';
-    $tagline   = defined('APP_TAGLINE') ? APP_TAGLINE : '';
     $cssFile   = dirname(__DIR__) . '/public/assets/css/style.css';
     $cssUrl    = $baseUrl . '/assets/css/style.css' . (is_file($cssFile) ? '?v=' . filemtime($cssFile) : '');
     $safe      = static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -73,24 +75,26 @@ function status_page_html(string $title, string $lead, string $bodyHtml, string 
          . '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
          . '<meta name="theme-color" content="#10284d">'
          . '<title>' . $safe($title) . ' · ' . $safe($appName) . '</title>'
-         . '<link rel="stylesheet" href="' . $safe($cssUrl) . '"></head><body>'
-         . '<main class="auth-wrap"><div><div class="auth-card">'
-         . '<header class="auth-head"><span class="brand-mark">' . $safe($appName) . '</span>'
-         . '<span class="brand-sub">' . $safe($tagline) . '</span>'
-         . '<h1>' . $safe($title) . '</h1><p>' . $safe($lead) . '</p></header>'
+         . '<link rel="stylesheet" href="' . $safe($cssUrl) . '"></head><body class="portal-body">'
+         . portal_open_html(true)
+         . '<header class="portal-panel-head"><h1>' . $safe($title) . '</h1><p>' . $safe($lead) . '</p></header>'
          . $bodyHtml
-         . '<div class="form-actions">' . $actionsHtml . '</div>'
-         . '</div></div></main></body></html>';
+         . '<div class="portal-actions">' . $actionsHtml . '</div>'
+         . portal_close_html()
+         . '</body></html>';
 }
 
 /**
  * Stop the request with a designed status page instead of bare text.
  * Used for access denied (403), not found (404), and expired forms (419).
+ *
+ * 419 picks the "session expired" wording but goes out as 403 Forbidden:
+ * Apache turns any status code it does not know, 419 included, into 500.
  */
 function abort_page(int $code, string $message): never
 {
     if (!headers_sent()) {
-        http_response_code($code);
+        http_response_code($code === 419 ? 403 : $code);
         header('Content-Type: text/html; charset=UTF-8');
     }
 

@@ -1,6 +1,3 @@
-        </div>
-        <p class="portal-legal"><?= e(OFFICE_NAME) ?>, <?= e(UNIVERSITY) ?></p>
-    </main>
-</div>
+<?= portal_close_html() ?>
 </body>
 </html>
