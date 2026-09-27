@@ -1525,6 +1525,58 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
     .portal-panel::before, .portal-panel::after { display: none; }
 }
 
+/* ---- Long forms in the portal (registration: .portal-wide). The card is
+   wider, its form grids follow the card's own width rather than the
+   window's (stacking to one column when it is narrow), and on desktop the
+   photo side takes 44% instead of 58% so the form has room. */
+.portal-panel { container-type: inline-size; }
+@container (max-width: 419px) {
+    .portal-panel .form-grid-2, .portal-panel .form-grid-3 { grid-template-columns: minmax(0, 1fr); }
+}
+@container (min-width: 420px) {
+    .portal-panel .form-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .portal-panel .form-grid-3 > :first-child { grid-column: 1 / -1; }
+}
+@media (min-width: 640px) {
+    .portal-wide .portal-panel { max-width: 560px; }
+    .portal-wide .portal-legal { max-width: 560px; }
+}
+@media (min-width: 1024px) {
+    .portal.portal-wide .portal-brand { flex-basis: calc(min(100%, var(--portal-cap)) * .44 + var(--portal-gutter)); }
+    .portal.portal-wide .portal-main { padding-top: var(--s10); padding-bottom: var(--s10); }
+
+    /* A form taller than the window scrolls while the photo side stays in
+       view: the brand column sticks, and the photo and its tint stay fixed
+       to the window so the text scrims stay behind the text. */
+    .portal-brand { position: sticky; top: 0; align-self: flex-start; height: 100vh; height: 100dvh; }
+    .portal.has-photo { background-attachment: fixed; }
+    /* Status screens pin the logo over the page; it must not span the height. */
+    .portal.portal-status .portal-brand { height: auto; }
+}
+
+/* Stepped forms (app.js, form[data-steps]): one section at a time with a
+   progress line, Back / Continue, and the submit button on the last step. */
+.steps-status { margin: 0 0 var(--s5); font-size: var(--fs-sm); font-weight: 600; color: var(--ink-soft); }
+.steps-bar { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; margin-top: var(--s2); }
+.steps-bar > span { height: 4px; border-radius: 2px; background: var(--line); }
+.steps-bar > span.is-done { background: var(--navy); }
+.is-stepped .form-section + .form-section { margin-top: 0; padding-top: 0; border-top: 0; }
+.is-stepped .form-section > h3:focus { outline: none; }
+.steps-nav { display: flex; gap: var(--s3); margin-top: var(--s4); }
+.steps-nav .btn { min-height: 48px; font-size: 1rem; font-weight: 600; border-radius: var(--r); }
+.steps-nav [data-steps-next] { flex: 1; }
+.steps-nav .portal-submit { flex: 1; width: auto; margin-top: 0; }
+/* Phones: slightly tighter spacing so each step fits on one screen. */
+@media (max-width: 639px) {
+    .is-stepped .form-row { margin-bottom: var(--s4); }
+    .is-stepped .steps-status { margin-bottom: var(--s4); }
+    .portal-wide .portal-panel-head { margin-bottom: var(--s4); }
+    .portal-wide .portal-main { padding-bottom: var(--s5); }
+    /* The long form needs the room: keep the logo and name, drop the headline. */
+    .portal-wide .portal-headline { display: none; }
+    .portal-wide .portal-panel-head h1 { font-size: 1.5rem; }
+}
+
 /* Wide screens: a slightly wider panel. */
 @media (min-width: 1280px) {
     .portal-panel { max-width: 480px; padding: var(--s8); }

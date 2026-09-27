@@ -1,15 +1,16 @@
 <?php
 /**
- * CASDevU — Sign-in portal layout (login page only).
+ * CASDevU — Sign-in portal layout (sign-in and registration).
  *
  * The frame (campus photo, logo, "Culture. Arts. Sports.") comes from
  * portal_open_html() in includes/portal.php, shared with the full-page status
- * screens. Registration and the password-reset pages keep the plain auth
- * layout (auth-header.php).
+ * screens. The password-reset pages keep the plain auth layout
+ * (auth-header.php).
  *
  * Pages set before including:
  *   $pageTitle   heading and <title>
  *   $authIntro   optional one-line subtitle under the heading
+ *   $portalWide  optional; true for a long form (registration)
  */
 
 declare(strict_types=1);
@@ -25,7 +26,7 @@ declare(strict_types=1);
     <script src="<?= asset('js/app.js') ?>" defer></script>
 </head>
 <body class="portal-body">
-<?= portal_open_html() ?>
+<?= portal_open_html(false, !empty($portalWide)) ?>
             <header class="portal-panel-head">
                 <h1><?= e($pageTitle) ?></h1>
                 <?php if (!empty($authIntro)): ?>

@@ -414,3 +414,88 @@ window.CASDevU = window.CASDevU || {};
         }).catch(send);
     });
 })();
+/* Stepped forms: <form data-steps> with sections [data-step]. One step
+   shows at a time with Back / Continue, a "Step 2 of 4" line and a progress
+   bar; the submit button appears on the last step. Continue checks the
+   step's own fields first, and Enter never submits early. Without
+   JavaScript every step shows and the form works as one page. After a
+   failed submit it opens at the first step with an empty required field. */
+(function () {
+    'use strict';
+    document.querySelectorAll('form[data-steps]').forEach(function (form) {
+        var steps  = Array.prototype.slice.call(form.querySelectorAll('[data-step]'));
+        var status = form.querySelector('[data-steps-status]');
+        var nav    = form.querySelector('[data-steps-nav]');
+        var back   = form.querySelector('[data-steps-back]');
+        var next   = form.querySelector('[data-steps-next]');
+        var submit = form.querySelector('button[type="submit"]');
+        if (steps.length < 2 || !status || !nav) { return; }
+
+        var current = 0;
+        form.classList.add('is-stepped');
+        status.hidden = false;
+        if (submit) { nav.appendChild(submit); }   // Back and Create account share a row
+        nav.hidden = false;
+
+        function fields(step) { return step.querySelectorAll('input:not([type="hidden"]), select, textarea'); }
+
+        function show(index, moveFocus) {
+            current = index;
+            steps.forEach(function (step, i) { step.hidden = i !== index; });
+            var last = index === steps.length - 1;
+            back.hidden = index === 0;
+            next.hidden = last;
+            if (submit) { submit.hidden = !last; }
+            var title = steps[index].querySelector('h3');
+            status.innerHTML = '';
+            var text = document.createElement('span');
+            text.textContent = 'Step ' + (index + 1) + ' of ' + steps.length + (title ? ': ' + title.textContent : '');
+            var bar = document.createElement('span');
+            bar.className = 'steps-bar';
+            bar.setAttribute('aria-hidden', 'true');
+            steps.forEach(function (_, i) {
+                var seg = document.createElement('span');
+                if (i <= index) { seg.className = 'is-done'; }
+                bar.appendChild(seg);
+            });
+            status.appendChild(text);
+            status.appendChild(bar);
+            if (moveFocus && title) { title.focus(); }
+        }
+
+        // The current step's fields must be valid before moving on.
+        function stepValid() {
+            var list = fields(steps[current]);
+            for (var i = 0; i < list.length; i++) {
+                if (!list[i].checkValidity()) { list[i].reportValidity(); list[i].focus(); return false; }
+            }
+            return true;
+        }
+
+        next.addEventListener('click', function () {
+            if (stepValid()) { show(current + 1, true); }
+        });
+        back.addEventListener('click', function () { show(current - 1, true); });
+
+        // Enter in a field: on an early step it means Continue, not submit.
+        form.addEventListener('submit', function (event) {
+            if (current < steps.length - 1) {
+                event.preventDefault();
+                if (stepValid()) { show(current + 1, true); }
+            } else if (!stepValid()) {
+                event.preventDefault();
+            }
+        });
+
+        // After a failed submit, start where something is missing.
+        var start = 0;
+        if (document.querySelector('.alert-error')) {
+            for (var s = 0; s < steps.length; s++) {
+                var empty = Array.prototype.some.call(fields(steps[s]), function (f) { return f.required && !f.value; });
+                if (empty) { start = s; break; }
+            }
+        }
+        show(start, false);
+    });
+})();
+

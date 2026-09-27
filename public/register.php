@@ -54,13 +54,16 @@ if (is_post()) {
     }
 
     // Uniqueness — the database also enforces this, but a clear message beats
-    // a constraint violation.
+    // a constraint violation. One message whichever is taken: it reads better
+    // than two stacked lines, and does not reveal which detail is on file.
     if ($errors === []) {
-        if (fetch_value('SELECT 1 FROM users WHERE email = ?', [$email])) {
-            $errors[] = 'That email address is already registered.';
-        }
-        if (fetch_value('SELECT 1 FROM users WHERE student_number = ?', [$studentNumber])) {
-            $errors[] = 'That student number is already registered.';
+        $taken = fetch_value(
+            'SELECT 1 FROM users WHERE email = ? OR student_number = ? LIMIT 1',
+            [$email, $studentNumber]
+        );
+        if ($taken) {
+            $errors[] = 'An account with this email address or student number already exists. '
+                      . 'Sign in instead, or reset your password if you have forgotten it.';
         }
     }
 
@@ -114,8 +117,8 @@ if (is_post()) {
 }
 $pageTitle = 'Create a student account';
 $authIntro = 'The office reviews new accounts before you can sign in.';
-$authWide  = true;
-require __DIR__ . '/../includes/layout/auth-header.php';
+$portalWide = true;
+require __DIR__ . '/../includes/layout/portal-header.php';
 ?>
 
 <?php if ($errors !== []): ?>
@@ -126,11 +129,36 @@ require __DIR__ . '/../includes/layout/auth-header.php';
     </div>
 <?php endif; ?>
 
-<form method="post" novalidate>
+<?php // Four short steps, one at a time (app.js), so the form fits on one screen.
+      // Without JavaScript all four show in order and the form works the same. ?>
+<form method="post" novalidate data-steps>
     <?= csrf_field() ?>
 
-    <div class="form-section">
-        <h3>About you</h3>
+    <p class="steps-status" data-steps-status hidden aria-live="polite"></p>
+
+    <div class="form-section" data-step>
+        <h3 tabindex="-1">Your name</h3>
+        <div class="form-grid form-grid-2">
+            <div class="form-row">
+                <label for="first_name">First name <span class="req">*</span></label>
+                <input type="text" id="first_name" name="first_name"
+                       value="<?= e(old('first_name')) ?>" autocomplete="given-name" required>
+            </div>
+            <div class="form-row">
+                <label for="last_name">Last name <span class="req">*</span></label>
+                <input type="text" id="last_name" name="last_name"
+                       value="<?= e(old('last_name')) ?>" autocomplete="family-name" required>
+            </div>
+            <div class="form-row">
+                <label for="middle_name">Middle name <span class="optional">(optional)</span></label>
+                <input type="text" id="middle_name" name="middle_name"
+                       value="<?= e(old('middle_name')) ?>" autocomplete="additional-name">
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section" data-step>
+        <h3 tabindex="-1">Student details</h3>
         <div class="form-grid form-grid-2">
             <div class="form-row">
                 <label for="student_number">Student number <span class="req">*</span></label>
@@ -142,23 +170,6 @@ require __DIR__ . '/../includes/layout/auth-header.php';
                 <input type="email" id="email" name="email"
                        value="<?= e(old('email')) ?>" autocomplete="username" required>
             </div>
-
-            <div class="form-row">
-                <label for="first_name">First name <span class="req">*</span></label>
-                <input type="text" id="first_name" name="first_name"
-                       value="<?= e(old('first_name')) ?>" autocomplete="given-name" required>
-            </div>
-            <div class="form-row">
-                <label for="last_name">Last name <span class="req">*</span></label>
-                <input type="text" id="last_name" name="last_name"
-                       value="<?= e(old('last_name')) ?>" autocomplete="family-name" required>
-            </div>
-
-            <div class="form-row">
-                <label for="middle_name">Middle name <span class="optional">(optional)</span></label>
-                <input type="text" id="middle_name" name="middle_name"
-                       value="<?= e(old('middle_name')) ?>" autocomplete="additional-name">
-            </div>
             <div class="form-row">
                 <label for="contact_number">Contact number <span class="optional">(optional)</span></label>
                 <input type="tel" id="contact_number" name="contact_number"
@@ -167,8 +178,8 @@ require __DIR__ . '/../includes/layout/auth-header.php';
         </div>
     </div>
 
-    <div class="form-section">
-        <h3>Your program</h3>
+    <div class="form-section" data-step>
+        <h3 tabindex="-1">Your program</h3>
         <div class="form-grid form-grid-3">
             <div class="form-row">
                 <label for="course_id">Course <span class="req">*</span></label>
@@ -201,13 +212,13 @@ require __DIR__ . '/../includes/layout/auth-header.php';
         </div>
     </div>
 
-    <div class="form-section">
-        <h3>Password</h3>
+    <div class="form-section" data-step>
+        <h3 tabindex="-1">Password</h3>
         <div class="form-grid form-grid-2">
             <div class="form-row">
                 <label for="password">Password <span class="req">*</span></label>
                 <input type="password" id="password" name="password"
-                       autocomplete="new-password" required>
+                       autocomplete="new-password" minlength="8" required>
                 <p class="hint">At least 8 characters.</p>
             </div>
             <div class="form-row">
@@ -218,12 +229,17 @@ require __DIR__ . '/../includes/layout/auth-header.php';
         </div>
     </div>
 
-    <button type="submit" class="btn btn-primary btn-block">Create account</button>
+    <div class="steps-nav" data-steps-nav hidden>
+        <button type="button" class="btn btn-outline" data-steps-back>Back</button>
+        <button type="button" class="btn btn-primary" data-steps-next>Continue</button>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-block portal-submit" data-loading="Creating account…">Create account</button>
 </form>
 
-<div class="auth-foot">
+<div class="portal-secondary">
     <p>Already registered? <a href="<?= url('login.php') ?>">Sign in</a></p>
 </div>
 
-<?php require __DIR__ . '/../includes/layout/auth-footer.php'; ?>
+<?php require __DIR__ . '/../includes/layout/portal-footer.php'; ?>
 <?php clear_old_input(); ?>

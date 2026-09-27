@@ -35,15 +35,17 @@ function portal_asset_url(string $path): ?string
  * Opens the portal up to the inside of the panel; the caller fills the panel
  * and then closes with portal_close_html(). $centred is for status screens:
  * the card sits in the middle of the page under the logo (see .portal-status).
+ * $wide is for long forms such as registration: the card gets more of the
+ * width (see .portal-wide).
  */
-function portal_open_html(bool $centred = false): string
+function portal_open_html(bool $centred = false, bool $wide = false): string
 {
     $photo      = portal_asset_url('img/buksu-campus.jpg');
     $logo       = portal_asset_url('img/buksu-logo-white.png');
     $appName    = defined('APP_NAME') ? APP_NAME : 'CASDevU';
     $university = defined('UNIVERSITY') ? UNIVERSITY : 'Bukidnon State University';
 
-    $classes = 'portal' . ($centred ? ' portal-status' : '') . ($photo ? ' has-photo' : '');
+    $classes = 'portal' . ($centred ? ' portal-status' : '') . ($wide ? ' portal-wide' : '') . ($photo ? ' has-photo' : '');
     $open    = '<div class="' . $classes . '"'
              . ($photo ? ' style="--portal-photo: url(\'' . portal_escape($photo) . '\')"' : '') . '>';
 
