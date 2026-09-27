@@ -100,12 +100,11 @@ require __DIR__ . '/../../includes/layout/header.php';
         <h1>Activities</h1>
         <p data-live-region="summary"><?= $total ?> activit<?= $total === 1 ? 'y' : 'ies' ?> found. Open one to see details and register.</p>
     </div>
-    <div class="btn-row">
-        <?= activity_view_switch('list') ?>
-        <?php if (is_office_staff()): ?>
+    <?php if (is_office_staff()): ?>
+        <div class="btn-row">
             <a class="btn btn-gold" href="<?= url('activities/manage.php') ?>">New activity</a>
-        <?php endif; ?>
-    </div>
+        </div>
+    <?php endif; ?>
 </div>
 
 <form method="get" class="filter-bar" data-live-search>

@@ -109,6 +109,25 @@ if ($studentId !== null) {
         </div>
     </div>
 
+    <?php if ($history !== []): ?>
+        <div class="grid grid-2">
+            <section class="card">
+                <?= bar_chart(
+                    'Activities by category',
+                    'Activities joined in each category, leaving out rejected and withdrawn registrations.',
+                    student_category_rows($history)
+                ) ?>
+            </section>
+            <section class="card">
+                <?= bar_chart(
+                    'Attendance',
+                    'Of the activities this student took part in, how many they were marked present at.',
+                    student_attendance_rows($history)
+                ) ?>
+            </section>
+        </div>
+    <?php endif; ?>
+
     <section class="card<?= $history !== [] ? ' card-flush' : '' ?>">
         <div class="card-head"><h2>Participation history</h2></div>
         <?php if ($history === []): ?>

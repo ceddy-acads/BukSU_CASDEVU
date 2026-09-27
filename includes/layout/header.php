@@ -180,18 +180,15 @@ $initials = $user
         </nav>
 
         <div class="topbar-actions">
-            <a class="icon-btn topbar-bell<?= $navSection === 'notifications' ? ' is-current' : '' ?>" href="<?= url('notifications.php') ?>"
-               aria-label="Notifications<?= $unreadCount > 0 ? ', ' . $unreadCount . ' unread' : '' ?>"
-               <?= $navSection === 'notifications' ? 'aria-current="page"' : '' ?>>
-                <?= icon('bell') ?>
-                <?php if ($unreadCount > 0): ?>
-                    <span class="nav-count" aria-hidden="true"><?= $unreadCount > 99 ? '99+' : $unreadCount ?></span>
-                <?php endif; ?>
-            </a>
+            <?php require __DIR__ . '/notifications-menu.php'; ?>
 
             <details class="account-menu" data-menu>
                 <summary class="account-trigger" aria-label="Account menu for <?= e(full_name($user)) ?>">
-                    <span class="account-initials" aria-hidden="true"><?= e($initials) ?></span>
+                    <?php if ($userPhotoUrl = user_photo_url($user)): ?>
+                        <img class="account-initials" src="<?= e($userPhotoUrl) ?>" alt="" width="34" height="34">
+                    <?php else: ?>
+                        <span class="account-initials" aria-hidden="true"><?= e($initials) ?></span>
+                    <?php endif; ?>
                     <span class="account-text">
                         <span class="account-name"><?= e(full_name($user)) ?></span>
                         <span class="account-role"><?= e(ucfirst((string) $role)) ?></span>

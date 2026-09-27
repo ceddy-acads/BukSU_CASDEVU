@@ -175,25 +175,6 @@ function sort_th(string $label, string $key, string $currentKey, string $current
 }
 
 /**
- * The Month / List switch shared by the calendar and the activity list.
- * Each view is its own page, so the options are real links; the current one
- * carries aria-current. A category filter carries across the switch.
- */
-function activity_view_switch(string $active): string
-{
-    $category = get('category');
-    $keep     = $category !== '' && ctype_digit($category) ? '?category=' . $category : '';
-    $views    = ['month' => ['Month', 'activities/calendar.php'], 'list' => ['List', 'activities/index.php']];
-
-    $html = '<nav class="segmented" aria-label="Activity view">';
-    foreach ($views as $key => [$label, $path]) {
-        $html .= '<a class="segmented-option" href="' . e(url($path) . $keep) . '"'
-               . ($key === $active ? ' aria-current="page"' : '') . '>' . e($label) . '</a>';
-    }
-    return $html . '</nav>';
-}
-
-/**
  * Stat tile tone: the colour class only when there is something to count.
  * A zero is not an alarm, so it stays neutral.
  */
@@ -337,4 +318,20 @@ function full_name(array $user, bool $lastNameFirst = false): string
     return $lastNameFirst
         ? $user['last_name'] . ', ' . $user['first_name']
         : $user['first_name'] . ' ' . $user['last_name'];
+}
+
+/**
+ * URL of a user's profile photo, or null when they have none (show their
+ * initials instead). The version comes from the stored file name, which is
+ * random and new on every upload, so browsers refetch only after a change.
+ *
+ * @param array<string, mixed> $user A users row
+ */
+function user_photo_url(array $user): ?string
+{
+    if (empty($user['photo_path'])) {
+        return null;
+    }
+    return url('profile-photo.php?id=' . (int) $user['user_id']
+        . '&v=' . substr(md5((string) $user['photo_path']), 0, 10));
 }

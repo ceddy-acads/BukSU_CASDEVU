@@ -247,6 +247,37 @@ require __DIR__ . '/../../includes/layout/header.php';
         </div>
     </section>
 
+    <?php $attendanceRows = attendance_rows($rows); ?>
+    <?php if ($attendanceRows !== []): ?>
+        <section class="card">
+            <?= bar_chart(
+                'Attendance by activity',
+                'Of each activity\'s approved and completed participants, how many were marked present. The rate is in brackets.',
+                $attendanceRows
+            ) ?>
+        </section>
+    <?php endif; ?>
+
+    <?php // Office-wide breakdowns, so office staff only (a coordinator's view is limited to their activities). ?>
+    <?php if (is_office_staff()): ?>
+        <div class="grid grid-2">
+            <section class="card">
+                <?= bar_chart(
+                    'Participants by category',
+                    'Approved or completed registrations in each category, under the filters above.',
+                    participants_by_category_rows($filters)
+                ) ?>
+            </section>
+            <section class="card">
+                <?= bar_chart(
+                    'Participants by course',
+                    'Approved or completed registrations by the student\'s course, under the filters above. A student in two activities counts twice.',
+                    participants_by_course_rows($filters)
+                ) ?>
+            </section>
+        </div>
+    <?php endif; ?>
+
     <?php if ($byYearLevel !== []): ?>
         <?php
         // Approved participants per year level, in year order.

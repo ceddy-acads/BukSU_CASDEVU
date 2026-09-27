@@ -261,6 +261,25 @@ require __DIR__ . '/../includes/layout/header.php';
         <?php endif; ?>
     </section>
 
+    <?php if (is_office_staff()): ?>
+        <?php // Participation at a glance for the office: the trend and where it goes. ?>
+        <section class="card">
+            <?= bar_chart(
+                'Registrations per month',
+                'Registrations received over the last six months, by outcome so far.',
+                registration_trend_rows(6)
+            ) ?>
+        </section>
+        <section class="card">
+            <?= bar_chart(
+                'Participants by category',
+                'Approved or completed registrations in each category, all time.',
+                participants_by_category_rows()
+            ) ?>
+            <p class="chart-more"><a href="<?= url('reports/participation.php') ?>">Open the participation report</a></p>
+        </section>
+    <?php endif; ?>
+
     <?php // Office roles have three cards; the news row takes the full width below. ?>
     <section class="card<?= $role !== 'student' ? ' span-all' : '' ?>">
         <div class="card-head">

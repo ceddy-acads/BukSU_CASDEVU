@@ -79,6 +79,36 @@ function recent_notifications(int $userId, int $limit = 10): array
     );
 }
 
+/**
+ * Icon and label for each notification type, so an announcement, a
+ * registration decision and a deadline read differently at a glance.
+ *
+ * @return array{0: string, 1: string} [icon name, label]
+ */
+function notification_type_meta(string $type): array
+{
+    return match ($type) {
+        'activity'     => ['activities',    'Activity'],
+        'announcement' => ['announcements', 'Announcement'],
+        'registration' => ['my-activities', 'Registration'],
+        'requirement'  => ['requirements',  'Requirement'],
+        'reservation'  => ['inventory',     'Reservation'],
+        'deadline'     => ['reminders',     'Deadline'],
+        'system'       => ['bell',          'Account'],
+        default        => ['bell',          'Update'],
+    };
+}
+
+/** '2:15 PM' for today, '26 Sep, 2:15 PM' this year, '26 Sep 2025' before. */
+function notification_time(string $createdAt): string
+{
+    $time = strtotime($createdAt);
+    if (date('Y-m-d', $time) === date('Y-m-d')) {
+        return date('g:i A', $time);
+    }
+    return date('Y', $time) === date('Y') ? date('j M, g:i A', $time) : date('j M Y', $time);
+}
+
 function mark_notifications_read(int $userId): void
 {
     query(

@@ -64,6 +64,20 @@ require __DIR__ . '/../includes/layout/header.php';
     </div>
 </div>
 
+<?php // Documents per open activity, including ones students have not sent yet. ?>
+<?php $documentRows = document_status_rows(); ?>
+<?php ob_start(); ?>
+<?php if ($documentRows !== []): ?>
+    <section class="card">
+        <?= bar_chart(
+            'Required documents by activity',
+            'Every required document for pending and approved registrations in open activities, including those not submitted yet.',
+            $documentRows
+        ) ?>
+    </section>
+<?php endif; ?>
+<?php $documentChart = (string) ob_get_clean(); ?>
+
 <?php if ($counts['total'] === 0): ?>
     <div class="empty">
         <strong>You are all caught up</strong>
@@ -72,6 +86,7 @@ require __DIR__ . '/../includes/layout/header.php';
             <a class="btn btn-outline" href="<?= url('activities/index.php') ?>">Go to activities</a>
         </div>
     </div>
+<?= $documentChart ?>
 <?php else: ?>
     <div class="stats<?= is_office_staff() ? '' : ' stats-3' ?>">
         <?php foreach ($lanes as [$key, $label, $anchor]): ?>
@@ -81,6 +96,8 @@ require __DIR__ . '/../includes/layout/header.php';
             </a>
         <?php endforeach; ?>
     </div>
+
+    <?= $documentChart ?>
 
     <section class="card card-flush" id="documents">
         <div class="card-head">

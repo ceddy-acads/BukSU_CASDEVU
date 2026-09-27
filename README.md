@@ -204,7 +204,7 @@ BukSU CASDEVU/
 │       ├── css/style.css    The whole design system (tokens + components)
 │       ├── js/app.js        Drawer, account menu, submit feedback, table
 │       │                    sorting (all optional: pages work without it)
-│       └── fonts/           Source Sans 3, Source Serif 4 (self-hosted, OFL)
+│       └── fonts/           Outfit (self-hosted, OFL)
 └── storage/                 NOT web-accessible
     ├── uploads/             Requirement files and inventory photos
     ├── backups/             Database dumps (git-ignored)
@@ -315,7 +315,7 @@ eligibility guard blocking with the correct message.
   headline action), a 4px spacing scale, a type scale, two radii, two shadow
   levels, and one keyboard focus ring. Every text colour pair passes WCAG AA
 - Self-hosted fonts, so the look holds on a campus network with no internet:
-  Source Sans 3 for the interface, Source Serif 4 for page titles
+  Outfit for the interface and page titles
 - Navigation moved to a grouped left sidebar (main pages / Operations /
   Administration). On phones and tablets it becomes a drawer opened from a
   compact app bar; Esc, the backdrop and the close button dismiss it and focus

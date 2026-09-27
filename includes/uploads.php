@@ -145,3 +145,106 @@ function format_filesize(?int $bytes): string
     }
     return max(1, (int) round($bytes / 1024)) . ' KB';
 }
+
+// =====================================================================
+// Profile photos
+// =====================================================================
+
+/** A profile photo stays small: the browser already resizes it to 512 px. */
+const PROFILE_PHOTO_MAX_BYTES = 2 * 1024 * 1024;
+
+/**
+ * Validate and store a profile photo: JPG or PNG only, at most 2 MB, with
+ * JPG metadata (camera details, GPS location) removed. The browser normally
+ * crops, resizes and re-encodes the photo first, which already drops that
+ * metadata; stripping here covers uploads made without JavaScript.
+ *
+ * @param  array<string, mixed> $file One entry from $_FILES
+ * @return array{ok: bool, error?: string, path?: string}
+ */
+function store_profile_photo(array $file): array
+{
+    if ((int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK
+        && (int) ($file['size'] ?? 0) > PROFILE_PHOTO_MAX_BYTES) {
+        return ['ok' => false, 'error' => 'That photo is larger than 2 MB. Choose a smaller one.'];
+    }
+
+    $stored = store_upload($file, 'avatars');
+    if (!$stored['ok']) {
+        // Reword the general upload messages for a photo.
+        return ['ok' => false, 'error' => match ($stored['error']) {
+            'No file was selected.'                      => 'Choose a photo first.',
+            'Only PDF, JPG, and PNG files are accepted.' => 'Choose a JPG or PNG image.',
+            default                                      => $stored['error'],
+        }];
+    }
+
+    if (!in_array($stored['mime'], ['image/jpeg', 'image/png'], true)) {
+        delete_upload($stored['path']);
+        return ['ok' => false, 'error' => 'Choose a JPG or PNG image.'];
+    }
+
+    if ($stored['mime'] === 'image/jpeg') {
+        $absolute = upload_absolute_path($stored['path']);
+        if ($absolute === null || !strip_jpeg_metadata($absolute)) {
+            delete_upload($stored['path']);
+            return ['ok' => false, 'error' => 'That photo could not be read. Try another JPG or PNG.'];
+        }
+    }
+
+    return ['ok' => true, 'path' => $stored['path']];
+}
+
+/**
+ * Remove metadata segments from a JPEG in place: EXIF and XMP (APP1), the
+ * other application segments, and comments. Kept: JFIF (APP0), the colour
+ * profile (APP2) and Adobe colour data (APP14), which affect how it looks.
+ * Pure PHP, because the GD extension is not available on this server.
+ * Returns false for anything that does not parse as a JPEG.
+ */
+function strip_jpeg_metadata(string $path): bool
+{
+    $data = @file_get_contents($path);
+    if ($data === false || strlen($data) < 4 || substr($data, 0, 2) !== "\xFF\xD8") {
+        return false;
+    }
+
+    $out    = "\xFF\xD8";
+    $pos    = 2;
+    $length = strlen($data);
+
+    while ($pos + 4 <= $length) {
+        if ($data[$pos] !== "\xFF") {
+            return false;
+        }
+        $marker = ord($data[$pos + 1]);
+
+        if ($marker === 0xFF) {          // fill byte before a marker
+            $pos++;
+            continue;
+        }
+        if ($marker === 0xDA) {          // start of scan: image data to the end
+            $out .= substr($data, $pos);
+            return file_put_contents($path, $out) !== false;
+        }
+        if ($marker === 0x01 || ($marker >= 0xD0 && $marker <= 0xD7)) {
+            $out .= substr($data, $pos, 2);   // markers without a length
+            $pos += 2;
+            continue;
+        }
+
+        $segmentLength = (ord($data[$pos + 2]) << 8) | ord($data[$pos + 3]);
+        if ($segmentLength < 2 || $pos + 2 + $segmentLength > $length) {
+            return false;
+        }
+
+        $isMetadata = ($marker >= 0xE1 && $marker <= 0xEF && $marker !== 0xE2 && $marker !== 0xEE)
+                   || $marker === 0xFE;
+        if (!$isMetadata) {
+            $out .= substr($data, $pos, 2 + $segmentLength);
+        }
+        $pos += 2 + $segmentLength;
+    }
+
+    return false;                        // no image data found
+}

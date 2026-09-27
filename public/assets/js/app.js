@@ -318,3 +318,99 @@ window.CASDevU = window.CASDevU || {};
         }
     });
 })();
+
+/* Notifications pop-up: opening it marks everything read, as visiting the
+   old notifications page did. The pop-up's own "Mark all as read" form is
+   sent in the background, so it shares that form's token and endpoint.
+   The unread count goes at once; the "New" tags stay until the pop-up
+   closes, so people can still see what was new. Without JavaScript the
+   form's button does the same job. */
+(function () {
+    'use strict';
+    var menu = document.querySelector('details[data-notifications]');
+    if (!menu || !window.fetch) { return; }
+    var form = menu.querySelector('form[data-notifications-read]');
+    var trigger = menu.querySelector('summary');
+
+    function markRead() {
+        if (!form) { return; }
+        var sending = form;
+        form = null;                      // once per page
+        fetch(sending.action, {
+            method: 'POST', body: new FormData(sending),
+            credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' }
+        }).then(function (response) {
+            if (!response.ok) { form = sending; return; }
+            var count = trigger.querySelector('.nav-count');
+            if (count) { count.remove(); }
+            trigger.setAttribute('aria-label', 'Notifications');
+            sending.remove();
+        }).catch(function () { form = sending; });
+    }
+
+    menu.addEventListener('toggle', function () {
+        if (menu.open) { markRead(); return; }
+        menu.querySelectorAll('.notif-item.is-new').forEach(function (item) {
+            if (!form) {                  // only once they have been marked read
+                item.classList.remove('is-new');
+                var tag = item.querySelector('.badge');
+                if (tag) { tag.remove(); }
+            }
+        });
+    });
+    if (menu.open) { markRead(); }        // opened by ?notifications=open
+})();
+
+/* Profile photo: choosing a file crops it to the centre square, resizes it
+   to 512 px and re-encodes it as JPEG before upload. That keeps uploads
+   small, applies the camera's rotation, and drops EXIF data such as GPS
+   location. The photo is previewed and sent at once, so the Upload button
+   is only needed without JavaScript. If the browser cannot decode the file,
+   the original is sent and the server's checks decide. */
+(function () {
+    'use strict';
+    var input = document.querySelector('[data-photo-input]');
+    if (!input || !window.createImageBitmap || !window.DataTransfer) { return; }
+    var form = input.form;
+    var submit = form.querySelector('[data-photo-submit]');
+    var preview = document.querySelector('[data-photo-preview]');
+    var SIZE = 512;
+
+    if (submit) { submit.hidden = true; }
+
+    function send() {
+        if (form.requestSubmit) { form.requestSubmit(submit || undefined); } else { form.submit(); }
+    }
+
+    input.addEventListener('change', function () {
+        var file = input.files && input.files[0];
+        if (!file) { return; }
+
+        createImageBitmap(file, { imageOrientation: 'from-image' }).then(function (bitmap) {
+            var side = Math.min(bitmap.width, bitmap.height);
+            var canvas = document.createElement('canvas');
+            canvas.width = canvas.height = Math.min(SIZE, side);
+            canvas.getContext('2d').drawImage(bitmap,
+                (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side,
+                0, 0, canvas.width, canvas.height);
+            bitmap.close();
+
+            canvas.toBlob(function (blob) {
+                if (!blob) { send(); return; }
+                var resized = new File([blob], 'profile-photo.jpg', { type: 'image/jpeg' });
+                var transfer = new DataTransfer();
+                transfer.items.add(resized);
+                input.files = transfer.files;
+
+                if (preview) {
+                    preview.innerHTML = '';
+                    var img = document.createElement('img');
+                    img.src = URL.createObjectURL(resized);
+                    img.alt = 'Your new profile photo';
+                    preview.appendChild(img);
+                }
+                send();
+            }, 'image/jpeg', 0.88);
+        }).catch(send);
+    });
+})();

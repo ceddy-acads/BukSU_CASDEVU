@@ -203,6 +203,8 @@ $counts = fetch_one(
         SUM(status = 'pending')  AS pending,
         SUM(status = 'approved') AS approved,
         SUM(status = 'rejected') AS rejected,
+        SUM(status = 'completed') AS completed,
+        SUM(status = 'withdrawn') AS withdrawn,
         SUM(attended = 1)        AS attended
        FROM registrations WHERE activity_id = ?",
     [$activityId]
@@ -252,6 +254,24 @@ require __DIR__ . '/../../includes/layout/header.php';
         <div class="stat-label">Marked present</div>
     </div>
 </div>
+
+<?php if ((int) $counts['total'] > 0): ?>
+    <section class="card">
+        <?= bar_chart(
+            'At a glance',
+            'Registrations by status'
+                . ($activity['max_participants'] ? ', slots filled against the limit' : '')
+                . ', and attendance among approved and completed participants.',
+            activity_glance_rows(
+                array_map('intval', $counts),
+                $activity['max_participants'] !== null ? (int) $activity['max_participants'] : null,
+                (int) $counts['attended']
+            ),
+            false,   // each row names its own parts; one legend would mix them up
+            true     // each row shows its own split
+        ) ?>
+    </section>
+<?php endif; ?>
 
 <?php $hasFilters = $keyword !== '' || $statusFilter !== '' || $yearFilter !== ''; ?>
 

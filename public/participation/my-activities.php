@@ -115,6 +115,25 @@ require __DIR__ . '/../../includes/layout/header.php';
             </div>
         </section>
     <?php endforeach; ?>
+    <?php // The student's own record, after the registrations they came here to check. ?>
+    <?php $history = student_participation_history((int) current_user_id()); ?>
+    <h2 class="section-title">Your record</h2>
+    <div class="grid grid-2">
+        <section class="card">
+            <?= bar_chart(
+                'Activities by category',
+                'Activities you joined in each category, leaving out rejected and withdrawn ones.',
+                student_category_rows($history)
+            ) ?>
+        </section>
+        <section class="card">
+            <?= bar_chart(
+                'Attendance',
+                'Of the activities you took part in, how many you were marked present at.',
+                student_attendance_rows($history)
+            ) ?>
+        </section>
+    </div>
 <?php endif; ?>
 
 <?php require __DIR__ . '/../../includes/layout/footer.php'; ?>

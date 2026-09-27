@@ -14,23 +14,20 @@
 
 /* ------------------------------------------------ 1. Fonts and tokens */
 
-/* Self-hosted (SIL OFL) so the look holds on a campus LAN with no internet.
-   Source Sans 3: humanist sans that stays legible in dense tables.
-   Source Serif 4: page titles and the wordmark only, the academic voice. */
+/* Outfit, self-hosted (SIL OFL) so the look holds on a campus LAN with no
+   internet. One variable file per script covers every weight; the extended
+   Latin file only downloads when a page uses those characters. */
 @font-face {
-    font-family: "Source Sans 3";
-    src: url("../fonts/source-sans-3.woff2") format("woff2");
-    font-weight: 200 900; font-style: normal; font-display: swap;
+    font-family: "Outfit";
+    src: url("../fonts/outfit-latin-wght-normal.woff2") format("woff2");
+    font-weight: 100 900; font-style: normal; font-display: swap;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
-    font-family: "Source Sans 3";
-    src: url("../fonts/source-sans-3-italic.woff2") format("woff2");
-    font-weight: 200 900; font-style: italic; font-display: swap;
-}
-@font-face {
-    font-family: "Source Serif 4";
-    src: url("../fonts/source-serif-4.woff2") format("woff2");
-    font-weight: 200 900; font-style: normal; font-display: swap;
+    font-family: "Outfit";
+    src: url("../fonts/outfit-latin-ext-wght-normal.woff2") format("woff2");
+    font-weight: 100 900; font-style: normal; font-display: swap;
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 :root {
@@ -63,8 +60,8 @@
     --muted-bg:   #eceff3;  --muted-fg:   #4b5563;
 
     /* Type scale */
-    --font-sans:  "Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
-    --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --font-sans:  "Outfit", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --font-display: "Outfit", "Segoe UI", system-ui, -apple-system, sans-serif;
     --fs-xs:   .75rem;     /* 12 · badges, captions */
     --fs-sm:   .8125rem;   /* 13 · hints, table heads, meta */
     --fs-base: .9375rem;   /* 15 · body, tables, inputs */
@@ -158,23 +155,32 @@ img    { max-width: 100%; height: auto; }
     transition: transform .22s cubic-bezier(.2, .8, .2, 1);
 }
 
+/* In the drawer the close button sits nearer the edge, which leaves room
+   for "Bukidnon State University" on one line. */
 .sidebar-brand {
-    display: flex; align-items: center; justify-content: space-between; gap: var(--s3);
-    padding: var(--s5) var(--s5) var(--s4);
+    display: flex; align-items: center; justify-content: space-between; gap: var(--s2);
+    padding: var(--s5) var(--s2) var(--s4) var(--s5);
 }
 .brand {
     color: #fff; text-decoration: none; line-height: 1.15;
-    display: flex; align-items: center; gap: var(--s3);
+    display: flex; align-items: center; gap: var(--s2);
 }
-/* The white BukSU logo beside the name; sized to the name and university line. */
-.brand-logo { flex: none; width: auto; height: 2.625rem; }
+/* The white BukSU logo beside the name, sized to the name and university
+   line. Compact in the phone/tablet drawer; full size from 960px up. */
+.brand-logo { flex: none; width: auto; height: 2rem; }
 .brand-text { display: block; min-width: 0; }
 .brand:hover { color: #fff; }
 .brand-mark {
-    display: block; font-family: var(--font-serif);
-    font-size: 1.45rem; font-weight: 700; letter-spacing: .01em;
+    display: block; font-family: var(--font-display);
+    font-size: 1.2rem; font-weight: 700; letter-spacing: .01em;
 }
-.brand-sub { display: block; font-size: var(--fs-xs); color: #b8c6dc; margin-top: 2px; }
+/* In the phone/tablet drawer the university line is 11px and held to one
+   line; on a device too narrow even for that it ends in "..." instead of
+   wrapping. The desktop sidebar has room for 12px. */
+.brand-sub {
+    display: block; font-size: .6875rem; color: #b8c6dc; margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 
 /* Still scrolls (wheel, touch, keyboard focus) when the admin menu is taller
    than the screen, but without a visible scrollbar track on the navy panel. */
@@ -252,7 +258,6 @@ img    { max-width: 100%; height: auto; }
 }
 .topbar .breadcrumb { display: none; }
 .topbar-actions { display: flex; align-items: center; gap: var(--s1); margin-left: auto; }
-.topbar-bell.is-current { background: var(--topbar-hover, rgba(255, 255, 255, .12)); }
 
 .breadcrumb ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); }
 .breadcrumb li { font-size: var(--fs-sm); color: var(--ink-soft); min-width: 0; }
@@ -275,6 +280,7 @@ img    { max-width: 100%; height: auto; }
 .account-trigger:focus-visible { outline: none; box-shadow: var(--topbar-focus, 0 0 0 2px var(--navy), 0 0 0 4px var(--gold)); }
 .account-initials {
     flex: none; width: 34px; height: 34px; border-radius: 50%;
+    object-fit: cover;
     display: grid; place-items: center;
     background: var(--navy-100); color: var(--navy);
     font-weight: 700; font-size: var(--fs-sm);
@@ -305,6 +311,94 @@ img    { max-width: 100%; height: auto; }
 .account-item:hover { background: var(--navy-50); color: var(--navy); }
 .account-item[aria-current="page"] { background: var(--navy-50); color: var(--navy); }
 
+/* Profile (profile.php): one card holding two bordered panels, identity
+   and contact/account, each a two-column grid of label-over-value pairs.
+   Actions sit bottom right. Panels stack below 900px; on phones the two
+   paddings tighten so the pairs keep two columns down to 360px. */
+.profile-sheet { padding: var(--s5); }
+.profile-grid { display: grid; gap: var(--s4); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .profile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.profile-panel { min-width: 0; padding: var(--s5); border: 1px solid var(--line); border-radius: var(--r); }
+.profile-id { display: flex; align-items: center; gap: var(--s4); margin-bottom: var(--s6); }
+.profile-avatar {
+    flex: none; width: 64px; height: 64px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--navy); color: #fff; font-size: 1.375rem; font-weight: 600; letter-spacing: .02em;
+    box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--gold);
+}
+.profile-id h2 { margin: 0; font-size: var(--fs-lg); line-height: 1.25; overflow-wrap: anywhere; }
+/* A photo fills the same circle as the initials. */
+.profile-avatar { overflow: hidden; }
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.profile-photo-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin-top: var(--s3); }
+.profile-photo-actions form { margin: 0; display: flex; gap: var(--s2); }
+.profile-photo-pick { cursor: pointer; }
+/* The file input is visually hidden inside its label, so the label shows its focus. */
+.profile-photo-pick:focus-within { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--navy-700); }
+.profile-photo-hint { margin: var(--s2) 0 0; font-size: var(--fs-xs); color: var(--ink-soft); }
+.profile-role { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin: var(--s1) 0 0; color: var(--ink-soft); }
+.profile-panel-title { margin: 0; font-size: var(--fs-lg); line-height: 1.25; }
+.profile-panel-sub { margin: var(--s1) 0 var(--s6); color: var(--ink-soft); }
+.profile-fields { margin: 0; display: grid; gap: var(--s5) var(--s4); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.profile-fields > div { min-width: 0; }
+.profile-fields .profile-wide { grid-column: 1 / -1; }
+.profile-fields dt { font-size: var(--fs-sm); color: var(--ink-soft); margin-bottom: 2px; }
+.profile-fields dd { margin: 0; font-size: var(--fs-md); font-weight: 500; color: var(--ink); overflow-wrap: anywhere; }
+@media (max-width: 639px) {
+    .profile-sheet { padding: var(--s3); }
+    .profile-panel { padding: var(--s4); }
+    .profile-id { margin-bottom: var(--s5); }
+}
+@media (max-width: 359px) { .profile-fields { grid-template-columns: minmax(0, 1fr); } }
+.profile-note { margin: var(--s5) 0 0; font-size: var(--fs-sm); color: var(--ink-soft); }
+.profile-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--s2); margin-top: var(--s5); }
+.profile-panel .profile-actions { margin-top: var(--s2); }
+
+/* Notifications pop-up under the bell (layout/notifications-menu.php): a
+   <details> like the account menu. On phones the panel spans the screen
+   just below the top bar; from 640px it hangs from the bell. */
+.notif-menu { position: relative; }
+.notif-trigger { list-style: none; }
+.notif-trigger::-webkit-details-marker { display: none; }
+.notif-menu[open] > .notif-trigger { background: var(--topbar-hover, rgba(255, 255, 255, .12)); }
+.notif-panel {
+    position: fixed; top: 62px; left: var(--s3); right: var(--s3); z-index: 50;
+    max-height: min(70vh, 560px); overflow-y: auto; overscroll-behavior: contain;
+    background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line); border-radius: var(--r);
+    box-shadow: var(--shadow-2);
+}
+@media (min-width: 640px) {
+    .notif-panel { position: absolute; top: calc(100% + 6px); left: auto; right: 0; width: 380px; }
+}
+.notif-head {
+    position: sticky; top: 0; z-index: 1;
+    display: flex; align-items: center; justify-content: space-between; gap: var(--s3);
+    padding: var(--s2) var(--s2) var(--s2) var(--s4);
+    background: var(--surface); border-bottom: 1px solid var(--line);
+}
+.notif-head h2 { margin: 0; font-size: var(--fs-md); }
+.notif-head form { margin: 0; }
+.notif-mark {
+    min-height: 44px; padding: 0 var(--s3); border: 0; border-radius: var(--r-sm);
+    background: none; color: var(--navy-700); font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer;
+}
+.notif-mark:hover { background: var(--navy-50); }
+.notif-list { list-style: none; margin: 0; padding: 0; }
+.notif-item { padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line); }
+.notif-item:last-child { border-bottom: 0; }
+.notif-item.is-new { background: var(--navy-50); }
+.notif-item h3 { margin: 0 0 2px; font-size: var(--fs-base); line-height: 1.3; }
+.notif-time { margin-left: auto; font-weight: 400; white-space: nowrap; }
+.notif-message {
+    margin: 0; font-size: var(--fs-sm); color: var(--ink-soft);
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden;
+}
+/* 44px to tap, without adding that much space between items. */
+.notif-link { display: inline-flex; align-items: center; min-height: 44px; margin: -8px 0 -12px; font-size: var(--fs-sm); font-weight: 600; }
+.notif-empty { margin: 0; padding: var(--s5) var(--s4); color: var(--ink-soft); font-size: var(--fs-sm); }
+.notif-empty strong { display: block; color: var(--ink); margin-bottom: var(--s1); }
+
 .main { min-width: 0; display: flex; flex-direction: column; min-height: 100vh; }
 
 .page {
@@ -327,6 +421,11 @@ img    { max-width: 100%; height: auto; }
 }
 
 @media (min-width: 960px) {
+    .sidebar-brand { padding-right: var(--s5); }
+    .brand { gap: var(--s3); }
+    .brand-logo { height: 2.625rem; }
+    .brand-mark { font-size: 1.45rem; }
+    .brand-sub { font-size: var(--fs-xs); }
     .nav-backdrop, .sidebar .nav-close, .topbar-menu { display: none; }
     .sidebar {
         width: var(--sidebar-w);
@@ -367,7 +466,7 @@ img    { max-width: 100%; height: auto; }
 .page-head > div:first-child { min-width: 0; flex: 1 1 320px; }
 .page-head h1 {
     margin: 0;
-    font-family: var(--font-serif);
+    font-family: var(--font-display);
     font-size: var(--fs-xl); font-weight: 650; letter-spacing: -.01em;
     color: var(--navy);
 }
@@ -484,6 +583,8 @@ a.stat:hover { border-color: var(--navy-700); }
     transition: background-color .15s, border-color .15s, color .15s;
 }
 .btn:hover { text-decoration: none; }
+/* .btn sets display, which would otherwise override the hidden attribute. */
+.btn[hidden] { display: none; }
 .btn:active { transform: translateY(1px); }
 
 /* Primary: navy. Form submits and the main action inside a card. */
@@ -898,11 +999,17 @@ table.calendar tr:last-child td { border-bottom: 0; }
 
 .cal-blank { background: var(--surface-2); }
 .cal-today { background: var(--gold-100); }
-.cal-daynum { font-size: var(--fs-sm); font-weight: 700; color: var(--ink-soft); margin-bottom: var(--s1); }
-.cal-today .cal-daynum {
-    display: inline-grid; place-items: center; min-width: 24px; height: 24px; border-radius: 12px;
-    background: var(--navy); color: #fff;
+/* Day numbers sit in a small circle; on days with events they are links
+   that narrow the side panel to that day. */
+.cal-daynum {
+    display: inline-grid; place-items: center; min-width: 28px; height: 28px; margin-bottom: var(--s1);
+    border-radius: 14px; font-size: var(--fs-sm); font-weight: 700; color: var(--ink-soft); text-decoration: none;
 }
+a.cal-daynum { color: var(--navy); }
+a.cal-daynum:hover { background: var(--navy-50); text-decoration: none; }
+.cal-today .cal-daynum { background: var(--gold); color: var(--navy-900); }
+.cal-selected { box-shadow: inset 0 0 0 2px var(--navy); }
+.cal-selected .cal-daynum { background: var(--navy); color: #fff; }
 
 /* The dot carries the category colour (--cat), matching the legend swatches. */
 .cal-event {
@@ -928,6 +1035,26 @@ table.calendar tr:last-child td { border-bottom: 0; }
 
 @media (max-width: 639px) { table.calendar td { height: 92px; } }
 
+/* Calendar beside its event panel. From 1200px they sit side by side and
+   the panel stays in view while the month scrolls; below that the panel
+   follows the grid. */
+.cal-layout { display: grid; gap: var(--s5); grid-template-columns: minmax(0, 1fr); align-items: start; }
+.cal-layout > .card { margin-bottom: 0; }
+@media (min-width: 1200px) {
+    .cal-layout { grid-template-columns: minmax(0, 1fr) 340px; }
+    .cal-layout table.calendar { min-width: 560px; }
+    .cal-panel { position: sticky; top: calc(56px + var(--s4)); max-height: calc(100vh - 56px - var(--s8)); overflow-y: auto; }
+}
+.cal-panel-head { margin-bottom: var(--s4); padding-bottom: var(--s3); border-bottom: 1px solid var(--line); }
+.cal-panel-head h2 { margin: 0; font-size: var(--fs-md); }
+.cal-panel-head p { margin: var(--s1) 0 0; font-size: var(--fs-sm); color: var(--ink-soft); }
+.cal-panel-empty { color: var(--ink-soft); font-size: var(--fs-sm); }
+.cal-panel-empty strong { display: block; color: var(--ink); margin-bottom: var(--s1); }
+.cal-agenda .agenda-body .meta { margin: 2px 0 0; }
+.cal-agenda-tags { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin: var(--s2) 0 0; }
+.cal-agenda-cat { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--ink-soft); }
+.cal-agenda-cat .cal-swatch { background: var(--cat); }
+
 /* ------------------------------------------------------ 13. Auth screens */
 
 .auth-wrap {
@@ -949,7 +1076,7 @@ table.calendar tr:last-child td { border-bottom: 0; }
 .auth-head .brand-mark { color: var(--navy); font-size: 1.75rem; }
 .auth-head .brand-sub  { color: var(--ink-soft); font-size: var(--fs-sm); }
 .auth-head h1 {
-    margin: var(--s5) 0 0; font-family: var(--font-serif);
+    margin: var(--s5) 0 0; font-family: var(--font-display);
     font-size: var(--fs-xl); font-weight: 650; color: var(--navy);
 }
 .auth-head p { margin: var(--s1) 0 0; color: var(--ink-soft); }
@@ -1110,26 +1237,6 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 .news-item > .badge { margin-bottom: var(--s2); }
 .news-item h3 { margin-bottom: var(--s1); }
 
-/* Segmented control: switch between views of the same data (Month / List).
-   The current view is a filled navy segment with bold text; the others are
-   plain. Square inner edges and the system radius, not a pill. */
-.segmented {
-    display: inline-flex; align-items: stretch;
-    border: 1px solid var(--line-input); border-radius: var(--r-sm);
-    background: var(--surface); overflow: hidden;
-}
-.segmented-option {
-    display: inline-flex; align-items: center; justify-content: center;
-    min-height: 40px; min-width: 72px; padding: 0 var(--s4);
-    font-weight: 600; font-size: var(--fs-base); line-height: 1;
-    color: var(--navy); text-decoration: none;
-}
-.segmented-option + .segmented-option { border-left: 1px solid var(--line-input); }
-.segmented-option:hover { background: var(--navy-50); color: var(--navy); }
-.segmented-option[aria-current="page"] { background: var(--navy); color: #fff; font-weight: 700; cursor: default; }
-.segmented-option:focus-visible { position: relative; z-index: 1; box-shadow: inset 0 0 0 2px var(--navy-700), inset 0 0 0 4px #fff; border-radius: 0; }
-.segmented-option[aria-current="page"]:focus-visible { box-shadow: inset 0 0 0 2px var(--gold); }
-
 /* Button group: adjacent actions on the same thing (previous / today / next). */
 .btn-group { display: inline-flex; }
 .btn-group > .btn { border-radius: 0; }
@@ -1142,8 +1249,6 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 .icon.flip { transform: rotate(180deg); }
 
 @media (max-width: 639px) {
-    .page-head .btn-row > .segmented { flex: 1 1 100%; }
-    .page-head .btn-row > .segmented .segmented-option { flex: 1; min-height: 44px; }
     .page-head .btn-row > .btn-group { flex: 1 1 100%; }
     .page-head .btn-row > .btn-group > .btn { flex: 1; }
 }
@@ -1177,6 +1282,7 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 .chart-track { display: flex; gap: 2px; height: 14px; background: var(--muted-bg); border-radius: 3px; overflow: hidden; }
 .chart-seg { display: block; height: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .chart-value { font-size: var(--fs-sm); color: var(--ink-soft); }
+.chart-more { margin: var(--s4) 0 0; font-size: var(--fs-sm); font-weight: 600; }
 .chart-success { background: var(--success); }
 .chart-warning { background: #a86f00; }
 .chart-danger  { background: var(--danger); }
@@ -1227,7 +1333,7 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 /* The one loud element: the unit's three fields, set as a stack. */
 .portal-headline {
     margin: var(--s4) 0 0;
-    font-family: var(--font-serif); font-weight: 650; color: #fff;
+    font-family: var(--font-display); font-weight: 650; color: #fff;
     font-size: 1.35rem; line-height: 1.05; letter-spacing: -.01em;
 }
 .portal-headline span { display: inline; }
