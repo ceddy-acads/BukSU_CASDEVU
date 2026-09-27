@@ -1464,21 +1464,65 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
     .portal-legal { width: 100%; max-width: 440px; color: #dbe3ef; }
 }
 
-/* Over the photo the card is a thick material: 90% white with a blur, which
-   separates it from the background while keeping every text colour on it
-   at AA (5.3:1 or better even over the darkest navy). Solid white where
-   backdrop blur is unsupported or Reduce Transparency is on. */
+/* Over the photo the card is glass, after Apple's Liquid Glass (HIG:
+   Materials, Color). It is the "regular" variant, the one Apple gives
+   components with a lot of text: it blurs what is behind and lifts its
+   luminosity, and a large surface stays fairly opaque to keep text legible.
+   The glass has no colour of its own; colour stays on the primary action.
+
+   Built from what every modern browser supports: backdrop blur with a
+   saturation and brightness lift, a white tint, a gradient rim that catches
+   the light at the top left, a top highlight, a soft sheen and depth
+   shadows. True refraction needs an SVG filter as a backdrop filter, which
+   only Chromium supports and which suits small fixed-size elements, not a
+   card that grows when errors appear, so it is left out.
+
+   Legibility: the tint never drops below 68% white, and on the glass the
+   muted and error colours are darkened (Apple darkens text over light
+   glass). Worst case, over the darkest navy: muted 5.1:1, links 5.6:1,
+   errors 5.5:1, body 8.5:1. Solid white where backdrop blur is unsupported
+   or Reduce Transparency is on; more opaque with a firm edge when Increase
+   Contrast is on. */
 @media (min-width: 640px) {
     @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
         .portal-panel {
-            background: rgba(255, 255, 255, .9);
-            -webkit-backdrop-filter: blur(24px) saturate(160%);
-            backdrop-filter: blur(24px) saturate(160%);
+            --ink-soft: #3a4453;
+            --danger:   #7d1515;
+            position: relative; isolation: isolate;
+            background: linear-gradient(160deg, rgba(255, 255, 255, .78), rgba(255, 255, 255, .68));
+            -webkit-backdrop-filter: blur(24px) saturate(180%) brightness(1.15);
+            backdrop-filter: blur(24px) saturate(180%) brightness(1.15);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, .95),      /* top highlight */
+                inset 0 0 18px rgba(255, 255, 255, .35),     /* inner glow */
+                0 2px 6px rgba(11, 29, 58, .12),
+                0 28px 64px rgba(11, 29, 58, .30);
+        }
+        /* Rim: a 1px gradient edge, bright top left, fading bottom right. */
+        .portal-panel::after {
+            content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+            border-radius: inherit; padding: 1px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, .95), rgba(255, 255, 255, .25) 45%, rgba(255, 255, 255, .55));
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+            mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+        }
+        /* Sheen: light across the upper left of the surface. It only adds
+           white, so it can only raise text contrast. */
+        .portal-panel::before {
+            content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+            border-radius: inherit;
+            background: linear-gradient(135deg, rgba(255, 255, 255, .45) 0%, rgba(255, 255, 255, 0) 38%);
         }
     }
 }
 @media (prefers-reduced-transparency: reduce) {
     .portal-panel { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+    .portal-panel::before, .portal-panel::after { display: none; }
+}
+@media (prefers-contrast: more) {
+    .portal-panel { background: rgba(255, 255, 255, .95); border: 1px solid var(--line-input); }
+    .portal-panel::before, .portal-panel::after { display: none; }
 }
 
 /* Wide screens: a slightly wider panel. */
