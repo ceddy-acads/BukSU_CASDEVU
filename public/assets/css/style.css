@@ -613,8 +613,6 @@ a.stat:hover { border-color: var(--navy-700); }
     /* Thumb-sized targets on phones. */
     .btn { min-height: 44px; }
     .btn-sm { min-height: 36px; }
-    .page-head .btn-row { width: 100%; }
-    .page-head .btn-row > .btn, .page-head .btn-row > form { flex: 1 1 auto; }
 }
 
 /* -------------------------------------------------------------- 7. Forms */
@@ -626,6 +624,41 @@ a.stat:hover { border-color: var(--navy-700); }
     .form-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 .form-actions { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; margin-top: var(--s2); }
+
+/* Below desktop (no sidebar) buttons that sit side by side are all the same
+   width: page actions under the title, form buttons (Save / Cancel), and a
+   table row's actions (Edit / Archive), the last two as wide as the longest
+   label. */
+@media (max-width: 959px) {
+    /* Page actions share each row equally; one left alone on the last row
+       stretches to fill it. */
+    .page-head .btn-row { width: 100%; }
+    .page-head .btn-row > .btn, .page-head .btn-row > form { flex: 1 1 190px; }
+    .page-head .btn-row > :only-child { flex: 0 1 auto; }
+    .form-actions, table.data td.actions .btn-row {
+        display: inline-grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+        max-width: 100%;
+    }
+    .page-head .btn-row > form > .btn,
+    .form-actions > .btn, .form-actions > form > .btn,
+    table.data td.actions .btn-row > .btn, table.data td.actions .btn-row > form > .btn { width: 100%; }
+    .page-head .btn-row > .btn-group > .btn { flex: 1; }
+}
+/* Phones: page actions and form buttons fill the width in two columns; an
+   odd one out takes the whole last row. */
+@media (max-width: 639px) {
+    .page-head .btn-row, .form-actions {
+        display: grid; width: 100%; align-items: stretch;
+        grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .page-head .btn-row > .btn-group { display: flex; }
+    .page-head .btn-row > :last-child:nth-child(odd),
+    .form-actions > :last-child:nth-child(odd),
+    .page-head .btn-row > .btn-group { grid-column: 1 / -1; }
+    /* Narrower side padding keeps a long label such as "Request a
+       reservation" on one line in a half-width button. */
+    .page-head .btn-row .btn, .form-actions .btn { padding-left: var(--s2); padding-right: var(--s2); }
+}
 
 /* Groups a long form into titled sections. */
 .form-section + .form-section { margin-top: var(--s6); padding-top: var(--s5); border-top: 1px solid var(--line); }
@@ -904,8 +937,8 @@ table.data tfoot td { font-weight: 700; background: var(--surface-2); border-top
     font-size: var(--fs-sm); color: var(--ink-soft);
 }
 
-/* Equipment catalog (student view): the photo and the "how many can I get"
-   line carry the card; everything else is supporting detail. */
+/* Equipment catalog (everyone's inventory grid): the photo and the "how many
+   can I get" line carry the card; everything else is supporting detail. */
 .catalog {
     list-style: none; margin: 0; padding: 0;
     display: grid; gap: var(--s4);
@@ -925,15 +958,43 @@ table.data tfoot td { font-weight: 700; background: var(--surface-2); border-top
 .catalog-body h3 { margin: 0; font-size: var(--fs-md); }
 .catalog-body p { margin: 0; }
 .catalog-avail { font-size: var(--fs-base); margin: var(--s1) 0 !important; }
+/* Office view: the item's status sits on the photo's corner, Edit at the foot. */
+.catalog-item { position: relative; }
+.catalog-status { position: absolute; top: var(--s2); left: var(--s2); }
+.catalog-body { flex: 1; }
+.catalog-foot {
+    padding: var(--s3) var(--s4); border-top: 1px solid var(--line); background: var(--surface-2);
+    display: flex; justify-content: flex-end;
+}
+
+/* Phones: the grid becomes a list. Each item is one row, a small square
+   photo beside its details, with the status badge back in the text. */
+@media (max-width: 639px) {
+    .catalog { grid-template-columns: minmax(0, 1fr); gap: var(--s3); }
+    .catalog-item {
+        display: grid; grid-template-columns: auto minmax(0, 1fr);
+        grid-template-areas: "photo body" "photo foot";
+        grid-template-rows: 1fr auto;
+    }
+    .catalog-photo {
+        grid-area: photo; align-self: start; width: 76px; aspect-ratio: 1;
+        margin: var(--s3) 0 var(--s3) var(--s3);
+        border: 1px solid var(--line); border-radius: var(--r-sm);
+    }
+    .catalog-nophoto { font-size: var(--fs-xs); text-align: center; padding: var(--s1); }
+    .catalog-body { grid-area: body; padding: var(--s3); }
+    .catalog-status { position: static; align-self: flex-start; }
+    .catalog-foot {
+        grid-area: foot; padding: 0 var(--s3) var(--s3);
+        border-top: 0; background: none; justify-content: flex-start;
+    }
+}
 
 /* Photo input on the item form */
 .photo-field { display: flex; flex-wrap: wrap; gap: var(--s5); align-items: flex-start; }
 .photo-field-inputs { flex: 1 1 260px; min-width: 0; }
 .item-photo { width: 200px; max-width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--line); }
 
-/* Small photo in the staff stock table */
-.item-cell { display: flex; gap: var(--s3); align-items: flex-start; }
-.thumb { flex: none; width: 44px; height: 44px; border-radius: var(--r-sm); object-fit: cover; border: 1px solid var(--line); background: var(--surface-2); }
 
 /* A checkbox sitting in a filter bar lines up with the inputs beside it. */
 .filter-bar .filter-check { flex: 0 1 auto; display: flex; align-items: center; min-height: 42px; }
@@ -1248,10 +1309,6 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 .btn .icon { width: 16px; height: 16px; }
 .icon.flip { transform: rotate(180deg); }
 
-@media (max-width: 639px) {
-    .page-head .btn-row > .btn-group { flex: 1 1 100%; }
-    .page-head .btn-row > .btn-group > .btn { flex: 1; }
-}
 
 /* Live search: results dim while fresh ones load. */
 [data-live-region].is-loading { opacity: .55; transition: opacity .15s; }

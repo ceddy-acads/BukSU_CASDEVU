@@ -12,8 +12,9 @@ require_login();
 
 $categories = fetch_all('SELECT inv_category_id, name FROM inventory_categories ORDER BY name');
 
-// Students get a browse view (photos and "how many can I get"); the office
-// and coordinators keep the stock table they manage from.
+// Everyone sees the items as a grid of photo cards. Students get the browse
+// view ("how many can I get"); the office and coordinators also see status,
+// units on loan, and where each item is stored.
 $isBrowser = current_role() === 'student';
 
 /** Statuses that take an item out of circulation whatever its count. */
@@ -52,12 +53,17 @@ $where = $conditions === [] ? '' : ' WHERE ' . implode(' AND ', $conditions);
 
 // Sort: by the item's name A to Z unless the viewer picks otherwise. The
 // ORDER BY comes from this fixed map, never from the request.
+// The grid has no column headings, so the order comes from one "Sort by"
+// menu (sort_by=name-asc); older sort=&dir= links still work.
+if (preg_match('/^(name|category)-(asc|desc)$/', get('sort_by'), $m)) {
+    $_GET['sort'] = $m[1];
+    $_GET['dir']  = $m[2];
+}
 [$sortKey, $sortDir] = sort_param(['name', 'category'], 'name');
 $orderBy = [
     'name'     => "i.name $sortDir, ic.name, i.item_id",
     'category' => "ic.name $sortDir, i.name, i.item_id",
 ][$sortKey];
-$sortFilters = ['q' => get('q'), 'category' => get('category'), 'status' => get('status'), 'available' => get('available')];
 
 $page   = max(1, (int) (get('page') ?: 1));
 $total  = (int) fetch_value("SELECT COUNT(*) FROM inventory_items i$where", $params);
@@ -200,8 +206,16 @@ require __DIR__ . '/../../includes/layout/header.php';
         </select>
     </div>
     <?php endif; ?>
-    <input type="hidden" name="sort" value="<?= e($sortKey) ?>">
-    <input type="hidden" name="dir" value="<?= e($sortDir) ?>">
+    <div class="form-row">
+        <label for="sort">Sort by</label>
+        <?php $sortChoice = $sortKey . '-' . $sortDir; ?>
+        <select id="sort" name="sort_by">
+            <?php foreach (['name-asc' => 'Name (A to Z)', 'name-desc' => 'Name (Z to A)',
+                            'category-asc' => 'Category (A to Z)', 'category-desc' => 'Category (Z to A)'] as $value => $label): ?>
+                <option value="<?= $value ?>" <?= $sortChoice === $value ? 'selected' : '' ?>><?= $label ?></option>
+            <?php endforeach; ?>
+        </select>
+    </div>
     <div class="form-row filter-actions" data-live-region="actions">
         <button type="submit" class="btn btn-primary">Filter</button>
         <?php if ($filtered): ?>
@@ -233,13 +247,14 @@ require __DIR__ . '/../../includes/layout/header.php';
             </div>
         </div>
     <?php endif; ?>
-<?php elseif ($isBrowser): ?>
+<?php else: ?>
     <ul class="catalog">
         <?php foreach ($items as $item): ?>
             <?php
-            $owned     = (int) $item['quantity_total'];
-            $available = max(0, $owned - (int) $item['quantity_out']);
-            $unit      = (string) ($item['unit'] ?: 'pc');
+            $owned        = (int) $item['quantity_total'];
+            $onLoanNow    = (int) $item['quantity_out'];
+            $available    = max(0, $owned - $onLoanNow);
+            $unit         = (string) ($item['unit'] ?: 'pc');
             $outOfService = in_array($item['status'], OUT_OF_SERVICE, true);
             ?>
             <li class="catalog-item">
@@ -252,6 +267,9 @@ require __DIR__ . '/../../includes/layout/header.php';
                     <?php endif; ?>
                 </div>
                 <div class="catalog-body">
+                    <?php if (!$isBrowser): ?>
+                        <span class="catalog-status"><?= status_badge($item['status'], 'inventory') ?></span>
+                    <?php endif; ?>
                     <p class="meta">
                         <?= e($item['category']) ?>
                         <?php if ($item['size'] !== null && $item['size'] !== ''): ?>
@@ -270,99 +288,31 @@ require __DIR__ . '/../../includes/layout/header.php';
                         <p class="catalog-avail text-warning">All <?= $owned ?> <?= e($unit) ?> are on loan</p>
                     <?php endif; ?>
 
-                    <?php if ($item['description']): ?>
-                        <p class="small muted"><?= e(mb_strimwidth((string) $item['description'], 0, 140, '…')) ?></p>
+                    <?php if ($isBrowser): ?>
+                        <?php if ($item['description']): ?>
+                            <p class="small muted"><?= e(mb_strimwidth((string) $item['description'], 0, 140, '…')) ?></p>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <p class="small muted"><?= $onLoanNow ?> on loan</p>
+                        <?php if ($item['storage_location']): ?>
+                            <p class="small muted">Stored: <?= e($item['storage_location']) ?></p>
+                        <?php endif; ?>
+                        <?php if ($item['condition_note']): ?>
+                            <p class="small muted"><?= e($item['condition_note']) ?></p>
+                        <?php endif; ?>
                     <?php endif; ?>
                     <p class="small muted">Code <?= e($item['item_code']) ?></p>
                 </div>
+                <?php if (is_office_staff()): ?>
+                    <div class="catalog-foot">
+                        <a class="btn btn-outline btn-sm"
+                           href="<?= url('inventory/manage.php?id=' . (int) $item['item_id']) ?>"
+                           aria-label="Edit <?= e($item['name']) ?>">Edit</a>
+                    </div>
+                <?php endif; ?>
             </li>
         <?php endforeach; ?>
     </ul>
-
-    <?php if ($pages > 1): ?>
-        <nav class="pagination" aria-label="Pagination">
-            <?php for ($p = 1; $p <= $pages; $p++): ?>
-                <?php if ($p === $page): ?>
-                    <span class="current" aria-current="page"><?= $p ?></span>
-                <?php else: ?>
-                    <a href="<?= e(inventory_page_link($p)) ?>"><?= $p ?></a>
-                <?php endif; ?>
-            <?php endfor; ?>
-        </nav>
-    <?php endif; ?>
-<?php else: ?>
-    <div class="card card-flush">
-        <div class="table-wrap">
-            <table class="data">
-                <thead>
-                    <tr>
-                        <?= sort_th('Item', 'name', $sortKey, $sortDir, 'inventory/index.php', $sortFilters) ?>
-                        <?= sort_th('Category', 'category', $sortKey, $sortDir, 'inventory/index.php', $sortFilters) ?>
-                        <th>Size</th>
-                        <th class="num">Owned</th><th class="num">On loan</th><th>Available</th>
-                        <th>Status</th>
-                        <?php if (is_office_staff()): ?><th class="actions">Actions</th><?php endif; ?>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php foreach ($items as $item): ?>
-                    <?php $available = (int) $item['quantity_total'] - (int) $item['quantity_out']; ?>
-                    <tr>
-                        <td>
-                            <div class="item-cell">
-                                <?php if (!empty($item['photo_path'])): ?>
-                                    <img class="thumb" src="<?= url('inventory/photo.php?id=' . (int) $item['item_id']) ?>"
-                                         alt="" loading="lazy">
-                                <?php else: ?>
-                                    <span class="thumb thumb-empty" aria-hidden="true"></span>
-                                <?php endif; ?>
-                                <div>
-                                    <strong><?= e($item['name']) ?></strong>
-                                    <div class="hint"><?= e($item['item_code']) ?></div>
-                                    <?php if ($item['storage_location']): ?>
-                                        <div class="hint">Stored: <?= e($item['storage_location']) ?></div>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </td>
-                        <td><?= e($item['category']) ?></td>
-                        <td>
-                            <?php if ($item['size'] !== null && $item['size'] !== ''): ?>
-                                <?= e($item['size']) ?>
-                            <?php else: ?>
-                                <span class="muted">None</span>
-                            <?php endif; ?>
-                        </td>
-                        <td class="num nowrap"><?= (int) $item['quantity_total'] ?> <?= e($item['unit']) ?></td>
-                        <td class="num"><?= (int) $item['quantity_out'] ?></td>
-                        <td class="nowrap">
-                            <?php if ($available > 0): ?>
-                                <span class="text-success"><?= $available ?> available</span>
-                            <?php else: ?>
-                                <span class="text-danger">None available</span>
-                            <?php endif; ?>
-                        </td>
-                        <td>
-                            <?= status_badge($item['status'], 'inventory') ?>
-                            <?php if ($item['condition_note']): ?>
-                                <div class="hint"><?= e($item['condition_note']) ?></div>
-                            <?php endif; ?>
-                        </td>
-                        <?php if (is_office_staff()): ?>
-                            <td class="actions">
-                                <div class="btn-row">
-                                    <a class="btn btn-outline btn-sm"
-                                       href="<?= url('inventory/manage.php?id=' . (int) $item['item_id']) ?>"
-                                       aria-label="Edit <?= e($item['name']) ?>">Edit</a>
-                                </div>
-                            </td>
-                        <?php endif; ?>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
 
     <?php if ($pages > 1): ?>
         <nav class="pagination" aria-label="Pagination">
