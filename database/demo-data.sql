@@ -41,6 +41,25 @@ FROM (
 JOIN roles r ON r.name = v.role;
 
 -- =====================================================================
+-- TEAM TEST ACCOUNTS (one admin, one staff, one coordinator)
+-- =====================================================================
+-- Shared so every teammate's copy has the same sign-ins. Each keeps the
+-- password its owner chose: only the bcrypt hash is stored here, never the
+-- password itself. Ask the team for the passwords; they are not demo1234.
+
+INSERT IGNORE INTO users (role_id, email, password_hash, first_name, last_name, status)
+SELECT r.role_id, v.email, v.password_hash, v.first_name, v.last_name, 'active'
+FROM (
+    SELECT 'admin' AS role, 'xyrhasacal_admin@buksu.edu.ph' AS email, 'Xyrha' AS first_name, 'Sacal' AS last_name,
+           '$2y$10$1xLCmJjiPO9AOE9GDFDM4eLgOanery4iU9syl7rf2.nUKL629xPzm' AS password_hash
+    UNION ALL SELECT 'staff', 'rhysacaruz_staff@buksu.edu.ph', 'Rhysa', 'Caruz',
+           '$2y$10$XkSf5UtA6worsTKVLLT5OOoc9IbDkLzoNC5mDkp/hcVUjCoo/Qo7.'
+    UNION ALL SELECT 'coordinator', 'davepequero_coordinator@buksu.edu.ph', 'Dave', 'Pequero',
+           '$2y$10$v.SqgmxOn4Q/UO9tKttCheyZ5W5TB1dk9zyzLrtgIU1s0Z8PepdFK'
+) AS v
+JOIN roles r ON r.name = v.role;
+
+-- =====================================================================
 -- STUDENTS — thirty across the five seeded courses and four year levels
 -- =====================================================================
 
