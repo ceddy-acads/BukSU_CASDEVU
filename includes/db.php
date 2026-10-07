@@ -37,9 +37,18 @@ function db(): PDO
         // Never leak credentials or SQL to the browser (NFR + security checklist).
         error_log('[CASMS] Database connection failed: ' . $e->getMessage());
         http_response_code(500);
-        exit(APP_DEBUG
-            ? 'Database connection failed: ' . htmlspecialchars($e->getMessage())
-            : 'The system is temporarily unavailable. Please try again later.');
+
+        // Someone browsing on the server itself (a developer's own XAMPP) gets
+        // the real reason, so a fresh setup can be fixed without digging
+        // through logs. Everyone else sees only the generic line.
+        $onServer = in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true);
+        if (APP_DEBUG || $onServer) {
+            exit('Database connection failed: ' . htmlspecialchars($e->getMessage())
+                . '<br><br>Check that MySQL is started in XAMPP and that the "' . htmlspecialchars(DB_NAME)
+                . '" database has been imported from database/schema.sql. '
+                . 'For a full check, run: C:\\xampp\\php\\php.exe bin\\check-setup.php');
+        }
+        exit('The system is temporarily unavailable. Please try again later.');
     }
 
     return $pdo;
