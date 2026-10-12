@@ -84,8 +84,8 @@ if ($studentId !== null) {
             </p>
         </div>
         <div class="btn-row">
-            <button type="button" class="btn btn-outline" onclick="window.print()">Print</button>
-            <a class="btn btn-gold" href="<?= url('reports/students.php?student=' . $studentId . '&export=csv') ?>">Export CSV</a>
+            <button type="button" class="btn btn-outline" data-print>Print</button>
+            <a class="btn btn-outline" href="<?= url('reports/students.php?student=' . $studentId . '&export=csv') ?>">Export CSV</a>
         </div>
     </div>
 
@@ -139,25 +139,25 @@ if ($studentId !== null) {
             </div>
         <?php else: ?>
             <div class="table-wrap">
-                <table class="data">
+                <table class="data table-stack" data-sortable>
                     <thead>
-                        <tr><th>Activity</th><th>Category</th><th>Date</th>
-                            <th>Registration</th><th>Attended</th><th>Team</th></tr>
+                        <tr><th data-sort="text">Activity</th><th data-sort="text">Category</th><th data-sort="number">Date</th>
+                            <th data-sort="text">Registration</th><th data-sort="text">Attended</th><th data-sort="text">Team</th></tr>
                     </thead>
                     <tbody>
                     <?php foreach ($history as $row): ?>
                         <tr>
-                            <td>
+                            <td data-label="Activity">
                                 <a href="<?= url('activities/view.php?id=' . (int) $row['activity_id']) ?>">
                                     <?= e($row['title']) ?>
                                 </a>
                                 <div class="hint"><?= e(ucfirst((string) $row['activity_status'])) ?></div>
                             </td>
-                            <td><?= e($row['category']) ?></td>
-                            <td class="nowrap"><?= e(format_date($row['start_at'])) ?></td>
-                            <td><?= status_badge($row['registration_status'], 'registration') ?></td>
-                            <td><?= (int) $row['attended'] === 1 ? 'Yes' : '<span class="muted">No</span>' ?></td>
-                            <td>
+                            <td data-label="Category"><?= e($row['category']) ?></td>
+                            <td data-label="Date" class="nowrap" data-sort-value="<?= (int) strtotime((string) $row['start_at']) ?>"><?= e(format_date($row['start_at'])) ?></td>
+                            <td data-label="Registration"><?= status_badge($row['registration_status'], 'registration') ?></td>
+                            <td data-label="Attended"><?= (int) $row['attended'] === 1 ? 'Yes' : '<span class="muted">No</span>' ?></td>
+                            <td data-label="Team">
                                 <?php if ($row['team_name']): ?>
                                     <?= e($row['team_name']) ?>
                                 <?php else: ?>
@@ -283,7 +283,7 @@ require __DIR__ . '/../../includes/layout/header.php';
         <p><?= number_format($total) ?> student<?= $total === 1 ? '' : 's' ?></p>
     </div>
     <div class="btn-row">
-        <a class="btn btn-gold" href="<?= e(students_link(['export' => 'csv'])) ?>">Export CSV</a>
+        <a class="btn btn-outline" href="<?= e(students_link(['export' => 'csv'])) ?>">Export CSV</a>
     </div>
 </div>
 
@@ -317,7 +317,7 @@ require __DIR__ . '/../../includes/layout/header.php';
             <?php endforeach; ?>
         </select>
     </div>
-    <div class="form-row">
+    <div class="form-row filter-check">
         <label class="check">
             <input type="checkbox" name="participants" value="1"
                 <?= $onlyActive ? 'checked' : '' ?>>
@@ -348,7 +348,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 <?php else: ?>
     <div class="card card-flush">
         <div class="table-wrap">
-            <table class="data">
+            <table class="data table-stack">
                 <thead>
                     <tr><th>Student</th><th>Course / Year</th><th class="num">Joined</th>
                         <th class="num">Approved</th><th>Account</th><th class="actions"><span class="sr-only">Actions</span></th></tr>
@@ -356,11 +356,11 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <tbody>
                 <?php foreach ($students as $student): ?>
                     <tr>
-                        <td>
+                        <td data-label="Student">
                             <strong><?= e(full_name($student, true)) ?></strong>
                             <div class="hint"><?= $student['student_number'] ? e($student['student_number']) : 'No student number' ?></div>
                         </td>
-                        <td>
+                        <td data-label="Course / Year">
                             <?php if ($student['course_code']): ?>
                                 <?= e($student['course_code']) ?>
                             <?php else: ?>
@@ -373,10 +373,10 @@ require __DIR__ . '/../../includes/layout/header.php';
                                 </div>
                             <?php endif; ?>
                         </td>
-                        <td class="num"><?= (int) $student['total_joined'] ?></td>
-                        <td class="num"><strong><?= (int) $student['total_approved'] ?></strong></td>
-                        <td><?= status_badge($student['status'], 'account') ?></td>
-                        <td class="actions">
+                        <td data-label="Joined" class="num"><?= (int) $student['total_joined'] ?></td>
+                        <td data-label="Approved" class="num"><strong><?= (int) $student['total_approved'] ?></strong></td>
+                        <td data-label="Account"><?= status_badge($student['status'], 'account') ?></td>
+                        <td data-label="Details" class="actions">
                             <div class="btn-row">
                                 <a class="btn btn-outline btn-sm"
                                    href="<?= url('reports/students.php?student=' . (int) $student['user_id']) ?>">

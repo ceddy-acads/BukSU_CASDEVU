@@ -103,6 +103,29 @@ if (is_post()) {
             flash('success', 'Role updated for ' . full_name($target) . '.');
             break;
 
+        case 'reset_password':
+            if (!$isAdmin) {
+                http_response_code(403);
+                abort_page(403, 'Only an administrator may reset a password.');
+            }
+            // A one-time temporary password, shown once to the administrator
+            // who relays it to the person. Unambiguous characters only, so it
+            // reads clearly over the phone or on paper.
+            $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+            $temp     = '';
+            for ($i = 0; $i < 12; $i++) {
+                $temp .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+            }
+            query('UPDATE users SET password_hash = ? WHERE user_id = ?',
+                  [password_hash($temp, PASSWORD_DEFAULT), $targetUserId]);
+            audit_log('update', 'user', $targetUserId, 'Administrator reset the password');
+            notify($targetUserId, 'system', 'Your password was reset',
+                   'An administrator reset your password. Sign in with the temporary password from the office, '
+                   . 'then change it under My profile.', url('profile.php'));
+            flash('success', 'Temporary password for ' . full_name($target) . ': ' . $temp
+                . ' — copy it now, it will not be shown again.', $temp);
+            break;
+
         default:
             flash('error', 'Unknown action.');
     }
@@ -253,7 +276,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 <?php else: ?>
     <div class="card card-flush">
         <div class="table-wrap">
-            <table class="data">
+            <table class="data table-stack">
                 <thead>
                     <tr>
                         <?= sort_th('Name', 'name', $sortKey, $sortDir, 'admin/users.php', $sortFilters) ?>
@@ -264,14 +287,14 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <tbody>
                 <?php foreach ($users as $row): ?>
                     <tr>
-                        <td><strong><?= e(full_name($row, true)) ?></strong></td>
-                        <td><?= e($row['email']) ?></td>
-                        <td><?= $row['student_number'] ? e($row['student_number']) : '<span class="muted">None</span>' ?></td>
-                        <td>
+                        <td data-label="Name"><strong><?= e(full_name($row, true)) ?></strong></td>
+                        <td data-label="Email"><?= e($row['email']) ?></td>
+                        <td data-label="Student no."><?= $row['student_number'] ? e($row['student_number']) : '<span class="muted">None</span>' ?></td>
+                        <td data-label="Course / Year">
                             <?= $row['course_code'] ? e($row['course_code']) : '<span class="muted">None</span>' ?>
                             <?= $row['year_level_label'] ? '<div class="hint">' . e($row['year_level_label']) . '</div>' : '' ?>
                         </td>
-                        <td>
+                        <td data-label="Role">
                             <?php if ($isAdmin && (int) $row['user_id'] !== current_user_id()): ?>
                                 <form method="post" class="inline-form">
                                     <?= csrf_field() ?>
@@ -291,8 +314,8 @@ require __DIR__ . '/../../includes/layout/header.php';
                                 <?= e(ucfirst($row['role_name'])) ?>
                             <?php endif; ?>
                         </td>
-                        <td><?= status_badge($row['status'], 'account') ?></td>
-                        <td class="actions">
+                        <td data-label="Status"><?= status_badge($row['status'], 'account') ?></td>
+                        <td data-label="Actions" class="actions">
                             <?php if ((int) $row['user_id'] === current_user_id()): ?>
                                 <span class="muted small">You</span>
                             <?php else: ?>
@@ -313,6 +336,16 @@ require __DIR__ . '/../../includes/layout/header.php';
                                             <input type="hidden" name="user_id" value="<?= (int) $row['user_id'] ?>">
                                             <button type="submit" class="btn btn-outline btn-sm"
                                                     aria-label="Deactivate <?= e(full_name($row)) ?>">Deactivate</button>
+                                        </form>
+                                    <?php endif; ?>
+                                    <?php if ($isAdmin): ?>
+                                        <form method="post" class="inline-form"
+                                              onsubmit="return confirm('Reset this account\u2019s password? A temporary password will be shown once.');">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="action" value="reset_password">
+                                            <input type="hidden" name="user_id" value="<?= (int) $row['user_id'] ?>">
+                                            <button type="submit" class="btn btn-outline btn-sm"
+                                                    aria-label="Reset password for <?= e(full_name($row)) ?>">Reset password</button>
                                         </form>
                                     <?php endif; ?>
                                 </div>

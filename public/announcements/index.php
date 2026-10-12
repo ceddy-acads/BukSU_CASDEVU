@@ -108,15 +108,15 @@ require __DIR__ . '/../../includes/layout/header.php';
     <?php if ($canPost): ?>
         <div class="form-row">
             <label for="status">Show</label>
-            <select id="status" name="status" onchange="this.form.submit()">
+            <select id="status" name="status">
                 <option value=""      <?= get('status') === ''      ? 'selected' : '' ?>>All</option>
                 <option value="draft" <?= get('status') === 'draft' ? 'selected' : '' ?>>Drafts only</option>
             </select>
         </div>
     <?php endif; ?>
     <div class="form-row filter-actions">
-        <button type="submit" class="btn btn-primary">Search</button>
-        <?php if ($keyword !== ''): ?>
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <?php if ($hasFilters): ?>
             <a class="btn btn-outline" href="<?= url('announcements/index.php') ?>">Clear</a>
         <?php endif; ?>
     </div>
@@ -134,7 +134,6 @@ require __DIR__ . '/../../includes/layout/header.php';
             <strong>No announcements yet</strong>
             <?php if ($canPost): ?>
                 Post an announcement to let students know what is coming up.
-                <a class="btn btn-primary" href="<?= url('announcements/manage.php') ?>">Post the first announcement</a>
             <?php else: ?>
                 News from the office will appear here once it is posted.
             <?php endif; ?>
@@ -154,7 +153,7 @@ require __DIR__ . '/../../includes/layout/header.php';
             <div class="item">
                 <div class="item-main">
                     <?php if ($announcement['is_pinned'] || $announcement['status'] !== 'published'): ?>
-                        <div class="btn-row">
+                        <div>
                             <?php if ($announcement['is_pinned']): ?>
                                 <span class="badge badge-info">Pinned</span>
                             <?php endif; ?>
@@ -164,7 +163,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                         </div>
                     <?php endif; ?>
 
-                    <h2 class="item-title"><?= e($announcement['title']) ?></h2>
+                    <h3 class="item-title"><?= e($announcement['title']) ?></h3>
                     <p class="meta">
                         <?php if ($announcement['activity_start']): ?>
                             <strong>Event: <?= e(date('D, j M Y · g:i A', strtotime((string) $announcement['activity_start']))) ?></strong>

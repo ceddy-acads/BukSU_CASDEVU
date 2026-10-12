@@ -102,7 +102,7 @@ require __DIR__ . '/../../includes/layout/header.php';
     <div>
         <a class="crumb" href="<?= url('activities/index.php') ?>">&larr; Back to activities</a>
         <div><?= status_badge($activity['status'], 'activity') ?></div>
-        <h1 class="mt-2"><?= e($activity['title']) ?></h1>
+        <h1><?= e($activity['title']) ?></h1>
         <p><?= e($activity['category']) ?></p>
     </div>
     <?php if ($canManage || $canRegister): ?>
@@ -244,7 +244,7 @@ $sameDay  = $endTs !== null && date('Y-m-d', $startTs) === date('Y-m-d', $endTs)
 
     <div>
         <?php if ($isStudent): ?>
-            <section class="card" id="participation">
+            <section class="card" id="participation" tabindex="-1">
                 <div class="card-head"><h2>Your participation</h2></div>
 
                 <?php if ($isActiveReg): ?>
@@ -262,7 +262,8 @@ $sameDay  = $endTs !== null && date('Y-m-d', $startTs) === date('Y-m-d', $endTs)
                         <div class="progress-label">
                             Requirements verified: <strong><?= $regProgress['satisfied'] ?></strong> of <?= $regProgress['total'] ?>
                         </div>
-                        <div class="progress" role="img"
+                        <div class="progress" role="progressbar"
+                             aria-valuemin="0" aria-valuemax="<?= $regProgress['total'] ?>" aria-valuenow="<?= $regProgress['satisfied'] ?>"
                              aria-label="<?= $regProgress['satisfied'] ?> of <?= $regProgress['total'] ?> requirements verified">
                             <span style="width: <?= $regPct ?>%"></span>
                         </div>

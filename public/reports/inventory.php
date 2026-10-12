@@ -90,8 +90,8 @@ require __DIR__ . '/../../includes/layout/header.php';
            &middot; <?= number_format($summary['available']) ?> units available</p>
     </div>
     <div class="btn-row">
-        <button type="button" class="btn btn-outline" onclick="window.print()">Print</button>
-        <a class="btn btn-gold" href="<?= e(inventory_report_link(['export' => 'items'])) ?>">Export items</a>
+        <button type="button" class="btn btn-outline" data-print>Print</button>
+        <a class="btn btn-outline" href="<?= e(inventory_report_link(['export' => 'items'])) ?>">Export items</a>
     </div>
 </div>
 
@@ -153,7 +153,7 @@ require __DIR__ . '/../../includes/layout/header.php';
         </select>
     </div>
     <div class="form-row filter-actions">
-        <button type="submit" class="btn btn-primary">Apply</button>
+        <button type="submit" class="btn btn-primary">Filter</button>
         <?php if ($itemFiltered): ?>
             <a class="btn btn-outline" href="<?= url('reports/inventory.php') ?>">Clear</a>
         <?php endif; ?>
@@ -216,34 +216,34 @@ require __DIR__ . '/../../includes/layout/header.php';
     <section class="card card-flush mt-6">
         <div class="card-head"><h2>Stock position</h2></div>
         <div class="table-wrap">
-            <table class="data" data-sortable>
+            <table class="data table-stack" data-sortable>
                 <thead>
                     <tr>
                         <th data-sort="text">Item</th><th data-sort="text">Category</th><th class="num" data-sort="number">Owned</th><th class="num" data-sort="number">On loan</th>
-                        <th class="num" data-sort="number">Available</th><th data-sort="text">Status</th><th>Overdue</th><th class="num">Damaged</th>
+                        <th class="num" data-sort="number">Available</th><th data-sort="text">Status</th><th data-sort="number">Overdue</th><th class="num" data-sort="number">Damaged</th>
                     </tr>
                 </thead>
                 <tbody>
                 <?php foreach ($items as $item): ?>
                     <?php $available = (int) $item['quantity_total'] - (int) $item['quantity_out']; ?>
                     <tr>
-                        <td>
+                        <td data-label="Item">
                             <strong><?= e($item['name']) ?></strong>
                             <div class="hint"><?= e($item['item_code']) ?><?= $item['size'] ? ' · ' . e($item['size']) : '' ?></div>
                         </td>
-                        <td><?= e($item['category']) ?></td>
-                        <td class="num"><?= (int) $item['quantity_total'] ?></td>
-                        <td class="num"><?= (int) $item['quantity_out'] ?></td>
-                        <td class="num"><strong><?= $available ?></strong></td>
-                        <td><?= status_badge($item['status'], 'inventory') ?></td>
-                        <td class="nowrap">
+                        <td data-label="Category"><?= e($item['category']) ?></td>
+                        <td data-label="Owned" class="num"><?= (int) $item['quantity_total'] ?></td>
+                        <td data-label="On loan" class="num"><?= (int) $item['quantity_out'] ?></td>
+                        <td data-label="Available" class="num"><strong><?= $available ?></strong></td>
+                        <td data-label="Status"><?= status_badge($item['status'], 'inventory') ?></td>
+                        <td data-label="Overdue" class="nowrap" data-sort-value="<?= (int) $item['overdue_loans'] ?>">
                             <?php if ((int) $item['overdue_loans'] > 0): ?>
                                 <span class="badge badge-danger"><?= (int) $item['overdue_loans'] ?> overdue</span>
                             <?php else: ?>
                                 <span class="muted">None</span>
                             <?php endif; ?>
                         </td>
-                        <td class="num">
+                        <td data-label="Damaged" class="num">
                             <?php if ((int) $item['times_damaged'] > 0): ?>
                                 <?= (int) $item['times_damaged'] ?>
                             <?php else: ?>
@@ -255,11 +255,11 @@ require __DIR__ . '/../../includes/layout/header.php';
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td colspan="2">Total</td>
-                        <td class="num"><?= number_format($summary['owned']) ?></td>
-                        <td class="num"><?= number_format($summary['out']) ?></td>
-                        <td class="num"><?= number_format($summary['available']) ?></td>
-                        <td colspan="3"></td>
+                        <td data-label="Item" colspan="2">Total</td>
+                        <td data-label="Owned" class="num"><?= number_format($summary['owned']) ?></td>
+                        <td data-label="On loan" class="num"><?= number_format($summary['out']) ?></td>
+                        <td data-label="Available" class="num"><?= number_format($summary['available']) ?></td>
+                        <td data-label="Status" colspan="3"><span class="muted">—</span></td>
                     </tr>
                 </tfoot>
             </table>
@@ -274,7 +274,7 @@ require __DIR__ . '/../../includes/layout/header.php';
     <input type="hidden" name="status" value="<?= e(get('status')) ?>">
     <div class="form-row">
         <label for="loans">Show</label>
-        <select id="loans" name="loans" onchange="this.form.submit()">
+        <select id="loans" name="loans">
             <option value="open"     <?= $loanState === 'open'     ? 'selected' : '' ?>>Currently out</option>
             <option value="overdue"  <?= $loanState === 'overdue'  ? 'selected' : '' ?>>Overdue only</option>
             <option value="returned" <?= $loanState === 'returned' ? 'selected' : '' ?>>Returned</option>
@@ -302,40 +302,40 @@ require __DIR__ . '/../../includes/layout/header.php';
 <?php else: ?>
     <section class="card card-flush">
         <div class="table-wrap">
-            <table class="data">
+            <table class="data table-stack" data-sortable>
                 <thead>
-                    <tr><th>Item</th><th>Borrower</th><th class="num">Qty</th><th>Released</th>
-                        <th>Due back</th><th>Returned</th><th>Condition</th></tr>
+                    <tr><th data-sort="text">Item</th><th data-sort="text">Borrower</th><th class="num" data-sort="number">Qty</th><th data-sort="number">Released</th>
+                        <th data-sort="number">Due back</th><th data-sort="text">Returned</th><th data-sort="text">Condition</th></tr>
                 </thead>
                 <tbody>
                 <?php foreach ($borrowings as $borrowing): ?>
                     <tr>
-                        <td>
+                        <td data-label="Item">
                             <?= e($borrowing['item_name']) ?>
                             <div class="hint"><?= e($borrowing['item_code']) ?></div>
                         </td>
-                        <td>
+                        <td data-label="Borrower">
                             <?= e(full_name($borrowing, true)) ?>
                             <?php if ($borrowing['student_number']): ?>
                                 <div class="hint"><?= e($borrowing['student_number']) ?></div>
                             <?php endif; ?>
                         </td>
-                        <td class="num"><?= (int) $borrowing['quantity'] ?></td>
-                        <td class="nowrap"><?= e(format_date($borrowing['released_at'])) ?></td>
-                        <td class="nowrap">
+                        <td data-label="Qty" class="num"><?= (int) $borrowing['quantity'] ?></td>
+                        <td data-label="Released" class="nowrap" data-sort-value="<?= (int) strtotime((string) $borrowing['released_at']) ?>"><?= e(format_date($borrowing['released_at'])) ?></td>
+                        <td data-label="Due back" class="nowrap" data-sort-value="<?= (int) strtotime((string) $borrowing['expected_return_at']) ?>">
                             <?= e(format_date($borrowing['expected_return_at'])) ?>
                             <?php if (is_overdue($borrowing)): ?>
                                 <div><span class="badge badge-danger">Overdue</span></div>
                             <?php endif; ?>
                         </td>
-                        <td class="nowrap">
+                        <td data-label="Returned" class="nowrap" data-sort-value="<?= $borrowing['returned_at'] ? (int) strtotime((string) $borrowing['returned_at']) : 0 ?>">
                             <?php if ($borrowing['returned_at']): ?>
                                 <?= e(format_date($borrowing['returned_at'])) ?>
                             <?php else: ?>
                                 <span class="muted">Still out</span>
                             <?php endif; ?>
                         </td>
-                        <td>
+                        <td data-label="Condition">
                             <?php if ($borrowing['return_condition']): ?>
                                 <?php $cls = match ($borrowing['return_condition']) {
                                     'damaged' => 'badge-warning', 'lost' => 'badge-danger',

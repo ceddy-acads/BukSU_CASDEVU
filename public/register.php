@@ -115,7 +115,7 @@ if (is_post()) {
 
     remember_input($_POST);
 }
-$pageTitle = 'Create a student account';
+$pageTitle = 'Create an account';
 $authIntro = 'The office reviews new accounts before you can sign in.';
 $portalWide = true;
 require __DIR__ . '/../includes/layout/portal-header.php';
@@ -158,7 +158,7 @@ require __DIR__ . '/../includes/layout/portal-header.php';
     </div>
 
     <div class="form-section" data-step>
-        <h3 tabindex="-1">Student details</h3>
+        <h3 tabindex="-1">Credentials</h3>
         <div class="form-grid form-grid-2">
             <div class="form-row">
                 <label for="student_number">Student number <span class="req">*</span></label>
@@ -217,14 +217,23 @@ require __DIR__ . '/../includes/layout/portal-header.php';
         <div class="form-grid form-grid-2">
             <div class="form-row">
                 <label for="password">Password <span class="req">*</span></label>
-                <input type="password" id="password" name="password"
-                       autocomplete="new-password" minlength="8" required>
+                <div class="password-field">
+                    <input type="password" id="password" name="password"
+                           autocomplete="new-password" minlength="8" required>
+                    <?php // Shown by app.js; without JavaScript the field simply stays masked. ?>
+                    <button type="button" class="password-toggle" data-password-toggle="password"
+                            aria-controls="password" aria-pressed="false" hidden>Show</button>
+                </div>
                 <p class="hint">At least 8 characters.</p>
             </div>
             <div class="form-row">
                 <label for="password_confirm">Confirm password <span class="req">*</span></label>
-                <input type="password" id="password_confirm" name="password_confirm"
-                       autocomplete="new-password" required>
+                <div class="password-field">
+                    <input type="password" id="password_confirm" name="password_confirm"
+                           autocomplete="new-password" required>
+                    <button type="button" class="password-toggle" data-password-toggle="password_confirm"
+                            aria-controls="password_confirm" aria-pressed="false" hidden>Show</button>
+                </div>
             </div>
         </div>
     </div>

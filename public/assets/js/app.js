@@ -499,3 +499,159 @@ window.CASDevU = window.CASDevU || {};
     });
 })();
 
+/* Toasts: floating flash messages dismiss themselves after a few seconds;
+   the close button dismisses at once. The wrap removes itself with the
+   last toast, so nothing invisible stays in the tab order. */
+(function () {
+    'use strict';
+    var TOAST_MS = 6000;
+    document.querySelectorAll('[data-toast]').forEach(function (toast) {
+        var done = false;
+        function dismiss() {
+            if (done) { return; }
+            done = true;
+            toast.classList.add('is-leaving');
+            window.setTimeout(function () {
+                var wrap = toast.closest('[data-toasts]');
+                toast.remove();
+                if (wrap && wrap.children.length === 0) { wrap.remove(); }
+            }, 220);
+        }
+        var timer = window.setTimeout(dismiss, TOAST_MS);
+        var closer = toast.querySelector('[data-toast-close]');
+        if (closer) {
+            closer.addEventListener('click', function () {
+                window.clearTimeout(timer);
+                dismiss();
+            });
+        }
+        // Copy button: copies the toast's dedicated copy text (e.g. a
+        // temporary password) — never the whole message — with a fallback
+        // for browsers without the async API.
+        var copier = toast.querySelector('[data-toast-copy]');
+        if (copier) {
+            var original = copier.innerHTML;
+            copier.addEventListener('click', function () {
+                var text = copier.getAttribute('data-toast-copy-text') || '';
+                if (text === '') { return; }
+                function confirm(ok) {
+                    copier.classList.add('is-copied');
+                    copier.textContent = ok ? 'Copied' : 'Copy failed';
+                    copier.setAttribute('aria-label', ok ? 'Copied to clipboard' : 'Copy failed');
+                    window.setTimeout(function () {
+                        copier.classList.remove('is-copied');
+                        copier.innerHTML = original;
+                        copier.setAttribute('aria-label', 'Copy temporary password');
+                    }, 1500);
+                }
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(function () { confirm(true); }, function () { confirm(false); });
+                } else {
+                    try {
+                        var area = document.createElement('textarea');
+                        area.value = text;
+                        document.body.appendChild(area);
+                        area.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(area);
+                        confirm(true);
+                    } catch (e) { confirm(false); }
+                }
+            });
+        }
+    });
+})();
+
+/* Print buttons: [data-print] prints the page, replacing inline onclick
+   handlers so markup stays consistent. Works without any other setup. */
+(function () {
+    'use strict';
+    document.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-print]');
+        if (button) { window.print(); }
+    });
+})();
+
+/* Shared popup: links with [data-modal] open the shared <dialog> and load
+   their form page into it, instead of navigating. The link carries
+   data-modal-title for the heading and data-modal-wrap for the fragment id
+   to pull out of the fetched page. Without JavaScript (or without <dialog>
+   support) the link opens the page as before. A successful save follows the
+   page's own redirect; validation errors re-render inside the popup, using
+   the page's own old-input. Photo uploads work: the submit travels as
+   FormData, exactly like a normal post. */
+(function () {
+    'use strict';
+    var dialog = document.getElementById('modal-dialog');
+    if (!dialog || !window.fetch || !window.DOMParser || !dialog.showModal) { return; }
+    var heading = dialog.querySelector('[data-modal-heading]');
+    var body = dialog.querySelector('[data-modal-body]');
+    var lastTrigger = null;
+    var wrapSelector = '';
+
+    function close() { if (dialog.open) { dialog.close(); } }
+
+    dialog.querySelector('[data-modal-close]').addEventListener('click', close);
+    dialog.addEventListener('click', function (event) {
+        if (event.target === dialog) { close(); }
+    });
+    dialog.addEventListener('close', function () {
+        if (lastTrigger) { lastTrigger.focus(); }
+    });
+
+    function swap(html) {
+        var doc = new DOMParser().parseFromString(html, 'text/html');
+        var wrap = wrapSelector === '' ? null : doc.querySelector(wrapSelector);
+        if (!wrap) { return false; }
+        body.innerHTML = '';
+        body.appendChild(document.importNode(wrap, true));
+        body.scrollTop = 0;
+        return true;
+    }
+
+    function load(url) {
+        body.innerHTML = '<p class="muted">Loading…</p>';
+        fetch(url, { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
+            .then(function (response) {
+                if (!response.ok) { throw new Error('HTTP ' + response.status); }
+                return response.text();
+            })
+            .then(function (html) {
+                if (!swap(html)) { window.location.href = url; return; }
+                var field = body.querySelector('input, select, textarea');
+                if (field) { field.focus({ preventScroll: true }); }
+            })
+            .catch(function () { window.location.href = url; });
+    }
+
+    document.addEventListener('click', function (event) {
+        var link = event.target.closest('a[data-modal]');
+        if (!link) { return; }
+        event.preventDefault();
+        lastTrigger = link;
+        wrapSelector = link.getAttribute('data-modal-wrap') || '';
+        heading.textContent = link.getAttribute('data-modal-title') || 'Details';
+        if (!dialog.open) { dialog.showModal(); }
+        load(link.href);
+    });
+
+    body.addEventListener('submit', function (event) {
+        var form = event.target;
+        if (!form || form.tagName !== 'FORM') { return; }
+        event.preventDefault();
+        fetch(form.action, {
+            method: 'POST', body: new FormData(form),
+            credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' }
+        }).then(function (response) {
+            if (response.redirected) { window.location.href = response.url; return null; }
+            if (!response.ok) { throw new Error('HTTP ' + response.status); }
+            return response.text();
+        }).then(function (html) {
+            if (html === null) { return; }
+            if (!swap(html)) { form.submit(); return; }
+            var errors = body.querySelector('.alert-error');
+            if (errors) { errors.setAttribute('tabindex', '-1'); errors.focus({ preventScroll: true }); }
+        }).catch(function () { form.submit(); });
+    });
+})();
+

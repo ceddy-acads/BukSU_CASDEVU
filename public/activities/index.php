@@ -102,7 +102,8 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
     <?php if (is_office_staff()): ?>
         <div class="btn-row">
-            <a class="btn btn-gold" href="<?= url('activities/manage.php') ?>">New activity</a>
+            <a class="btn btn-gold" href="<?= url('activities/manage.php') ?>"
+               data-modal data-modal-title="New activity" data-modal-wrap="#activity-form-wrap">New activity</a>
         </div>
     <?php endif; ?>
 </div>
@@ -158,7 +159,6 @@ require __DIR__ . '/../../includes/layout/header.php';
             <strong>No activities yet</strong>
             <?php if (is_office_staff()): ?>
                 Create an activity so students can find and register for it.
-                <a class="btn btn-primary" href="<?= url('activities/manage.php') ?>">Create the first activity</a>
             <?php else: ?>
                 The office has not published any activities. Check back soon.
             <?php endif; ?>
@@ -228,5 +228,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 <?php endif; ?>
 
 </div>
+
+<?php require __DIR__ . '/../../includes/layout/modal-dialog.php'; ?>
 
 <?php require __DIR__ . '/../../includes/layout/footer.php'; ?>

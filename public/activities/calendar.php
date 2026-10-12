@@ -145,7 +145,7 @@ require __DIR__ . '/../../includes/layout/header.php';
     <input type="hidden" name="month" value="<?= $month ?>">
     <div class="form-row">
         <label for="category">Category</label>
-        <select id="category" name="category" onchange="this.form.submit()">
+        <select id="category" name="category">
             <option value="">All categories</option>
             <?php foreach ($categories as $category): ?>
                 <option value="<?= (int) $category['category_id'] ?>"
@@ -156,7 +156,7 @@ require __DIR__ . '/../../includes/layout/header.php';
         </select>
     </div>
     <div class="form-row filter-actions">
-        <button type="submit" class="btn btn-primary">Show</button>
+        <button type="submit" class="btn btn-primary">Filter</button>
     </div>
 </form>
 
@@ -212,9 +212,11 @@ require __DIR__ . '/../../includes/layout/header.php';
                                         <a class="cal-event"
                                            style="--cat: <?= e($event['color_hex'] ?: '#10284d') ?>"
                                            href="<?= url('activities/view.php?id=' . (int) $event['activity_id']) ?>"
-                                           title="<?= e($event['title']) ?>, <?= e($event['category']) ?><?= $event['venue'] ? ' at ' . e($event['venue']) : '' ?>">
+                                           aria-label="<?= e($event['title']) ?>, <?= e($event['category']) ?><?= $event['venue'] ? ' at ' . e($event['venue']) : '' ?>, <?= e(date('g:i A', strtotime((string) $event['start_at']))) ?>">
                                             <?php if ($event['is_first']): ?>
                                                 <span class="cal-time"><?= e(date('g:i A', strtotime((string) $event['start_at']))) ?></span>
+                                            <?php else: ?>
+                                                <span class="cal-time"><?= e(date('j M', strtotime((string) $event['start_at']))) ?></span>
                                             <?php endif; ?>
                                             <?= e($event['title']) ?>
                                         </a>

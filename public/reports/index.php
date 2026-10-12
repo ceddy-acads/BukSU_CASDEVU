@@ -34,7 +34,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <p class="meta"><?= number_format($activityCount) ?> activities on record</p>
             </div>
             <div class="btn-row">
-                <a class="btn btn-primary" href="<?= url('reports/participation.php') ?>">Open report<span class="sr-only">: participation</span></a>
+                <a class="btn btn-outline" href="<?= url('reports/participation.php') ?>">Open report<span class="sr-only">: participation</span></a>
             </div>
         </div>
     </section>
@@ -47,7 +47,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <p class="meta"><?= number_format($studentCount) ?> students on record</p>
             </div>
             <div class="btn-row">
-                <a class="btn btn-primary" href="<?= url('reports/students.php') ?>">Open report<span class="sr-only">: student and player records</span></a>
+                <a class="btn btn-outline" href="<?= url('reports/students.php') ?>">Open report<span class="sr-only">: student and player records</span></a>
             </div>
         </div>
     </section>
@@ -64,7 +64,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                     </p>
                 </div>
                 <div class="btn-row">
-                    <a class="btn btn-primary" href="<?= url('reports/inventory.php') ?>">Open report<span class="sr-only">: inventory</span></a>
+                    <a class="btn btn-outline" href="<?= url('reports/inventory.php') ?>">Open report<span class="sr-only">: inventory</span></a>
                 </div>
             </div>
         </section>

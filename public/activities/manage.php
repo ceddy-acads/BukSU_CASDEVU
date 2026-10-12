@@ -252,8 +252,9 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 </div>
 
+<div id="activity-form-wrap">
 <?php if ($errors !== []): ?>
-    <div class="alert alert-error">
+    <div class="alert alert-error" role="alert">
         <?php foreach ($errors as $error): ?>
             <div><?= e($error) ?></div>
         <?php endforeach; ?>
@@ -393,6 +394,7 @@ require __DIR__ . '/../../includes/layout/header.php';
         </div>
     </section>
 </form>
+</div><?php // #activity-form-wrap ?>
 
 <?php if ($isEdit && has_role('admin')): ?>
     <?php

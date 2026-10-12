@@ -87,8 +87,8 @@ require __DIR__ . '/../../includes/layout/header.php';
         </p>
     </div>
     <div class="btn-row">
-        <button type="button" class="btn btn-outline" onclick="window.print()">Print</button>
-        <a class="btn btn-gold" href="<?= e(participation_link(['export' => 'csv'])) ?>">Export CSV</a>
+        <button type="button" class="btn btn-outline" data-print>Print</button>
+        <a class="btn btn-outline" href="<?= e(participation_link(['export' => 'csv'])) ?>">Export CSV</a>
     </div>
 </div>
 
@@ -132,7 +132,7 @@ require __DIR__ . '/../../includes/layout/header.php';
         <input type="date" id="to" name="to" value="<?= e(get('to')) ?>">
     </div>
     <div class="form-row filter-actions">
-        <button type="submit" class="btn btn-primary">Apply</button>
+        <button type="submit" class="btn btn-primary">Filter</button>
         <?php if ($filtered): ?>
             <a class="btn btn-outline" href="<?= url('reports/participation.php') ?>">Clear</a>
         <?php endif; ?>
@@ -203,7 +203,7 @@ require __DIR__ . '/../../includes/layout/header.php';
     <section class="card card-flush">
         <div class="card-head"><h2>By activity</h2></div>
         <div class="table-wrap">
-            <table class="data" data-sortable>
+            <table class="data table-stack" data-sortable>
                 <thead>
                     <tr>
                         <th data-sort="text">Activity</th><th data-sort="text">Category</th><th data-sort="number">Starts</th><th data-sort="text">Status</th>
@@ -214,7 +214,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <tbody>
                 <?php foreach ($rows as $row): ?>
                     <tr>
-                        <td>
+                        <td data-label="Activity">
                             <a href="<?= url('activities/view.php?id=' . (int) $row['activity_id']) ?>">
                                 <?= e($row['title']) ?>
                             </a>
@@ -222,25 +222,25 @@ require __DIR__ . '/../../includes/layout/header.php';
                                 <div class="hint"><?= e($row['venue']) ?></div>
                             <?php endif; ?>
                         </td>
-                        <td><?= e($row['category']) ?></td>
-                        <td class="nowrap" data-sort-value="<?= (int) strtotime((string) $row['start_at']) ?>"><?= e(format_date($row['start_at'])) ?></td>
-                        <td><?= status_badge($row['status'], 'activity') ?></td>
-                        <td class="num"><?= (int) $row['total_registered'] ?></td>
-                        <td class="num"><strong><?= (int) $row['total_approved'] ?></strong></td>
-                        <td class="num"><?= (int) $row['total_pending'] ?></td>
-                        <td class="num"><?= (int) $row['total_rejected'] ?></td>
-                        <td class="num"><?= (int) $row['total_attended'] ?></td>
+                        <td data-label="Category"><?= e($row['category']) ?></td>
+                        <td data-label="Starts" class="nowrap" data-sort-value="<?= (int) strtotime((string) $row['start_at']) ?>"><?= e(format_date($row['start_at'])) ?></td>
+                        <td data-label="Status"><?= status_badge($row['status'], 'activity') ?></td>
+                        <td data-label="Registered" class="num"><?= (int) $row['total_registered'] ?></td>
+                        <td data-label="Approved" class="num"><strong><?= (int) $row['total_approved'] ?></strong></td>
+                        <td data-label="Pending" class="num"><?= (int) $row['total_pending'] ?></td>
+                        <td data-label="Rejected" class="num"><?= (int) $row['total_rejected'] ?></td>
+                        <td data-label="Attended" class="num"><?= (int) $row['total_attended'] ?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td colspan="4">Total</td>
-                        <td class="num"><?= number_format($totals['registered']) ?></td>
-                        <td class="num"><?= number_format($totals['approved']) ?></td>
-                        <td class="num"><?= number_format($totals['pending']) ?></td>
-                        <td class="num"><?= number_format($totals['rejected']) ?></td>
-                        <td class="num"><?= number_format($totals['attended']) ?></td>
+                        <td data-label="Activity" colspan="4">Total</td>
+                        <td data-label="Registered" class="num"><?= number_format($totals['registered']) ?></td>
+                        <td data-label="Approved" class="num"><?= number_format($totals['approved']) ?></td>
+                        <td data-label="Pending" class="num"><?= number_format($totals['pending']) ?></td>
+                        <td data-label="Rejected" class="num"><?= number_format($totals['rejected']) ?></td>
+                        <td data-label="Attended" class="num"><?= number_format($totals['attended']) ?></td>
                     </tr>
                 </tfoot>
             </table>

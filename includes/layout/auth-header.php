@@ -32,6 +32,4 @@ declare(strict_types=1);
                 <?php endif; ?>
             </header>
 
-            <?php foreach (take_flashes() as $flashMessage): ?>
-                <div class="alert alert-<?= e($flashMessage['type']) ?>" role="<?= $flashMessage['type'] === 'error' ? 'alert' : 'status' ?>"><?= e($flashMessage['message']) ?></div>
-            <?php endforeach; ?>
+            <?php require __DIR__ . '/toasts.php'; ?>

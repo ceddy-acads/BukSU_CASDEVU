@@ -59,6 +59,33 @@ function all_active_student_ids(): array
     return array_map(static fn(array $row): int => (int) $row['user_id'], $rows);
 }
 
+/** Types worth interrupting for: decisions on the viewer's own records,
+ *  deadlines, and account notices. Activity and announcement posts stay on
+ *  their own pages — the bell is for things waiting on the viewer. */
+const ESSENTIAL_NOTIFICATION_TYPES = ['registration', 'requirement', 'reservation', 'deadline', 'system'];
+
+function unread_essential_count(int $userId): int
+{
+    $placeholders = implode(',', array_fill(0, count(ESSENTIAL_NOTIFICATION_TYPES), '?'));
+    return (int) fetch_value(
+        "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0 AND type IN ($placeholders)",
+        array_merge([$userId], ESSENTIAL_NOTIFICATION_TYPES)
+    );
+}
+
+/** @return array<int, array<string, mixed>> */
+function recent_essential_notifications(int $userId, int $limit = 15): array
+{
+    // $limit is cast to int, never interpolated from raw input.
+    $limit = max(1, min(100, $limit));
+    $placeholders = implode(',', array_fill(0, count(ESSENTIAL_NOTIFICATION_TYPES), '?'));
+    return fetch_all(
+        "SELECT * FROM notifications WHERE user_id = ? AND type IN ($placeholders)
+          ORDER BY created_at DESC LIMIT $limit",
+        array_merge([$userId], ESSENTIAL_NOTIFICATION_TYPES)
+    );
+}
+
 function unread_notification_count(int $userId): int
 {
     return (int) fetch_value(

@@ -93,7 +93,8 @@ require __DIR__ . '/../../includes/layout/header.php';
                         <div class="progress-label">
                             Requirements verified: <strong><?= $progress['satisfied'] ?></strong> of <?= $progress['total'] ?>
                         </div>
-                        <div class="progress" role="img"
+                        <div class="progress" role="progressbar"
+                             aria-valuemin="0" aria-valuemax="<?= $progress['total'] ?>" aria-valuenow="<?= $progress['satisfied'] ?>"
                              aria-label="<?= $progress['satisfied'] ?> of <?= $progress['total'] ?> requirements verified">
                             <span style="width: <?= $pct ?>%"></span>
                         </div>

@@ -96,7 +96,7 @@ require __DIR__ . '/../includes/layout/portal-header.php';
 <?php // Secondary actions after the main one, so Tab goes email, password, Sign in. ?>
 <div class="portal-secondary">
     <a href="<?= url('forgot-password.php') ?>">Forgot password?</a>
-    <p>New student? <a href="<?= url('register.php') ?>">Create an account</a> to register for activities.</p>
+    <p>Don't have an account? <a href="<?= url('register.php') ?>">Create an account</a></p>
 </div>
 
 <?php require __DIR__ . '/../includes/layout/portal-footer.php'; ?>

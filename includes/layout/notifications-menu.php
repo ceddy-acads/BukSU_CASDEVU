@@ -14,7 +14,7 @@
 
 declare(strict_types=1);
 
-$recentNotifications = recent_notifications((int) $user['user_id'], 15);
+$recentNotifications = recent_essential_notifications((int) $user['user_id'], 15);
 $notificationsOpen   = get('notifications') === 'open';
 ?>
 <details class="notif-menu" data-menu data-notifications<?= $notificationsOpen ? ' open' : '' ?>>
@@ -40,7 +40,7 @@ $notificationsOpen   = get('notifications') === 'open';
         <?php if ($recentNotifications === []): ?>
             <p class="notif-empty">
                 <strong>No notifications yet</strong>
-                Registration decisions, document reviews, and deadline reminders will appear here.
+                Approvals, document reviews, and deadline reminders will appear here.
             </p>
         <?php else: ?>
             <ul class="notif-list">
@@ -54,7 +54,7 @@ $notificationsOpen   = get('notifications') === 'open';
                                 <?php if (!$notification['is_read']): ?>
                                     <span class="badge badge-info">New</span>
                                 <?php endif; ?>
-                                <span class="notif-time"><?= e(notification_time((string) $notification['created_at'])) ?></span>
+                                <time class="notif-time" datetime="<?= e(date('c', strtotime((string) $notification['created_at']))) ?>"><?= e(notification_time((string) $notification['created_at'])) ?></time>
                             </p>
                             <h3><?= e($notification['title']) ?></h3>
                             <p class="notif-message"><?= e(strip_reminder_marker((string) $notification['message'])) ?></p>

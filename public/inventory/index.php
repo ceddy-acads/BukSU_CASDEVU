@@ -130,7 +130,8 @@ require __DIR__ . '/../../includes/layout/header.php';
             <a class="btn <?= is_office_staff() ? 'btn-outline' : 'btn-gold' ?>" href="<?= url('inventory/reserve.php') ?>">Request a reservation</a>
         <?php endif; ?>
         <?php if (is_office_staff()): ?>
-            <a class="btn btn-gold" href="<?= url('inventory/manage.php') ?>">New item</a>
+            <a class="btn btn-gold" href="<?= url('inventory/manage.php') ?>"
+               data-modal data-modal-title="New item" data-modal-wrap="#item-form-wrap">New item</a>
         <?php endif; ?>
     </div>
 </div>
@@ -234,7 +235,8 @@ require __DIR__ . '/../../includes/layout/header.php';
             No costumes or equipment have been added yet.
             <?php if (is_office_staff()): ?>
                 <div class="btn-row">
-                    <a class="btn btn-primary" href="<?= url('inventory/manage.php') ?>">Add the first item</a>
+                    <a class="btn btn-primary" href="<?= url('inventory/manage.php') ?>"
+                       data-modal data-modal-title="New item" data-modal-wrap="#item-form-wrap">Add the first item</a>
                 </div>
             <?php endif; ?>
         </div>
@@ -328,5 +330,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 <?php endif; ?>
 
 </div>
+
+<?php require __DIR__ . '/../../includes/layout/modal-dialog.php'; ?>
 
 <?php require __DIR__ . '/../../includes/layout/footer.php'; ?>

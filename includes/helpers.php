@@ -89,15 +89,15 @@ function get_id(string $key): ?int
 // =====================================================================
 
 /** @param 'success'|'error'|'info'|'warning' $type */
-function flash(string $type, string $message): void
+function flash(string $type, string $message, ?string $copy = null): void
 {
-    $_SESSION['flash'][] = ['type' => $type, 'message' => $message];
+    $_SESSION['flash'][] = ['type' => $type, 'message' => $message, 'copy' => $copy];
 }
 
 /**
  * Return all pending flash messages and clear them.
  *
- * @return array<int, array{type: string, message: string}>
+ * @return array<int, array{type: string, message: string, copy: string|null}>
  */
 function take_flashes(): array
 {

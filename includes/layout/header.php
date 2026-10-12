@@ -16,7 +16,7 @@ declare(strict_types=1);
 
 $user         = current_user();
 $role         = current_role();
-$unreadCount  = $user ? unread_notification_count((int) $user['user_id']) : 0;
+$unreadCount  = $user ? unread_essential_count((int) $user['user_id']) : 0;
 $reviewCount  = $user && can_review() ? review_counts()['total'] : 0;
 $currentFile  = basename($_SERVER['SCRIPT_NAME']);
 $currentDir   = basename(dirname($_SERVER['SCRIPT_NAME']));
@@ -212,6 +212,4 @@ $initials = $user
     </header>
 <?php endif; ?>
 <main class="page" id="main" tabindex="-1">
-<?php foreach (take_flashes() as $flashMessage): ?>
-    <div class="alert alert-<?= e($flashMessage['type']) ?>" role="<?= $flashMessage['type'] === 'error' ? 'alert' : 'status' ?>"><?= e($flashMessage['message']) ?></div>
-<?php endforeach; ?>
+<?php require __DIR__ . '/toasts.php'; ?>

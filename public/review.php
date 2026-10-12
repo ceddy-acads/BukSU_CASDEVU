@@ -105,7 +105,10 @@ require __DIR__ . '/../includes/layout/header.php';
             <p class="hint">Students uploaded these and are waiting for your decision.</p>
         </div>
         <?php if ($documents === []): ?>
-            <p class="muted card-pad">No documents are waiting.</p>
+            <div class="empty">
+                <strong>No documents waiting</strong>
+                New uploads appear here as soon as students submit them.
+            </div>
         <?php else: ?>
             <div class="table-wrap">
                 <table class="data table-stack" data-sortable>
@@ -153,7 +156,10 @@ require __DIR__ . '/../includes/layout/header.php';
             <p class="hint">Students asked to join these activities.</p>
         </div>
         <?php if ($registrations === []): ?>
-            <p class="muted card-pad">No registrations are waiting.</p>
+            <div class="empty">
+                <strong>No registrations waiting</strong>
+                New sign-ups appear here as soon as students register.
+            </div>
         <?php else: ?>
             <div class="table-wrap">
                 <table class="data table-stack" data-sortable>
@@ -196,18 +202,19 @@ require __DIR__ . '/../includes/layout/header.php';
         <section class="card card-flush" id="reservations">
             <div class="card-head">
                 <h2>Reservation requests <span class="muted">(<?= $counts['reservations'] ?>)</span></h2>
-                <?php if ($reservations !== []): ?>
-                    <a class="btn btn-primary btn-sm" href="<?= url('inventory/reservations.php?status=pending') ?>">Review reservations</a>
-                <?php endif; ?>
                 <p class="hint">Coordinators asked to reserve costumes or equipment.</p>
             </div>
             <?php if ($reservations === []): ?>
-                <p class="muted card-pad">No reservation requests are waiting.</p>
+                <div class="empty">
+                    <strong>No reservation requests waiting</strong>
+                    New requests appear here as soon as coordinators send them.
+                </div>
             <?php else: ?>
                 <div class="table-wrap">
-                    <table class="data table-stack">
+                    <table class="data table-stack" data-sortable>
                         <thead>
-                            <tr><th>Requested by</th><th>For</th><th>Needed</th><th>Asked</th></tr>
+                            <tr><th data-sort="text">Requested by</th><th data-sort="text">For</th><th data-sort="number">Needed</th><th data-sort="number">Asked</th>
+                                <th class="actions"><span class="sr-only">Action</span></th></tr>
                         </thead>
                         <tbody>
                         <?php foreach ($reservations as $row): ?>
@@ -219,10 +226,15 @@ require __DIR__ . '/../includes/layout/header.php';
                                         <div class="hint"><?= e(mb_strimwidth((string) $row['purpose'], 0, 90, '…')) ?></div>
                                     <?php endif; ?>
                                 </td>
-                                <td data-label="Needed" class="nowrap">
+                                <td data-label="Needed" class="nowrap" data-sort-value="<?= (int) strtotime((string) $row['needed_from']) ?>">
                                     <?= e(format_date($row['needed_from'])) ?> to <?= e(format_date($row['needed_until'])) ?>
                                 </td>
-                                <td data-label="Asked"><?= e(waiting_label($row['created_at'])) ?></td>
+                                <td data-label="Asked" data-sort-value="<?= (int) strtotime((string) $row['created_at']) ?>"><?= e(waiting_label($row['created_at'])) ?></td>
+                                <td class="actions">
+                                    <a class="btn btn-primary btn-sm"
+                                       href="<?= url('inventory/reservations.php?status=pending') ?>"
+                                       aria-label="Review the reservation request of <?= e($row['first_name'] . ' ' . $row['last_name']) ?>">Review</a>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                         </tbody>
@@ -234,18 +246,19 @@ require __DIR__ . '/../includes/layout/header.php';
         <section class="card card-flush" id="accounts">
             <div class="card-head">
                 <h2>New student accounts <span class="muted">(<?= $counts['accounts'] ?>)</span></h2>
-                <?php if ($accounts !== []): ?>
-                    <a class="btn btn-primary btn-sm" href="<?= url('admin/users.php?status=pending') ?>">Review accounts</a>
-                <?php endif; ?>
                 <p class="hint">These students cannot sign in until an account is activated.</p>
             </div>
             <?php if ($accounts === []): ?>
-                <p class="muted card-pad">No accounts are waiting for activation.</p>
+                <div class="empty">
+                    <strong>No accounts waiting</strong>
+                    New sign-ups appear here as soon as students register.
+                </div>
             <?php else: ?>
                 <div class="table-wrap">
-                    <table class="data table-stack">
+                    <table class="data table-stack" data-sortable>
                         <thead>
-                            <tr><th>Student</th><th>Email</th><th>Registered</th></tr>
+                            <tr><th data-sort="text">Student</th><th data-sort="text">Email</th><th data-sort="number">Registered</th>
+                                <th class="actions"><span class="sr-only">Action</span></th></tr>
                         </thead>
                         <tbody>
                         <?php foreach ($accounts as $row): ?>
@@ -255,7 +268,12 @@ require __DIR__ . '/../includes/layout/header.php';
                                     <div class="hint"><?= e($row['student_number'] ?? '') ?></div>
                                 </td>
                                 <td data-label="Email"><?= e($row['email']) ?></td>
-                                <td data-label="Registered"><?= e(waiting_label($row['created_at'])) ?></td>
+                                <td data-label="Registered" data-sort-value="<?= (int) strtotime((string) $row['created_at']) ?>"><?= e(waiting_label($row['created_at'])) ?></td>
+                                <td class="actions">
+                                    <a class="btn btn-primary btn-sm"
+                                       href="<?= url('admin/users.php?status=pending') ?>"
+                                       aria-label="Review the account of <?= e($row['first_name'] . ' ' . $row['last_name']) ?>">Review</a>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                         </tbody>

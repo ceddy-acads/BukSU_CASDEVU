@@ -119,7 +119,8 @@ require __DIR__ . '/../includes/layout/header.php';
     </div>
     <?php if (is_office_staff()): ?>
         <div class="btn-row">
-            <a class="btn btn-gold" href="<?= url('activities/manage.php') ?>">New activity</a>
+            <a class="btn btn-gold" href="<?= url('activities/manage.php') ?>"
+               data-modal data-modal-title="New activity" data-modal-wrap="#activity-form-wrap">New activity</a>
         </div>
     <?php elseif ($role === 'student'): ?>
         <div class="btn-row">
@@ -315,5 +316,7 @@ require __DIR__ . '/../includes/layout/header.php';
         <?php endif; ?>
     </section>
 </div>
+
+<?php require __DIR__ . '/../includes/layout/modal-dialog.php'; ?>
 
 <?php require __DIR__ . '/../includes/layout/footer.php'; ?>

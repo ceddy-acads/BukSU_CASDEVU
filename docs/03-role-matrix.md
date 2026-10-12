@@ -78,6 +78,7 @@ Legend: **✔** full · **◐** limited (see note) · **✘** none
 | Activate pending student accounts | ✘ | ✘ | ✔ | ✔ |
 | Create / edit / deactivate any user | ✘ | ✘ | ✘ | ✔ |
 | Change a user's role | ✘ | ✘ | ✘ | ✔ |
+| Reset a user's password | ✘ | ✘ | ✘ | ✔ |
 | Manage categories | ✘ | ✘ | ◐ activity only | ✔ |
 | View audit trail | ✘ | ✘ | ✘ | ✔ |
 | Backup / restore | ✘ | ✘ | ✘ | ✔ |

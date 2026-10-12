@@ -88,7 +88,11 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
-html { -webkit-text-size-adjust: 100%; }
+/* The page scrollbar is hidden everywhere so the shell keeps one width from
+   screen to screen. Scrolling (wheel, touch, keyboard) still works; the
+   tables, calendar, and panels that scroll on their own keep their bars. */
+html { -webkit-text-size-adjust: 100%; scrollbar-width: none; -ms-overflow-style: none; }
+html::-webkit-scrollbar { display: none; }
 
 body {
     margin: 0;
@@ -1178,7 +1182,7 @@ a.cal-daynum:hover { background: var(--navy-50); text-decoration: none; }
 /* ------------------------------------------------------------- 15. Print */
 
 @media print {
-    .sidebar, .topbar, .nav-backdrop, .skip-link, .footer, .btn, .btn-row, .filter-bar, .pagination,
+    .sidebar, .topbar, .nav-backdrop, .skip-link, .footer, .btn, .btn-row, .filter-bar, .pagination, .toasts,
     .alert-info, td.actions, th.actions, th:last-child:empty { display: none !important; }
 
     body { background: #fff; font-size: 11pt; }
@@ -1694,3 +1698,127 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
     .portal-panel-head p { margin-top: 0; }
     .portal-legal { margin-top: var(--s3); }
 }
+
+/* ------------------------------------------------------------ Modal popup */
+/* "New activity" opens in a native <dialog>: backdrop, Esc to close and
+   top-layer positioning come free; app.js loads the form into it. Built
+   from the existing tokens only — no new colours, radii or shadows. */
+.modal {
+    border: 0; padding: 0; background: transparent;
+    width: min(720px, calc(100vw - 2rem));
+    max-height: calc(100dvh - 4rem);
+}
+.modal::backdrop { background: rgba(11, 29, 58, .5); }
+.modal-panel {
+    background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow-2);
+    display: flex; flex-direction: column; overflow: hidden;
+    max-height: calc(100dvh - 4rem);
+}
+.modal-head {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--s3);
+    padding: var(--s4) var(--s5); border-bottom: 1px solid var(--line);
+}
+.modal-head h2 { margin: 0; font-size: var(--fs-md); }
+.modal-close { color: var(--ink-soft); }
+.modal-close:hover { background: var(--navy-50); color: var(--navy); }
+.modal-body { padding: var(--s5); overflow-y: auto; }
+/* Popups scroll without visible scrollbars, like the page and sidebar:
+   wheel, touch and keyboard scrolling all keep working. */
+.modal-body, .notif-panel { scrollbar-width: none; -ms-overflow-style: none; }
+.modal-body::-webkit-scrollbar, .notif-panel::-webkit-scrollbar { display: none; }
+/* The fetched form brings its own card; inside the panel it drops the frame. */
+.modal-body .card { border: 0; box-shadow: none; padding: 0; margin: 0; }
+
+/* ------------------------------------------------------------ Toasts ----- */
+/* Flash messages float top-center over the page instead of pushing content
+   down. Same four tones as .alert, lifted with the overlay shadow. app.js
+   dismisses each toast after a few seconds; the close button dismisses it
+   at once. */
+.toasts {
+    position: fixed; top: var(--s4); left: 50%; transform: translateX(-50%); z-index: 60;
+    width: min(480px, calc(100vw - 2rem));
+    display: grid; gap: var(--s2);
+}
+.toast {
+    display: flex; align-items: flex-start; gap: var(--s3);
+    padding: var(--s3) var(--s3) var(--s3) var(--s4);
+    border: 1px solid transparent; border-radius: var(--r-sm);
+    background: var(--surface); box-shadow: var(--shadow-2);
+    animation: toast-in .25s ease-out;
+}
+.toast p { margin: 0; flex: 1; min-width: 0; font-size: var(--fs-base); }
+.toast a { color: inherit; font-weight: 600; }
+.toast-success { background: var(--success-bg); border-color: var(--success-line); color: var(--success); }
+.toast-error   { background: var(--danger-bg);  border-color: var(--danger-line);  color: var(--danger); }
+.toast-warning { background: var(--warning-bg); border-color: var(--warning-line); color: var(--warning); }
+.toast-info    { background: var(--info-bg);    border-color: var(--info-line);    color: var(--info); }
+.toast-close, .toast-copy {
+    flex: none; display: inline-grid; place-items: center;
+    width: 32px; height: 32px; margin: calc(var(--s1) * -1) calc(var(--s1) * -1) 0 0;
+    border: 0; border-radius: var(--r-sm); background: transparent; color: inherit;
+    cursor: pointer; opacity: .75; font: inherit;
+}
+.toast-close:hover, .toast-copy:hover { opacity: 1; background: rgba(0, 0, 0, .06); }
+.toast-close svg, .toast-copy svg { width: 16px; height: 16px; }
+/* "Copied" confirmation: the button briefly becomes a text label. */
+.toast-copy.is-copied { width: auto; padding: 0 var(--s2); font-size: var(--fs-xs); font-weight: 700; opacity: 1; }
+.toast.is-leaving { opacity: 0; transform: translateY(-6px); transition: opacity .2s, transform .2s; }
+
+@keyframes toast-in {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* ------------------------------------------------------------- 16. Motion */
+/* Feedback and orientation only: entrances for overlays and alerts, loading
+   pulse, fills that grow, and hover lifts. One easing, short durations, and
+   everything dies under prefers-reduced-motion via the global rule above. */
+
+@keyframes modal-in {
+    from { opacity: 0; transform: translateY(8px) scale(.985); }
+    to   { opacity: 1; transform: none; }
+}
+@keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes panel-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: none; }
+}
+@keyframes alert-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: none; }
+}
+@keyframes loading-pulse {
+    0%, 100% { opacity: .55; }
+    50%      { opacity: .3; }
+}
+@keyframes chart-grow {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+}
+
+/* Popup entrances (+ backdrop fade). One smooth fade for every popup: the
+   modal, the notifications pop-up and the account menu. Closing stays
+   instant: neither native <dialog> nor <details> can animate their close
+   without scripting around them. */
+.modal[open] .modal-panel { animation: modal-in .25s ease-out; }
+.modal[open]::backdrop { animation: fade-in .25s ease-out; }
+.notif-menu[open] .notif-panel { animation: panel-in .22s ease-out; transform-origin: top right; }
+.account-menu[open] .account-panel { animation: panel-in .22s ease-out; transform-origin: top right; }
+
+/* Alerts announce themselves instead of appearing mid-read. */
+.alert { animation: alert-in .2s ease-out; }
+
+/* Live search: results breathe while fresh ones load. */
+[data-live-region].is-loading { animation: loading-pulse 1s ease-in-out infinite; }
+
+/* Fills and bars grow rather than snap. */
+.progress > span { transition: width .4s cubic-bezier(.2, .8, .2, 1); }
+.chart-seg { transform-origin: left center; animation: chart-grow .45s cubic-bezier(.2, .8, .2, 1) backwards; }
+
+/* Presses ease and cards lift a touch on hover. */
+.btn { transition: background-color .15s, border-color .15s, color .15s, transform .1s; }
+.activity-card, .catalog-item { transition: border-color .15s, transform .15s, box-shadow .15s; }
+.activity-card:hover, .catalog-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); }

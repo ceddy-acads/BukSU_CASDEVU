@@ -190,8 +190,9 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 </div>
 
+<div id="item-form-wrap">
 <?php if ($errors !== []): ?>
-    <div class="alert alert-error">
+    <div class="alert alert-error" role="alert">
         <?php foreach ($errors as $error): ?><div><?= e($error) ?></div><?php endforeach; ?>
     </div>
 <?php endif; ?>
@@ -318,6 +319,7 @@ require __DIR__ . '/../../includes/layout/header.php';
         <a class="btn btn-outline" href="<?= url('inventory/index.php') ?>">Cancel</a>
     </div>
 </form>
+</div><?php // #item-form-wrap ?>
 
 <?php if ($isEdit): ?>
     <section class="card mt-6">

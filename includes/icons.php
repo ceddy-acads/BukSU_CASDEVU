@@ -45,6 +45,8 @@ function icon(string $name, string $class = 'icon'): string
         'user'          => '<circle cx="12" cy="8" r="4"/><path d="M4 20.5a8 8 0 0 1 16 0"/>',
         'sign-out'      => '<path d="M15 4.5h3a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-3"/><path d="M10 16.5 5.5 12 10 7.5M5.5 12h10"/>',
         'sort'          => '<path d="m8 10 4-4 4 4M8 14l4 4 4-4"/>',
+        // Two stacked pages: copy text elsewhere
+        'copy'          => '<rect x="9" y="9" width="11.5" height="11.5" rx="2"/><path d="M5.5 15h-1a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5v1"/>',
     ];
 
     // Sidebar sections that share a drawing.

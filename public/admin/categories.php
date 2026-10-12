@@ -186,20 +186,20 @@ require __DIR__ . '/../../includes/layout/header.php';
                 </div>
             <?php else: ?>
                 <div class="table-wrap">
-                    <table class="data">
+                    <table class="data table-stack" data-sortable>
                         <thead>
-                            <tr><th>Name</th><th>Colour</th><th class="num">Used by</th><th>Status</th><th class="actions">Actions</th></tr>
+                            <tr><th data-sort="text">Name</th><th data-sort="text">Colour</th><th class="num" data-sort="number">Used by</th><th data-sort="text">Status</th><th class="actions"><span class="sr-only">Actions</span></th></tr>
                         </thead>
                         <tbody>
                         <?php foreach ($activityCategories as $category): ?>
                             <tr>
-                                <td>
+                                <td data-label="Name">
                                     <strong><?= e($category['name']) ?></strong>
                                     <?php if ($category['description']): ?>
                                         <div class="hint"><?= e($category['description']) ?></div>
                                     <?php endif; ?>
                                 </td>
-                                <td class="nowrap">
+                                <td data-label="Colour" class="nowrap">
                                     <?php if ($category['color_hex']): ?>
                                         <span class="swatch" style="background: <?= e($category['color_hex']) ?>"></span>
                                         <?= e($category['color_hex']) ?>
@@ -207,11 +207,11 @@ require __DIR__ . '/../../includes/layout/header.php';
                                         <span class="muted">Not set</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="num"><?= (int) $category['usage_count'] ?></td>
-                                <td><?= (int) $category['is_active'] === 1
+                                <td data-label="Used by" class="num"><?= (int) $category['usage_count'] ?></td>
+                                <td data-label="Status"><?= (int) $category['is_active'] === 1
                                         ? '<span class="badge badge-success">Active</span>'
                                         : '<span class="badge badge-muted">Inactive</span>' ?></td>
-                                <td class="actions">
+                                <td data-label="Actions" class="actions">
                                     <div class="btn-row">
                                         <a class="btn btn-outline btn-sm"
                                            href="<?= url('admin/categories.php?kind=activity&edit=' . (int) $category['category_id']) ?>"
@@ -246,19 +246,19 @@ require __DIR__ . '/../../includes/layout/header.php';
                 </div>
             <?php else: ?>
                 <div class="table-wrap">
-                    <table class="data">
-                        <thead><tr><th>Name</th><th class="num">Items</th><th class="actions">Actions</th></tr></thead>
+                    <table class="data table-stack" data-sortable>
+                        <thead><tr><th data-sort="text">Name</th><th class="num" data-sort="number">Items</th><th class="actions"><span class="sr-only">Actions</span></th></tr></thead>
                         <tbody>
                         <?php foreach ($inventoryCategories as $category): ?>
                             <tr>
-                                <td>
+                                <td data-label="Name">
                                     <strong><?= e($category['name']) ?></strong>
                                     <?php if ($category['description']): ?>
                                         <div class="hint"><?= e($category['description']) ?></div>
                                     <?php endif; ?>
                                 </td>
-                                <td class="num"><?= (int) $category['usage_count'] ?></td>
-                                <td class="actions">
+                                <td data-label="Items" class="num"><?= (int) $category['usage_count'] ?></td>
+                                <td data-label="Actions" class="actions">
                                     <div class="btn-row">
                                         <a class="btn btn-outline btn-sm"
                                            href="<?= url('admin/categories.php?kind=inventory&edit=' . (int) $category['inv_category_id']) ?>"

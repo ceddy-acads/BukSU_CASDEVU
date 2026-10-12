@@ -230,7 +230,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 <?php else: ?>
     <div class="card card-flush">
         <div class="table-wrap">
-            <table class="data">
+            <table class="data table-stack">
                 <thead>
                     <tr>
                         <th>When</th><th>Who</th><th>Action</th>
@@ -240,10 +240,10 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <tbody>
                 <?php foreach ($entries as $entry): ?>
                     <tr>
-                        <td class="nowrap">
+                        <td data-label="When" class="nowrap">
                             <?= e(format_datetime($entry['created_at'])) ?>
                         </td>
-                        <td>
+                        <td data-label="Who">
                             <?php if ($entry['first_name']): ?>
                                 <strong><?= e(full_name($entry, true)) ?></strong>
                                 <div class="hint"><?= e(ucfirst((string) $entry['role_name'])) ?></div>
@@ -251,17 +251,17 @@ require __DIR__ . '/../../includes/layout/header.php';
                                 <span class="muted">System / signed out</span>
                             <?php endif; ?>
                         </td>
-                        <td><?= audit_action_badge((string) $entry['action']) ?></td>
-                        <td class="nowrap">
+                        <td data-label="Action"><?= audit_action_badge((string) $entry['action']) ?></td>
+                        <td data-label="Record" class="nowrap">
                             <?= e(ucwords(str_replace('_', ' ', (string) $entry['entity_type']))) ?>
                             <?php if ($entry['entity_id'] !== null): ?>
                                 <div class="hint">#<?= (int) $entry['entity_id'] ?></div>
                             <?php endif; ?>
                         </td>
-                        <td><?= $entry['description'] !== null && $entry['description'] !== ''
+                        <td data-label="Description"><?= $entry['description'] !== null && $entry['description'] !== ''
                                 ? e($entry['description'])
                                 : '<span class="muted">None</span>' ?></td>
-                        <td class="muted small nowrap"><?= $entry['ip_address'] ? e($entry['ip_address']) : 'Unknown' ?></td>
+                        <td data-label="From" class="muted small nowrap"><?= $entry['ip_address'] ? e($entry['ip_address']) : 'Unknown' ?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>

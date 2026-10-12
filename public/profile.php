@@ -289,18 +289,31 @@ require __DIR__ . '/../includes/layout/header.php';
 
                     <div class="form-row">
                         <label for="current_password">Current password <span class="req">*</span></label>
-                        <input type="password" id="current_password" name="current_password"
-                               autocomplete="current-password" required>
+                        <div class="password-field">
+                            <input type="password" id="current_password" name="current_password"
+                                   autocomplete="current-password" required>
+                            <?php // Shown by app.js; without JavaScript the field simply stays masked. ?>
+                            <button type="button" class="password-toggle" data-password-toggle="current_password"
+                                    aria-controls="current_password" aria-pressed="false" hidden>Show</button>
+                        </div>
                     </div>
                     <div class="form-row">
                         <label for="new_password">New password <span class="req">*</span></label>
-                        <input type="password" id="new_password" name="new_password"
-                               autocomplete="new-password" required>
+                        <div class="password-field">
+                            <input type="password" id="new_password" name="new_password"
+                                   autocomplete="new-password" required>
+                            <button type="button" class="password-toggle" data-password-toggle="new_password"
+                                    aria-controls="new_password" aria-pressed="false" hidden>Show</button>
+                        </div>
                     </div>
                     <div class="form-row">
                         <label for="confirm_password">Confirm new password <span class="req">*</span></label>
-                        <input type="password" id="confirm_password" name="confirm_password"
-                               autocomplete="new-password" required>
+                        <div class="password-field">
+                            <input type="password" id="confirm_password" name="confirm_password"
+                                   autocomplete="new-password" required>
+                            <button type="button" class="password-toggle" data-password-toggle="confirm_password"
+                                    aria-controls="confirm_password" aria-pressed="false" hidden>Show</button>
+                        </div>
                     </div>
 
                     <div class="profile-actions">
@@ -315,7 +328,7 @@ require __DIR__ . '/../includes/layout/header.php';
                     <?php // A long address may break after the @ rather than mid-word. ?>
                     <div class="profile-wide"><dt>Email address</dt><dd><?= str_replace('@', '@<wbr>', e($user['email'])) ?></dd></div>
                     <div><dt>Contact number</dt><dd><?= $show($user['contact_number']) ?></dd></div>
-                    <div><dt>Account status</dt><dd><?= e(status_meta((string) $user['status'], 'account')[1]) ?></dd></div>
+                    <div><dt>Account status</dt><dd><?= status_badge((string) $user['status'], 'account') ?></dd></div>
                     <div><dt>Last sign-in</dt><dd><?= e(format_datetime($user['last_login_at'])) ?></dd></div>
                     <div><dt>Member since</dt><dd><?= e(format_date($user['created_at'])) ?></dd></div>
                 </dl>
