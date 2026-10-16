@@ -87,7 +87,9 @@ if ($isStudent) {
     $eligibility    = can_register($activity, $student);
     $isActiveReg    = $myRegistration
                       && !in_array($myRegistration['status'], ['withdrawn'], true);
-    $regProgress    = $isActiveReg
+    // A rejected registration can no longer take documents (submit.php
+    // refuses it), so it gets no progress bar and no documents button.
+    $regProgress    = $isActiveReg && $myRegistration['status'] !== 'rejected'
                       ? requirement_progress((int) $myRegistration['registration_id'])
                       : null;
 }

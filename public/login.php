@@ -60,7 +60,9 @@ require __DIR__ . '/../includes/layout/portal-header.php';
     </div>
 <?php endif; ?>
 
-<form method="post" class="portal-form" novalidate>
+<?php // A fresh visit starts empty (app.js clears what the browser restores on
+      // reload or Back); after a failed attempt the email stays for a retry. ?>
+<form method="post" class="portal-form" novalidate<?= $errors === [] ? ' data-start-empty' : '' ?>>
     <?= csrf_field() ?>
 
     <div class="form-row<?= $emailError !== '' ? ' has-error' : '' ?>">

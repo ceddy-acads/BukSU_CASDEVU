@@ -547,7 +547,10 @@ LEFT JOIN registrations r   ON r.activity_id = a.activity_id
 GROUP BY a.activity_id, a.title, ac.name, a.status, a.start_at;
 
 -- Outstanding requirements per student per activity - drives both the student's
--- "missing requirements" panel and the staff follow-up list.
+-- "missing requirements" panel and the staff follow-up list. Only registrations
+-- still in play count: a rejected or withdrawn registration, or a cancelled
+-- activity, can no longer take an upload, so it must not show as missing.
+-- Existing installs get this definition from database/update-views.sql.
 CREATE OR REPLACE VIEW v_missing_requirements AS
 SELECT
     r.registration_id,
@@ -568,6 +571,8 @@ LEFT JOIN requirement_submissions rs
        ON rs.requirement_id = ar.requirement_id
       AND rs.registration_id = r.registration_id
 WHERE ar.is_mandatory = 1
+  AND r.status IN ('pending', 'approved')
+  AND a.status <> 'cancelled'
   AND (rs.submission_id IS NULL OR rs.status = 'rejected');
 
 

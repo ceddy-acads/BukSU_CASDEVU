@@ -166,9 +166,14 @@ function login_user(string $email, string $password): array
     }
 
     $statusMessage = [
-        'pending'   => 'Your account is awaiting approval by the office. Please try again later.',
-        'inactive'  => 'This account has been deactivated. Please contact the office.',
-        'suspended' => 'This account is suspended. Please contact the office.',
+        // Say how the student will find out, and only promise an email
+        // when email really leaves the server.
+        'pending'   => 'Your account is awaiting approval by the office. '
+                     . (email_delivers()
+                         ? 'We will email you as soon as it is activated.'
+                         : 'Try signing in again later, or ask the office' . office_contact_hint() . ' to check it.'),
+        'inactive'  => 'This account has been deactivated. Please contact the office' . office_contact_hint() . '.',
+        'suspended' => 'This account is suspended. Please contact the office' . office_contact_hint() . '.',
     ];
     if ($user['status'] !== 'active') {
         return ['ok' => false, 'error' => $statusMessage[$user['status']] ?? 'This account is not active.'];

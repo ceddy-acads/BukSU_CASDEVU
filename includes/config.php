@@ -124,6 +124,13 @@ defined('MAIL_FROM_ADDRESS') || define('MAIL_FROM_ADDRESS', SMTP_USERNAME !== ''
 defined('MAIL_FROM_NAME')  || define('MAIL_FROM_NAME',  'BukSU Culture, Arts, and Sports Development Unit');
 defined('APP_HOSTNAME')    || define('APP_HOSTNAME',    'localhost');   // used to build links inside emails
 
+// How people reach the office, shown wherever a message says "contact the
+// office" (a student who cannot sign in has no other way to find it). Public
+// information, so it lives here rather than in config.local.php. Example:
+//   'Cultural Center, Room 104 · casdevu@buksu.edu.ph · Mon–Fri, 8 AM–5 PM'
+// Left empty, the messages simply say "contact the office".
+defined('OFFICE_CONTACT')  || define('OFFICE_CONTACT',  '');
+
 // Whether approvals, rejections and reminders are also emailed. The in-app
 // notification is always sent either way.
 define('MAIL_NOTIFICATIONS_ENABLED', true);

@@ -1462,6 +1462,35 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 .has-error input:not(:focus), .portal-form input[aria-invalid="true"]:not(:focus) { border-color: var(--danger); }
 .field-error { margin: var(--s1) 0 0; font-size: var(--fs-sm); font-weight: 600; color: var(--danger); }
 
+/* New-password checklist (includes/layout/password-rules.php): an empty ring
+   per rule, filled with a tick once app.js sees it met; after a failed send
+   the rules still missing turn red. Each item also says "Done" or "Still
+   needed" to screen readers, so colour is never the only signal. */
+.pw-rules {
+    list-style: none; margin: var(--s2) 0 0; padding: 0;
+    display: grid; gap: var(--s1) var(--s4);
+    font-size: var(--fs-sm); color: var(--ink-soft);
+}
+@media (min-width: 640px) { .pw-rules { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.pw-rules li { display: flex; align-items: center; gap: var(--s2); min-width: 0; }
+.pw-rules li::before {
+    content: ""; flex: none; width: 16px; height: 16px; border-radius: 50%;
+    border: 1.5px solid var(--line-input); background: center / 10px no-repeat;
+    transition: background-color .15s, border-color .15s;
+}
+.pw-rules li.is-met { color: var(--success); }
+.pw-rules li.is-met::before {
+    border-color: var(--success); background-color: var(--success);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+}
+.pw-rules.show-unmet li:not(.is-met) { color: var(--danger); font-weight: 600; }
+.pw-rules.show-unmet li:not(.is-met)::before { border-color: var(--danger); }
+
+/* "Passwords match" / "do not match" under a confirm field. */
+.field-note { margin: var(--s1) 0 0; font-size: var(--fs-sm); font-weight: 600; }
+.field-note.is-ok    { color: var(--success); }
+.field-note.is-error { color: var(--danger); }
+
 .portal-submit { min-height: 48px; font-size: 1rem; font-weight: 600; margin-top: var(--s6); border-radius: var(--r); }
 /* A visible press state, not only the 1px shift every button has. */
 .portal-submit:active { background: var(--navy-900); }

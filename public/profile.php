@@ -94,11 +94,15 @@ if (is_post()) {
         $newPassword     = (string) ($_POST['new_password'] ?? '');
         $confirmPassword = (string) ($_POST['confirm_password'] ?? '');
 
-        if (!password_verify($currentPassword, $user['password_hash'])) {
+        if ($currentPassword === '') {
+            $errors[] = 'Enter your current password.';
+        } elseif (!password_verify($currentPassword, $user['password_hash'])) {
             $errors[] = 'Your current password is incorrect.';
         }
-        if (strlen($newPassword) < 8) {
-            $errors[] = 'The new password must be at least 8 characters long.';
+        if (($passwordProblem = password_error($newPassword)) !== null) {
+            $errors[] = $passwordProblem;
+        } elseif (password_verify($newPassword, $user['password_hash'])) {
+            $errors[] = 'Choose a new password that is different from your current one.';
         }
         if ($newPassword !== $confirmPassword) {
             $errors[] = 'The two new passwords do not match.';
@@ -281,7 +285,7 @@ require __DIR__ . '/../includes/layout/header.php';
         <div class="profile-panel">
             <?php if ($mode === 'password'): ?>
                 <h2 class="profile-panel-title" id="password">Change password</h2>
-                <p class="profile-panel-sub">Use at least 8 characters.</p>
+                <p class="profile-panel-sub">Choose a password you do not use anywhere else.</p>
                 <form method="post" action="<?= url('profile.php') ?>" novalidate>
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="password">
@@ -302,16 +306,17 @@ require __DIR__ . '/../includes/layout/header.php';
                         <label for="new_password">New password <span class="req">*</span></label>
                         <div class="password-field">
                             <input type="password" id="new_password" name="new_password"
-                                   autocomplete="new-password" required>
+                                   autocomplete="new-password" required aria-describedby="new_password-rules">
                             <button type="button" class="password-toggle" data-password-toggle="new_password"
                                     aria-controls="new_password" aria-pressed="false" aria-label="Show password" hidden><?= icon('eye', 'icon icon-show') ?><?= icon('eye-off', 'icon icon-hide') ?></button>
                         </div>
+                        <?php $passwordRulesFor = 'new_password'; require __DIR__ . '/../includes/layout/password-rules.php'; ?>
                     </div>
                     <div class="form-row">
                         <label for="confirm_password">Confirm new password <span class="req">*</span></label>
                         <div class="password-field">
                             <input type="password" id="confirm_password" name="confirm_password"
-                                   autocomplete="new-password" required>
+                                   autocomplete="new-password" required data-password-match="new_password">
                             <button type="button" class="password-toggle" data-password-toggle="confirm_password"
                                     aria-controls="confirm_password" aria-pressed="false" aria-label="Show password" hidden><?= icon('eye', 'icon icon-show') ?><?= icon('eye-off', 'icon icon-hide') ?></button>
                         </div>
@@ -333,7 +338,7 @@ require __DIR__ . '/../includes/layout/header.php';
                     <div><dt>Last sign-in</dt><dd><?= e(format_datetime($user['last_login_at'])) ?></dd></div>
                     <div><dt>Member since</dt><dd><?= e(format_date($user['created_at'])) ?></dd></div>
                 </dl>
-                <p class="profile-note">To change your registered email, contact the office.</p>
+                <p class="profile-note">To change your registered email, contact the office<?= e(office_contact_hint()) ?>.</p>
             <?php endif; ?>
         </div>
     </div>

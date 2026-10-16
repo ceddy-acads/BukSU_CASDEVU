@@ -53,7 +53,11 @@ if ($role === 'student') {
             "SELECT COUNT(*) FROM registrations WHERE user_id = ? AND status = 'pending'", [$user['user_id']]),
             'class' => 'stat-gold', 'href' => 'participation/my-activities.php'],
         ['label' => 'Missing requirements', 'value' => fetch_value(
-            'SELECT COUNT(*) FROM v_missing_requirements WHERE user_id = ?', [$user['user_id']]),
+            // Same set as the documents page (requirements/mine.php): completed
+            // activities no longer ask for anything.
+            "SELECT COUNT(*) FROM v_missing_requirements m
+               JOIN activities a ON a.activity_id = m.activity_id
+              WHERE m.user_id = ? AND a.status <> 'completed'", [$user['user_id']]),
             'class' => 'stat-danger', 'href' => 'participation/my-activities.php'],
     ];
 } else {

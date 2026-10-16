@@ -44,7 +44,7 @@ $absolutePath = upload_absolute_path($submission['file_path']);
 if ($absolutePath === null || !is_file($absolutePath)) {
     error_log('[CASMS] Missing upload on disk: ' . $submission['file_path']);
     http_response_code(404);
-    abort_page(404, 'The stored file could not be located. Please contact the office.');
+    abort_page(404, 'The stored file could not be located. Please contact the office' . office_contact_hint() . '.');
 }
 
 audit_log('view', 'requirement_submission', $submissionId,

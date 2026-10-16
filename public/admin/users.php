@@ -69,6 +69,21 @@ if (is_post()) {
             audit_log('approve', 'user', $targetUserId, 'Activated account');
             notify($targetUserId, 'system', 'Your account is now active',
                    'You can now sign in and register for activities.', url('login.php'));
+            // A pending student cannot open the in-app notice until they can
+            // sign in, so this one is always emailed as well (to mail.log
+            // while email is not set up).
+            $activated = fetch_one('SELECT email, first_name FROM users WHERE user_id = ?', [$targetUserId]);
+            if ($activated !== null) {
+                send_mail(
+                    (string) $activated['email'],
+                    'Your ' . APP_NAME . ' account is active',
+                    'Hi ' . $activated['first_name'] . ',' . PHP_EOL . PHP_EOL
+                    . 'The office has activated your ' . APP_NAME . ' account. You can now sign in '
+                    . 'and register for culture, arts, and sports activities:' . PHP_EOL . PHP_EOL
+                    . '  ' . absolute_url(url('login.php')) . PHP_EOL . PHP_EOL
+                    . OFFICE_NAME . PHP_EOL . UNIVERSITY
+                );
+            }
             flash('success', full_name($target) . ' can now sign in.');
             break;
 
@@ -76,6 +91,31 @@ if (is_post()) {
             query("UPDATE users SET status = 'inactive' WHERE user_id = ?", [$targetUserId]);
             audit_log('update', 'user', $targetUserId, 'Deactivated account');
             flash('success', full_name($target) . ' has been deactivated.');
+            break;
+
+        case 'decline':
+            // A sign-up the office will not approve (a duplicate, a typo, not
+            // a student). Marked inactive rather than deleted, so it leaves
+            // the approval queue but can still be activated if declined by
+            // mistake.
+            if ($target['status'] !== 'pending') {
+                flash('error', 'Only an account awaiting approval can be declined.');
+                break;
+            }
+            query("UPDATE users SET status = 'inactive' WHERE user_id = ?", [$targetUserId]);
+            audit_log('update', 'user', $targetUserId, 'Declined sign-up');
+            $declined = fetch_one('SELECT email, first_name FROM users WHERE user_id = ?', [$targetUserId]);
+            if ($declined !== null) {
+                send_mail(
+                    (string) $declined['email'],
+                    'Your ' . APP_NAME . ' sign-up was not approved',
+                    'Hi ' . $declined['first_name'] . ',' . PHP_EOL . PHP_EOL
+                    . 'The office could not approve your ' . APP_NAME . ' account. If you think this is a '
+                    . 'mistake, please contact the office' . office_contact_hint() . '.' . PHP_EOL . PHP_EOL
+                    . OFFICE_NAME . PHP_EOL . UNIVERSITY
+                );
+            }
+            flash('success', 'Sign-up declined for ' . full_name($target) . '. It is no longer awaiting approval.');
             break;
 
         case 'suspend':
@@ -94,13 +134,19 @@ if (is_post()) {
                 redirect('admin/users.php');
             }
             $newRoleId = (int) post('role_id');
-            if (!fetch_value('SELECT 1 FROM roles WHERE role_id = ?', [$newRoleId])) {
+            $newRole   = fetch_value('SELECT name FROM roles WHERE role_id = ?', [$newRoleId]);
+            if (!$newRole) {
                 flash('error', 'That role does not exist.');
                 redirect('admin/users.php');
             }
+            if ($newRole === $target['role_name']) {
+                flash('success', full_name($target) . ' is already ' . ucfirst((string) $newRole) . '. Nothing changed.');
+                break;
+            }
             query('UPDATE users SET role_id = ? WHERE user_id = ?', [$newRoleId, $targetUserId]);
-            audit_log('update', 'user', $targetUserId, 'Changed role');
-            flash('success', 'Role updated for ' . full_name($target) . '.');
+            audit_log('update', 'user', $targetUserId,
+                      'Changed role from ' . $target['role_name'] . ' to ' . $newRole);
+            flash('success', full_name($target) . ' is now ' . ucfirst((string) $newRole) . '.');
             break;
 
         case 'reset_password':
@@ -296,11 +342,17 @@ require __DIR__ . '/../../includes/layout/header.php';
                         </td>
                         <td data-label="Role">
                             <?php if ($isAdmin && (int) $row['user_id'] !== current_user_id()): ?>
-                                <form method="post" class="inline-form">
+                                <?php // Choose, then Change: a role is a permission grant, so it never
+                                      // applies just because the dropdown moved (an arrow key on a
+                                      // closed select fires 'change' in some browsers). app.js asks
+                                      // for confirmation naming both roles. ?>
+                                <form method="post" class="inline-form role-form" data-role-change
+                                      data-person="<?= e(full_name($row)) ?>"
+                                      data-current-role="<?= e(ucfirst($row['role_name'])) ?>">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="action" value="role">
                                     <input type="hidden" name="user_id" value="<?= (int) $row['user_id'] ?>">
-                                    <select name="role_id" onchange="this.form.submit()" class="input-auto input-sm"
+                                    <select name="role_id" class="input-auto input-sm"
                                             aria-label="Role for <?= e(full_name($row)) ?>">
                                         <?php foreach ($roles as $role): ?>
                                             <option value="<?= (int) $role['role_id'] ?>"
@@ -309,6 +361,8 @@ require __DIR__ . '/../../includes/layout/header.php';
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
+                                    <button type="submit" class="btn btn-outline btn-sm"
+                                            aria-label="Change role for <?= e(full_name($row)) ?>">Change</button>
                                 </form>
                             <?php else: ?>
                                 <?= e(ucfirst($row['role_name'])) ?>
@@ -328,6 +382,16 @@ require __DIR__ . '/../../includes/layout/header.php';
                                             <button type="submit" class="btn btn-primary btn-sm"
                                                     aria-label="Activate <?= e(full_name($row)) ?>">Activate</button>
                                         </form>
+                                        <?php if ($row['status'] === 'pending'): ?>
+                                            <form method="post" class="inline-form"
+                                                  onsubmit="return confirm('Decline this sign-up? It leaves the approval queue and cannot sign in. You can still activate it later.');">
+                                                <?= csrf_field() ?>
+                                                <input type="hidden" name="action" value="decline">
+                                                <input type="hidden" name="user_id" value="<?= (int) $row['user_id'] ?>">
+                                                <button type="submit" class="btn btn-outline btn-sm"
+                                                        aria-label="Decline sign-up for <?= e(full_name($row)) ?>">Decline</button>
+                                            </form>
+                                        <?php endif; ?>
                                     <?php else: ?>
                                         <form method="post" class="inline-form"
                                               onsubmit="return confirm('Deactivate this account? The user will not be able to sign in.');">

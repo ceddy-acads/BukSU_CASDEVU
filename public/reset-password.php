@@ -45,8 +45,8 @@ if (is_post() && $target !== null) {
     $password = (string) ($_POST['password'] ?? '');
     $confirm  = (string) ($_POST['password_confirm'] ?? '');
 
-    if (strlen($password) < 8) {
-        $errors[] = 'The new password must be at least 8 characters long.';
+    if (($passwordProblem = password_error($password)) !== null) {
+        $errors[] = $passwordProblem;
     }
     if ($password !== $confirm) {
         $errors[] = 'The two passwords do not match.';
@@ -134,14 +134,14 @@ require __DIR__ . '/../includes/layout/auth-header.php';
         <div class="form-row">
             <label for="password">New password</label>
             <input type="password" id="password" name="password" required autofocus
-                   autocomplete="new-password">
-            <p class="hint">At least 8 characters.</p>
+                   autocomplete="new-password" aria-describedby="password-rules">
+            <?php $passwordRulesFor = 'password'; require __DIR__ . '/../includes/layout/password-rules.php'; ?>
         </div>
 
         <div class="form-row">
             <label for="password_confirm">Confirm new password</label>
             <input type="password" id="password_confirm" name="password_confirm" required
-                   autocomplete="new-password">
+                   autocomplete="new-password" data-password-match="password">
         </div>
 
         <button type="submit" class="btn btn-primary btn-block">Change password</button>

@@ -102,15 +102,26 @@ require __DIR__ . '/../includes/layout/auth-header.php';
     </div>
 <?php endif; ?>
 
-<?php if ($sent): ?>
+<?php if ($sent && !email_delivers()): ?>
+    <?php // Email is not set up: say so, rather than promise a message that never comes. ?>
+    <div class="alert alert-info" role="status">
+        Email is not switched on for this system yet, so a reset link cannot
+        reach your inbox.
+    </div>
+    <p class="muted">
+        Ask the office<?= e(office_contact_hint()) ?> to reset your password.
+        They will give you a temporary one to sign in with, which you can then
+        change under My profile.
+    </p>
+<?php elseif ($sent): ?>
     <div class="alert alert-success" role="status">
         If that email address belongs to an active account, a reset link
         is on its way. It works once and expires in
         <?= PASSWORD_RESET_TTL_MINUTES ?> minutes.
     </div>
     <p class="muted">
-        Nothing arrived? Check that you typed the address you registered
-        with, or contact the office.
+        Nothing arrived? Check your spam folder and that you typed the address
+        you registered with, or contact the office<?= e(office_contact_hint()) ?>.
     </p>
     <a class="btn btn-primary btn-block" href="<?= url('login.php') ?>">Back to sign in</a>
 <?php else: ?>

@@ -154,6 +154,75 @@ function course_options(array $courses, string $selected = '', bool $withName = 
 }
 
 // =====================================================================
+// Passwords — the rules every new password must meet
+// =====================================================================
+
+/** Shortest password accepted; the checklist and app.js read it from here. */
+const PASSWORD_MIN_LENGTH = 8;
+
+/**
+ * The rules for a new password, keyed for the checklist that app.js ticks
+ * as the person types (includes/layout/password-rules.php). Signing in and
+ * "current password" are not checked against these, so older passwords
+ * keep working until they are changed.
+ *
+ * @return array<string, array{label: string, phrase: string}>
+ */
+function password_rules(): array
+{
+    return [
+        'length' => ['label' => 'At least ' . PASSWORD_MIN_LENGTH . ' characters', 'phrase' => 'at least ' . PASSWORD_MIN_LENGTH . ' characters'],
+        'upper'  => ['label' => 'An uppercase letter',        'phrase' => 'an uppercase letter'],
+        'lower'  => ['label' => 'A lowercase letter',         'phrase' => 'a lowercase letter'],
+        'number' => ['label' => 'A number (0–9)',             'phrase' => 'a number'],
+    ];
+}
+
+/**
+ * What a new password is missing, as one sentence, or null when it is fine.
+ * Also caps the length: bcrypt reads only the first 72 bytes.
+ */
+function password_error(string $password): ?string
+{
+    if (strlen($password) > 72) {
+        return 'Your password is too long. Use 64 characters or fewer.';
+    }
+    $met = [
+        'length' => mb_strlen($password) >= PASSWORD_MIN_LENGTH,
+        'upper'  => preg_match('/\p{Lu}/u', $password) === 1,
+        'lower'  => preg_match('/\p{Ll}/u', $password) === 1,
+        'number' => preg_match('/[0-9]/', $password) === 1,
+    ];
+    $missing = [];
+    foreach (password_rules() as $key => $rule) {
+        if (!$met[$key]) {
+            $missing[] = $rule['phrase'];
+        }
+    }
+    if ($missing === []) {
+        return null;
+    }
+    $last = array_pop($missing);
+    return 'Your password needs ' . ($missing === [] ? $last : implode(', ', $missing) . ' and ' . $last) . '.';
+}
+
+// =====================================================================
+// Reaching people
+// =====================================================================
+
+/** " (Cultural Center, Room 104 · …)" after "contact the office", or nothing until OFFICE_CONTACT is set. */
+function office_contact_hint(): string
+{
+    return OFFICE_CONTACT === '' ? '' : ' (' . OFFICE_CONTACT . ')';
+}
+
+/** True when email really leaves the server; false while it only goes to storage/logs/mail.log. */
+function email_delivers(): bool
+{
+    return MAIL_TRANSPORT !== 'log';
+}
+
+// =====================================================================
 // Formatting
 // =====================================================================
 

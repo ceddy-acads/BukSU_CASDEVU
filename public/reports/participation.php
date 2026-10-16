@@ -60,7 +60,7 @@ foreach ($rows as $row) {
     $totals['attended']   += (int) $row['total_attended'];
 }
 
-$byYearLevel = is_office_staff() ? participation_by_year_level() : [];
+$byYearLevel = is_office_staff() ? participation_by_year_level(null, $filters) : [];
 
 /** Keep filters when switching to the CSV link. */
 function participation_link(array $overrides = []): string
@@ -292,18 +292,19 @@ require __DIR__ . '/../../includes/layout/header.php';
         ?>
         <section class="card">
             <?= bar_chart(
-                'Approved participants by year level',
-                'All courses combined. A student in two activities counts twice. The table below breaks this down by course.',
+                'Participants by year level',
+                'Approved and completed registrations in the activities above, all courses combined. A student in two activities counts twice. The table below breaks this down by course.',
                 $yearRows
             ) ?>
         </section>
 
         <section class="card card-flush">
             <div class="card-head">
-                <h2>Approved participants by year level and course</h2>
+                <h2>Participants by year level and course</h2>
                 <p class="hint">
-                    Counts every approved registration across all activities, so a
-                    student who joined two activities is counted twice.
+                    Approved and completed registrations in the activities that
+                    match the filters, so a student who joined two activities is
+                    counted twice.
                 </p>
             </div>
             <div class="table-wrap">

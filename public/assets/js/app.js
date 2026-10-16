@@ -129,6 +129,36 @@
     });
 })();
 
+/* Forms that start empty: <form data-start-empty> (the sign-in form on a
+   fresh visit). Browsers put back what was typed on a reload, or when Back
+   returns to the page after signing out; clear it so nobody finds the last
+   person's email or password waiting. Saved logins a password manager fills
+   on request are left alone. */
+(function () {
+    'use strict';
+    var forms = document.querySelectorAll('form[data-start-empty]');
+    if (!forms.length) { return; }
+    // Some browsers restore values only once loading ends, so clear again
+    // then, but never a field the person has already started typing in.
+    var typed = new WeakSet();
+    forms.forEach(function (form) {
+        form.addEventListener('input', function (event) { typed.add(event.target); });
+    });
+    function clear(force) {
+        forms.forEach(function (form) {
+            form.querySelectorAll('input:not([type="hidden"])').forEach(function (input) {
+                if (!force && typed.has(input)) { return; }
+                if (input.type === 'checkbox' || input.type === 'radio') { input.checked = input.defaultChecked; }
+                else { input.value = ''; }
+            });
+        });
+    }
+    clear(false);
+    window.addEventListener('load', function () { clear(false); });
+    // Back after signing out shows a stored copy of the page: start over.
+    window.addEventListener('pageshow', function (event) { if (event.persisted) { clear(true); } });
+})();
+
 /* Sortable tables: <table data-sortable> with <th data-sort="text|number|date">.
    Without JavaScript the headers are plain text and the server order stands.
    Each sortable header becomes a button, and aria-sort reports the order.
@@ -317,6 +347,120 @@ window.CASDevU = window.CASDevU || {};
         if (input.form) {
             input.form.addEventListener('submit', function () { input.type = 'password'; render(false); });
         }
+    });
+})();
+
+/* New passwords (includes/layout/password-rules.php):
+   - <ul data-password-rules="inputId"> ticks each rule as the person types,
+     and keeps the input invalid until all are met, so neither a plain form
+     nor a step of the sign-up form can be sent early. The unmet rules turn
+     red once a send has been tried.
+   - <input data-password-match="inputId"> on a confirm field says whether
+     the two match once the person has finished typing, and stays invalid
+     while they differ.
+   The server checks the same rules again (password_error() in PHP). */
+(function () {
+    'use strict';
+    var TESTS = {
+        length: function (value, min) { return Array.from(value).length >= min; },
+        upper:  function (value) { return /\p{Lu}/u.test(value); },
+        lower:  function (value) { return /\p{Ll}/u.test(value); },
+        number: function (value) { return /[0-9]/.test(value); }
+    };
+
+    document.querySelectorAll('[data-password-rules]').forEach(function (list) {
+        var input = document.getElementById(list.getAttribute('data-password-rules'));
+        if (!input) { return; }
+        var min = parseInt(list.getAttribute('data-min-length'), 10) || 8;
+        var items = Array.prototype.slice.call(list.querySelectorAll('[data-rule]'));
+
+        function check() {
+            var missing = [];
+            items.forEach(function (item) {
+                var test = TESTS[item.getAttribute('data-rule')];
+                var met = test ? test(input.value, min) : true;
+                item.classList.toggle('is-met', met);
+                item.querySelector('[data-rule-state]').textContent = met ? 'Done: ' : 'Still needed: ';
+                // The rule as a phrase, as the server words it: "a number", not "A number (0–9)".
+                if (!met) { missing.push(item.textContent.replace(/^(Done|Still needed): /, '').replace(/\s*\(.*\)$/, '').toLowerCase()); }
+            });
+            var last = missing.pop();
+            input.setCustomValidity(last === undefined ? '' :
+                'Your password needs ' + (missing.length ? missing.join(', ') + ' and ' : '') + last + '.');
+        }
+        input.addEventListener('input', check);
+        // A failed send (or a blocked step) shows what is still missing.
+        input.addEventListener('invalid', function () { list.classList.add('show-unmet'); });
+        check();
+    });
+
+    document.querySelectorAll('[data-password-match]').forEach(function (confirm) {
+        var original = document.getElementById(confirm.getAttribute('data-password-match'));
+        if (!original) { return; }
+        var note = document.createElement('p');
+        note.className = 'field-note';
+        note.id = confirm.id + '-match';
+        note.hidden = true;
+        note.setAttribute('aria-live', 'polite');
+        (confirm.closest('.password-field') || confirm).insertAdjacentElement('afterend', note);
+        confirm.setAttribute('aria-describedby',
+            ((confirm.getAttribute('aria-describedby') || '') + ' ' + note.id).trim());
+
+        var touched = false;
+        function check() {
+            var same = confirm.value === original.value;
+            confirm.setCustomValidity(confirm.value !== '' && !same ? 'The two passwords do not match.' : '');
+            // Speak up once they look finished, not on every keystroke.
+            var finished = touched || confirm.value.length >= original.value.length;
+            if (confirm.value === '' || !finished) { note.hidden = true; return; }
+            note.hidden = false;
+            note.classList.toggle('is-ok', same);
+            note.classList.toggle('is-error', !same);
+            note.textContent = same ? 'Passwords match.' : 'Passwords do not match.';
+        }
+        confirm.addEventListener('input', check);
+        confirm.addEventListener('blur', function () { if (confirm.value !== '') { touched = true; } check(); });
+        confirm.addEventListener('invalid', function () { touched = true; check(); });
+        original.addEventListener('input', function () { if (confirm.value !== '') { check(); } });
+    });
+
+    // Forms marked novalidate skip the browser's own check, so do it here
+    // for the password fields. The stepped sign-up form checks its steps
+    // itself and fires the same 'invalid' events.
+    document.querySelectorAll('form').forEach(function (form) {
+        if (form.hasAttribute('data-steps')) { return; }
+        var fields = form.querySelectorAll('[data-password-match]');
+        var ruled = Array.prototype.map.call(form.querySelectorAll('[data-password-rules]'), function (list) {
+            return document.getElementById(list.getAttribute('data-password-rules'));
+        });
+        if (!fields.length && !ruled.length) { return; }
+        form.addEventListener('submit', function (event) {
+            var bad = ruled.concat(Array.prototype.slice.call(fields)).filter(function (field) {
+                return field && !field.checkValidity();
+            });
+            if (bad.length) {
+                event.preventDefault();
+                bad[0].focus();
+            }
+        });
+    });
+})();
+
+/* Role changes (admin/users.php): <form data-role-change data-person
+   data-current-role>. Nothing is sent when the role did not change, and
+   otherwise the admin confirms with both roles named. */
+(function () {
+    'use strict';
+    document.querySelectorAll('form[data-role-change]').forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            var select = form.querySelector('select[name="role_id"]');
+            var chosen = select.options[select.selectedIndex].text.trim();
+            var current = form.getAttribute('data-current-role');
+            if (chosen === current ||
+                !window.confirm('Change ' + form.getAttribute('data-person') + ' from ' + current + ' to ' + chosen + '?')) {
+                event.preventDefault();
+            }
+        });
     });
 })();
 
@@ -585,7 +729,8 @@ window.CASDevU = window.CASDevU || {};
    support) the link opens the page as before. A successful save follows the
    page's own redirect; validation errors re-render inside the popup, using
    the page's own old-input. Photo uploads work: the submit travels as
-   FormData, exactly like a normal post. */
+   FormData, exactly like a normal post. A form without its own action posts
+   back to the page it was loaded from, not to the page under the popup. */
 (function () {
     'use strict';
     var dialog = document.getElementById('modal-dialog');
@@ -605,12 +750,17 @@ window.CASDevU = window.CASDevU || {};
         if (lastTrigger) { lastTrigger.focus(); }
     });
 
-    function swap(html) {
+    function swap(html, sourceUrl) {
         var doc = new DOMParser().parseFromString(html, 'text/html');
         var wrap = wrapSelector === '' ? null : doc.querySelector(wrapSelector);
         if (!wrap) { return false; }
         body.innerHTML = '';
         body.appendChild(document.importNode(wrap, true));
+        // An action-less form means "post to my own page". Moved into the
+        // popup it would post to the page underneath, which ignores it.
+        body.querySelectorAll('form:not([action])').forEach(function (form) {
+            form.setAttribute('action', sourceUrl);
+        });
         body.scrollTop = 0;
         return true;
     }
@@ -623,7 +773,7 @@ window.CASDevU = window.CASDevU || {};
                 return response.text();
             })
             .then(function (html) {
-                if (!swap(html)) { window.location.href = url; return; }
+                if (!swap(html, url)) { window.location.href = url; return; }
                 var field = body.querySelector('input, select, textarea');
                 if (field) { field.focus({ preventScroll: true }); }
             })
@@ -645,7 +795,8 @@ window.CASDevU = window.CASDevU || {};
         var form = event.target;
         if (!form || form.tagName !== 'FORM') { return; }
         event.preventDefault();
-        fetch(form.action, {
+        var target = form.action;
+        fetch(target, {
             method: 'POST', body: new FormData(form),
             credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' }
         }).then(function (response) {
@@ -654,7 +805,7 @@ window.CASDevU = window.CASDevU || {};
             return response.text();
         }).then(function (html) {
             if (html === null) { return; }
-            if (!swap(html)) { form.submit(); return; }
+            if (!swap(html, target)) { form.submit(); return; }
             var errors = body.querySelector('.alert-error');
             if (errors) { errors.setAttribute('tabindex', '-1'); errors.focus({ preventScroll: true }); }
         }).catch(function () { form.submit(); });

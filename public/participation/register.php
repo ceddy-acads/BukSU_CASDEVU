@@ -46,7 +46,7 @@ if ($action === 'withdraw') {
     // Once the office has approved a place, withdrawing is their call —
     // otherwise a student could quietly vacate a confirmed slot.
     if ($registration['status'] !== 'pending') {
-        flash('error', 'Only a registration still awaiting review can be withdrawn. Please contact the office.');
+        flash('error', 'Only a registration still awaiting review can be withdrawn. Please contact the office' . office_contact_hint() . '.');
         redirect($backTo);
     }
 

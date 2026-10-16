@@ -68,7 +68,7 @@ function store_upload(array $file, string $subdirectory): array
     $directory = UPLOAD_PATH . '/' . $subdirectory;
     if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
         error_log('[CASMS] Could not create upload directory: ' . $directory);
-        return ['ok' => false, 'error' => 'The file could not be saved. Please contact the office.'];
+        return ['ok' => false, 'error' => 'The file could not be saved. Please contact the office' . office_contact_hint() . '.'];
     }
 
     $storedName = bin2hex(random_bytes(16)) . '.' . $extension;

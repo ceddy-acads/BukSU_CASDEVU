@@ -89,7 +89,10 @@ require __DIR__ . '/../../includes/layout/header.php';
                 </div>
 
                 <div class="item-aside">
-                    <?php if ($progress['total'] > 0): ?>
+                    <?php if ($registration['status'] === 'rejected'): ?>
+                        <?php // The upload page refuses rejected registrations: no button to a dead end. ?>
+                        <p class="muted">Documents are closed for this registration.</p>
+                    <?php elseif ($progress['total'] > 0): ?>
                         <div class="progress-label">
                             Requirements verified: <strong><?= $progress['satisfied'] ?></strong> of <?= $progress['total'] ?>
                         </div>

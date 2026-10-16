@@ -120,14 +120,16 @@ function report_activity_conditions(array $filters): array
 }
 
 /**
- * Approved participants broken down by year level (FR-8.4).
+ * Participants (approved or completed registrations) broken down by year
+ * level and course (FR-8.4), under the same activity filters as the rest of
+ * the participation report, so its tables and charts always agree.
  *
  * @return array<int, array<string, mixed>>
  */
-function participation_by_year_level(?int $activityId = null): array
+function participation_by_year_level(?int $activityId = null, array $filters = []): array
 {
-    $conditions = ["r.status = 'approved'"];
-    $params     = [];
+    [$conditions, $params] = report_activity_conditions($filters);
+    array_unshift($conditions, "r.status IN ('approved', 'completed')");
 
     if ($activityId !== null) {
         $conditions[] = 'r.activity_id = ?';
@@ -141,6 +143,7 @@ function participation_by_year_level(?int $activityId = null): array
                 COALESCE(c.code, 'Not set')  AS course,
                 COUNT(*) AS participants
            FROM registrations r
+           JOIN activities a       ON a.activity_id   = r.activity_id
            JOIN users u            ON u.user_id       = r.user_id
            LEFT JOIN year_levels y ON y.year_level_id = u.year_level_id
            LEFT JOIN courses c     ON c.course_id     = u.course_id

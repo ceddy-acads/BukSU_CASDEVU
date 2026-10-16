@@ -48,8 +48,8 @@ if (is_post()) {
     } elseif (!in_array($courseId, array_map(static fn(array $c): string => (string) $c['course_id'], $courses), true)) {
         $errors[] = 'Choose a course from the list.';
     }
-    if (strlen($password) < 8) {
-        $errors[] = 'Password must be at least 8 characters long.';
+    if (($passwordProblem = password_error($password)) !== null) {
+        $errors[] = $passwordProblem;
     }
     if ($password !== $passwordAgain) {
         $errors[] = 'The two passwords do not match.';
@@ -216,18 +216,18 @@ require __DIR__ . '/../includes/layout/portal-header.php';
                 <label for="password">Password <span class="req">*</span></label>
                 <div class="password-field">
                     <input type="password" id="password" name="password"
-                           autocomplete="new-password" minlength="8" required>
+                           autocomplete="new-password" required aria-describedby="password-rules">
                     <?php // Shown by app.js; without JavaScript the field simply stays masked. ?>
                     <button type="button" class="password-toggle" data-password-toggle="password"
                             aria-controls="password" aria-pressed="false" aria-label="Show password" hidden><?= icon('eye', 'icon icon-show') ?><?= icon('eye-off', 'icon icon-hide') ?></button>
                 </div>
-                <p class="hint">At least 8 characters.</p>
+                <?php $passwordRulesFor = 'password'; require __DIR__ . '/../includes/layout/password-rules.php'; ?>
             </div>
             <div class="form-row">
                 <label for="password_confirm">Confirm password <span class="req">*</span></label>
                 <div class="password-field">
                     <input type="password" id="password_confirm" name="password_confirm"
-                           autocomplete="new-password" required>
+                           autocomplete="new-password" required data-password-match="password">
                     <button type="button" class="password-toggle" data-password-toggle="password_confirm"
                             aria-controls="password_confirm" aria-pressed="false" aria-label="Show password" hidden><?= icon('eye', 'icon icon-show') ?><?= icon('eye-off', 'icon icon-hide') ?></button>
                 </div>
