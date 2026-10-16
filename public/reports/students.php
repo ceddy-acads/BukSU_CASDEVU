@@ -11,7 +11,7 @@ require_once __DIR__ . '/../../includes/bootstrap.php';
 
 require_role(['staff', 'admin', 'coordinator']);
 
-$courses    = fetch_all('SELECT course_id, code, name FROM courses ORDER BY code');
+$courses    = fetch_all('SELECT course_id, code, name, department FROM courses ORDER BY department, name');
 $yearLevels = fetch_all('SELECT year_level_id, label FROM year_levels ORDER BY sort_order');
 
 // =====================================================================
@@ -297,12 +297,7 @@ require __DIR__ . '/../../includes/layout/header.php';
         <label for="course">Course</label>
         <select id="course" name="course">
             <option value="">All courses</option>
-            <?php foreach ($courses as $course): ?>
-                <option value="<?= (int) $course['course_id'] ?>"
-                    <?= $courseIn === (string) $course['course_id'] ? 'selected' : '' ?>>
-                    <?= e($course['code']) ?>
-                </option>
-            <?php endforeach; ?>
+            <?= course_options($courses, $courseIn, false) ?>
         </select>
     </div>
     <div class="form-row">

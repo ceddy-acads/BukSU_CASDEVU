@@ -13,7 +13,13 @@ require_once __DIR__ . '/../includes/bootstrap.php';
 require_login();
 
 $user       = current_user();
-$courses    = fetch_all('SELECT course_id, code, name FROM courses WHERE is_active = 1 ORDER BY code');
+// Offered courses, plus the student's own even if it has since been retired,
+// so saving the profile never clears it.
+$courses    = fetch_all(
+    'SELECT course_id, code, name, department FROM courses
+      WHERE is_active = 1 OR course_id = ? ORDER BY department, name',
+    [(int) ($user['course_id'] ?? 0)]
+);
 $yearLevels = fetch_all('SELECT year_level_id, label FROM year_levels ORDER BY sort_order');
 
 $errors = [];
@@ -225,12 +231,7 @@ require __DIR__ . '/../includes/layout/header.php';
                                 <label for="course_id">Course</label>
                                 <select id="course_id" name="course_id">
                                     <option value="">Not set</option>
-                                    <?php foreach ($courses as $course): ?>
-                                        <option value="<?= (int) $course['course_id'] ?>"
-                                            <?= (int) $user['course_id'] === (int) $course['course_id'] ? 'selected' : '' ?>>
-                                            <?= e($course['code']) ?>: <?= e($course['name']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
+                                    <?= course_options($courses, (string) ($user['course_id'] ?? '')) ?>
                                 </select>
                             </div>
                             <div class="form-row">

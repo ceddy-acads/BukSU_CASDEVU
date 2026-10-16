@@ -128,6 +128,31 @@ function clear_old_input(): void
     unset($_SESSION['old_input']);
 }
 
+/**
+ * The <option>s for a course picker, grouped under each college with
+ * <optgroup> so the university's full list of programs stays easy to scan.
+ * Rows need course_id, code, name, and department, ordered by department.
+ *
+ * @param array<int, array<string, mixed>> $courses
+ */
+function course_options(array $courses, string $selected = '', bool $withName = true): string
+{
+    $html  = '';
+    $group = null;
+    foreach ($courses as $course) {
+        $department = (string) ($course['department'] ?? '') ?: 'Other programs';
+        if ($department !== $group) {
+            $html .= ($group === null ? '' : '</optgroup>') . '<optgroup label="' . e($department) . '">';
+            $group = $department;
+        }
+        $id     = (string) $course['course_id'];
+        $label  = $withName ? $course['code'] . ': ' . $course['name'] : (string) $course['code'];
+        $html  .= '<option value="' . e($id) . '"' . ($id === $selected ? ' selected' : '') . '>'
+                . e($label) . '</option>';
+    }
+    return $html . ($group === null ? '' : '</optgroup>');
+}
+
 // =====================================================================
 // Formatting
 // =====================================================================

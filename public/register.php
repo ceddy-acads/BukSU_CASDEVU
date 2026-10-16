@@ -13,7 +13,7 @@ if (is_logged_in() && current_user() !== null) {
     redirect('index.php');
 }
 
-$courses    = fetch_all('SELECT course_id, code, name FROM courses WHERE is_active = 1 ORDER BY code');
+$courses    = fetch_all('SELECT course_id, code, name, department FROM courses WHERE is_active = 1 ORDER BY department, name');
 $yearLevels = fetch_all('SELECT year_level_id, label FROM year_levels ORDER BY sort_order');
 
 $errors = [];
@@ -45,6 +45,8 @@ if (is_post()) {
     }
     if ($courseId === '' || $yearLevelId === '') {
         $errors[] = 'Course and year level are required.';
+    } elseif (!in_array($courseId, array_map(static fn(array $c): string => (string) $c['course_id'], $courses), true)) {
+        $errors[] = 'Choose a course from the list.';
     }
     if (strlen($password) < 8) {
         $errors[] = 'Password must be at least 8 characters long.';
@@ -185,12 +187,7 @@ require __DIR__ . '/../includes/layout/portal-header.php';
                 <label for="course_id">Course <span class="req">*</span></label>
                 <select id="course_id" name="course_id" required>
                     <option value="">Select your course</option>
-                    <?php foreach ($courses as $course): ?>
-                        <option value="<?= (int) $course['course_id'] ?>"
-                            <?= old('course_id') === (string) $course['course_id'] ? 'selected' : '' ?>>
-                            <?= e($course['code']) ?>: <?= e($course['name']) ?>
-                        </option>
-                    <?php endforeach; ?>
+                    <?= course_options($courses, old('course_id')) ?>
                 </select>
             </div>
             <div class="form-row">

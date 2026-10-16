@@ -52,6 +52,17 @@ All demo accounts use the password `demo1234`; the administrator seeded by
 `schema.sql` keeps its own password and is left untouched. The script is
 idempotent — re-running it adds nothing.
 
+**2c. Already have a database? Update its course list**
+
+```bash
+C:\xampp\mysql\bin\mysql.exe -u root casms < database/update-courses.sql
+```
+
+Brings an existing install up to BukSU's 29 degree programs (as listed by the
+Office of the Registrar) without resetting anything. Courses not on that list
+are retired: hidden from sign-up but kept for students already linked to them.
+A fresh `schema.sql` install already has the list.
+
 **3. Start Apache and MySQL in the XAMPP Control Panel**
 
 **4. Open the system**
@@ -150,7 +161,8 @@ same computer; deploy under a real hostname for links that work anywhere.
 BukSU CASDEVU/
 ├── database/
 │   ├── schema.sql           Clean installer: 22 tables, 3 views, seed data
-│   └── demo-data.sql        Optional realistic dataset for a walkthrough
+│   ├── demo-data.sql        Optional realistic dataset for a walkthrough
+│   └── update-courses.sql   Brings an existing database to BukSU's programs
 ├── docs/                    Requirements, DB design, role matrix, build plan,
 │                            test-accounts.pdf
 ├── bin/

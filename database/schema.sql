@@ -597,12 +597,39 @@ INSERT INTO inventory_categories (name, description) VALUES
     ('Props',            'Stage props and set pieces'),
     ('Audio Visual',     'Sound systems, microphones, and lighting');
 
+-- BukSU's degree programs, as listed by the Office of the Registrar
+-- (buksu.edu.ph/office-of-the-registrar/academic-programs). Existing
+-- installs get the same list from database/update-courses.sql.
 INSERT INTO courses (code, name, department) VALUES
-    ('BSIT',  'BS Information Technology',      'College of Technologies'),
-    ('BSCS',  'BS Computer Science',            'College of Technologies'),
-    ('BEED',  'Bachelor of Elementary Education','College of Education'),
-    ('BSED',  'Bachelor of Secondary Education','College of Education'),
-    ('BSN',   'BS Nursing',                     'College of Nursing');
+    ('ABECON',     'Bachelor of Arts in Economics',                                    'College of Arts and Sciences'),
+    ('ABEL',       'Bachelor of Arts in English Language',                             'College of Arts and Sciences'),
+    ('ABPHILO-PL', 'Bachelor of Arts in Philosophy Pre-Law',                           'College of Arts and Sciences'),
+    ('ABPHILO-TT', 'Bachelor of Arts in Philosophy Teaching Track',                    'College of Arts and Sciences'),
+    ('ABSOCIO',    'Bachelor of Arts in Sociology',                                    'College of Arts and Sciences'),
+    ('BSBIO',      'Bachelor of Science in Biology Major in Biotechnology',            'College of Arts and Sciences'),
+    ('BSCD',       'Bachelor of Science in Community Development',                     'College of Arts and Sciences'),
+    ('BSDEVCOM',   'Bachelor of Science in Development Communication',                 'College of Arts and Sciences'),
+    ('BSES',       'Bachelor of Science in Environmental Science Major in Environmental Heritage Studies', 'College of Arts and Sciences'),
+    ('BSMATH',     'Bachelor of Science in Mathematics',                               'College of Arts and Sciences'),
+    ('BSA',        'Bachelor of Science in Accountancy',                               'College of Business'),
+    ('BSBA-FM',    'Bachelor of Science in Business Administration Major in Financial Management', 'College of Business'),
+    ('BSHM',       'Bachelor of Science in Hospitality Management',                    'College of Business'),
+    ('BECED',      'Bachelor of Early Childhood Education',                            'College of Education'),
+    ('BEED',       'Bachelor of Elementary Education',                                 'College of Education'),
+    ('BPED',       'Bachelor of Physical Education',                                   'College of Education'),
+    ('BSED-ENG',   'Bachelor of Secondary Education Major in English',                 'College of Education'),
+    ('BSED-FIL',   'Bachelor of Secondary Education Major in Filipino',                'College of Education'),
+    ('BSED-MATH',  'Bachelor of Secondary Education Major in Mathematics',             'College of Education'),
+    ('BSED-SCI',   'Bachelor of Secondary Education Major in Science',                 'College of Education'),
+    ('BSED-SS',    'Bachelor of Secondary Education Major in Social Studies',          'College of Education'),
+    ('JD',         'Juris Doctor',                                                     'College of Law'),
+    ('BSN',        'Bachelor of Science in Nursing',                                   'College of Nursing'),
+    ('BPA',        'Bachelor of Public Administration',                                'College of Public Administration and Governance'),
+    ('BSAT',       'Bachelor of Science in Automotive Technology',                     'College of Technologies'),
+    ('BSET',       'Bachelor of Science in Electronics Technology',                    'College of Technologies'),
+    ('BSEMC-DAT',  'Bachelor of Science in Entertainment and Multimedia Computing Major in Digital Animation Technology', 'College of Technologies'),
+    ('BSFT',       'Bachelor of Science in Food Technology',                           'College of Technologies'),
+    ('BSIT',       'Bachelor of Science in Information Technology',                    'College of Technologies');
 
 -- Starter venues so activity scheduling and venue conflict checking (FR-7.3)
 -- work on a fresh install. The office manages these through Admin > Venues.

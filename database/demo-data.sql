@@ -60,7 +60,7 @@ FROM (
 JOIN roles r ON r.name = v.role;
 
 -- =====================================================================
--- STUDENTS — thirty across the five seeded courses and four year levels
+-- STUDENTS — thirty across seven BukSU programs and four year levels
 -- =====================================================================
 
 INSERT IGNORE INTO users
@@ -81,24 +81,24 @@ FROM (
     UNION ALL SELECT  5, '2023-10005', 'Erika',    'Navarro',   'female', 'BSIT', 3, 'A'
     UNION ALL SELECT  6, '2023-10006', 'Francis',  'Gomez',     'male',   'BSIT', 3, 'B'
     UNION ALL SELECT  7, '2023-10007', 'Grace',    'Alonzo',    'female', 'BSIT', 4, 'A'
-    UNION ALL SELECT  8, '2023-10008', 'Hector',   'Pascual',   'male',   'BSCS', 1, 'A'
-    UNION ALL SELECT  9, '2023-10009', 'Irene',    'Bautista',  'female', 'BSCS', 1, 'B'
-    UNION ALL SELECT 10, '2023-10010', 'Jerome',   'Castro',    'male',   'BSCS', 2, 'A'
-    UNION ALL SELECT 11, '2023-10011', 'Kristine', 'Domingo',   'female', 'BSCS', 2, 'B'
-    UNION ALL SELECT 12, '2023-10012', 'Leo',      'Espino',    'male',   'BSCS', 3, 'A'
-    UNION ALL SELECT 13, '2023-10013', 'Marites',  'Fajardo',   'female', 'BSCS', 3, 'B'
-    UNION ALL SELECT 14, '2023-10014', 'Noel',     'Guevarra',  'male',   'BSCS', 4, 'A'
+    UNION ALL SELECT  8, '2023-10008', 'Hector',   'Pascual',   'male',   'BSEMC-DAT', 1, 'A'
+    UNION ALL SELECT  9, '2023-10009', 'Irene',    'Bautista',  'female', 'BSEMC-DAT', 1, 'B'
+    UNION ALL SELECT 10, '2023-10010', 'Jerome',   'Castro',    'male',   'BSEMC-DAT', 2, 'A'
+    UNION ALL SELECT 11, '2023-10011', 'Kristine', 'Domingo',   'female', 'BSEMC-DAT', 2, 'B'
+    UNION ALL SELECT 12, '2023-10012', 'Leo',      'Espino',    'male',   'BSEMC-DAT', 3, 'A'
+    UNION ALL SELECT 13, '2023-10013', 'Marites',  'Fajardo',   'female', 'BSEMC-DAT', 3, 'B'
+    UNION ALL SELECT 14, '2023-10014', 'Noel',     'Guevarra',  'male',   'BSEMC-DAT', 4, 'A'
     UNION ALL SELECT 15, '2023-10015', 'Olivia',   'Hernandez', 'female', 'BEED', 1, 'A'
     UNION ALL SELECT 16, '2023-10016', 'Paulo',    'Ignacio',   'male',   'BEED', 1, 'B'
     UNION ALL SELECT 17, '2023-10017', 'Queenie',  'Javier',    'female', 'BEED', 2, 'A'
     UNION ALL SELECT 18, '2023-10018', 'Rafael',   'Lorenzo',   'male',   'BEED', 2, 'B'
     UNION ALL SELECT 19, '2023-10019', 'Sofia',    'Marquez',   'female', 'BEED', 3, 'A'
     UNION ALL SELECT 20, '2023-10020', 'Tomas',    'Nicolas',   'male',   'BEED', 4, 'A'
-    UNION ALL SELECT 21, '2023-10021', 'Ursula',   'Ocampo',    'female', 'BSED', 1, 'A'
-    UNION ALL SELECT 22, '2023-10022', 'Victor',   'Padilla',   'male',   'BSED', 2, 'A'
-    UNION ALL SELECT 23, '2023-10023', 'Wendy',    'Quimbo',    'female', 'BSED', 2, 'B'
-    UNION ALL SELECT 24, '2023-10024', 'Xavier',   'Ramos',     'male',   'BSED', 3, 'A'
-    UNION ALL SELECT 25, '2023-10025', 'Yvonne',   'Salazar',   'female', 'BSED', 4, 'A'
+    UNION ALL SELECT 21, '2023-10021', 'Ursula',   'Ocampo',    'female', 'BSED-ENG', 1, 'A'
+    UNION ALL SELECT 22, '2023-10022', 'Victor',   'Padilla',   'male',   'BSED-FIL', 2, 'A'
+    UNION ALL SELECT 23, '2023-10023', 'Wendy',    'Quimbo',    'female', 'BSED-MATH', 2, 'B'
+    UNION ALL SELECT 24, '2023-10024', 'Xavier',   'Ramos',     'male',   'BSED-SCI', 3, 'A'
+    UNION ALL SELECT 25, '2023-10025', 'Yvonne',   'Salazar',   'female', 'BSED-SS', 4, 'A'
     UNION ALL SELECT 26, '2023-10026', 'Zaldy',    'Tolentino', 'male',   'BSN',  1, 'A'
     UNION ALL SELECT 27, '2023-10027', 'Aileen',   'Urbano',    'female', 'BSN',  2, 'A'
     UNION ALL SELECT 28, '2023-10028', 'Benjie',   'Velasco',   'male',   'BSN',  3, 'A'

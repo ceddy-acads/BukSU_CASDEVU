@@ -32,7 +32,7 @@ if ($activity === null) {
 }
 
 $yearLevels = fetch_all('SELECT year_level_id, label FROM year_levels ORDER BY sort_order');
-$courses    = fetch_all('SELECT course_id, code, name FROM courses WHERE is_active = 1 ORDER BY code');
+$courses    = fetch_all('SELECT course_id, code, name, department FROM courses WHERE is_active = 1 ORDER BY department, name');
 
 $errors = [];
 
@@ -279,11 +279,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <label for="course_id">Course</label>
                 <select id="course_id" name="course_id">
                     <option value="">Any course</option>
-                    <?php foreach ($courses as $course): ?>
-                        <option value="<?= (int) $course['course_id'] ?>">
-                            <?= e($course['code']) ?>: <?= e($course['name']) ?>
-                        </option>
-                    <?php endforeach; ?>
+                    <?= course_options($courses) ?>
                 </select>
             </div>
 
