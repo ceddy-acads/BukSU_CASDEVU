@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CASDevU · Information architecture</title>
+<style>
+:root {
+  --bg: #fafafc; --surface: #ffffff; --fg: #18182b; --fg-muted: #65657a;
+  --border: #d8d8e4; --accent: #4338ca;
+  --sans: "Hanken Grotesk", Inter, system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px;
+  --s5: 20px; --s6: 24px; --s7: 32px; --s8: 48px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #18182b; --surface: #1f1f36; --fg: #f0f0f8; --fg-muted: #8888a8;
+    --border: #2a2a44; --accent: #7c6ff0;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  font-family: var(--sans); background: var(--bg); color: var(--fg);
+  padding: var(--s7); line-height: 1.5; margin: 0;
+}
+.visual-diagram {
+  margin: 0; padding: var(--s5);
+  background: var(--surface); border-radius: 8px;
+  border: 1px solid var(--border); overflow-x: auto;
+}
+.visual-label {
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  color: var(--fg-muted); letter-spacing: 0.06em;
+  margin-bottom: var(--s4); text-transform: uppercase;
+}
+.sitemap-tabbar {
+  display: flex; align-items: center; justify-content: space-around;
+  padding: var(--s2) var(--s3);
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; margin-bottom: var(--s4);
+}
+.sitemap-tab {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2px; font-size: 10px; color: var(--fg-muted);
+  padding: var(--s1) var(--s2);
+}
+.sitemap-tab svg { color: var(--fg-muted); }
+.sitemap-tab-active { color: var(--accent); }
+.sitemap-tab-active svg { color: var(--accent); }
+.sitemap-tab-post {
+  background: var(--accent); border-radius: 50%;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.sitemap-tab-post svg { color: white; }
+.sitemap-tree { padding: var(--s2) 0; }
+.sitemap-root { margin-bottom: var(--s3); }
+.sitemap-root .sitemap-node-label {
+  font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--fg);
+}
+.sitemap-branches { display: flex; gap: var(--s2); flex-wrap: wrap; }
+.sitemap-branch { flex: 1; min-width: 85px; }
+.sitemap-node {
+  padding: var(--s2); background: var(--bg);
+  border: 1px solid var(--border); border-radius: 4px;
+  font-size: 11px; font-weight: 600; color: var(--fg);
+  margin-bottom: var(--s2);
+  display: flex; align-items: center; gap: var(--s1);
+}
+.sitemap-node-primary { border-color: var(--accent); border-width: 2px; }
+.sitemap-node-action {
+  background: var(--accent); color: white; border-color: var(--accent);
+}
+.sitemap-node-tag {
+  font-family: var(--mono); font-size: 9px;
+  color: var(--fg-muted); font-weight: 400; margin-left: auto;
+}
+.sitemap-node-action .sitemap-node-tag { color: rgba(255,255,255,0.7); }
+.sitemap-children {
+  padding-left: var(--s3); border-left: 1px dashed var(--border);
+}
+.sitemap-leaf {
+  font-size: 10.5px; color: var(--fg-muted);
+  padding: 2px 0; line-height: 1.4;
+}
+/* Page frame for the three diagrams (not part of the diagram vocabulary). */
+.page { max-width: 1100px; margin: 0 auto; display: grid; gap: var(--s6); }
+.page h1 { font-size: 20px; margin: 0; }
+.page > p { margin: 0; color: var(--fg-muted); font-size: 13px; max-width: 70ch; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>CASDevU: proposed information architecture</h1>
+  <p>One sidebar per role, built from the same sections. Tags mark what this proposal changes:
+     <strong>moved</strong> (now reachable from the sidebar), <strong>renamed</strong>, <strong>split</strong>,
+     <strong>new filter</strong>. Untagged items are unchanged.
+     Activity work (participants, documents, eligibility, coordinators) stays inside each activity, its natural home.</p>
+
+  <!-- ============================================================ STUDENT -->
+  <div class="visual-diagram">
+    <div class="visual-label">Student · mostly on a phone</div>
+    <div class="sitemap-tree">
+      <div class="sitemap-root"><span class="sitemap-node-label">CASDevU · student</span></div>
+      <div class="sitemap-branches">
+        <div class="sitemap-branch">
+          <div class="sitemap-node sitemap-node-primary"><span>Dashboard</span><span class="sitemap-node-tag">default</span></div>
+          <div class="sitemap-children">
+            <div class="sitemap-leaf">What needs me now</div>
+            <div class="sitemap-leaf">New activities</div>
+            <div class="sitemap-leaf">Latest announcements</div>
+          </div>
+        </div>
+        <div class="sitemap-branch">
+          <div class="sitemap-node"><span>My activities</span></div>
+          <div class="sitemap-children">
+            <div class="sitemap-leaf">Registration status</div>
+            <div class="sitemap-leaf">Office remarks</div>
+            <div class="sitemap-leaf">Participation history</div>
+          </div>
+        </div>
+        <div class="sitemap-branch">
+          <div class="sitemap-node"><span>My requirements</span></div>
+          <div class="sitemap-children">
+            <div class="sitemap-leaf">Your turn: upload documents</div>
+            <div class="sitemap-leaf">With the office</div>
+            <div class="sitemap-leaf">Done</div>
+          </div>
+        </div>
+        <div class="sitemap-branch">
+          <div class="sitemap-node"><span>Activities</span></div>
+          <div class="sitemap-children">
+            <div class="sitemap-leaf">Browse · search · filter</div>
+            <div class="sitemap-leaf">Activity → Register</div>
+            <div class="sitemap-leaf">Calendar view</div>
+          </div>
+        </div>
+        <div class="sitemap-branch">
+          <div class="sitemap-node"><span>Announcements</span></div>
+          <div class="sitemap-children">
+            <div class="sitemap-leaf">All posts</div>
+          </div>
+        </div>
+        <div class="sitemap-branch">
+          <div class="sitemap-node"><span>Costumes &amp; equipment</span></div>
+          <div class="sitemap-children">
+            <div class="sitemap-leaf">Catalog · what is free now</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================= COORDINATOR -->
+  <div class="visual-diagram">
+    <div class="visual-label">Coordinator · runs assigned activities</div>
+    <div class="sitemap-tree">
+      <div class="sitemap-root"><span class="sitemap-node-label">CASDevU · coordinator</span></div>
+      <div class="sitemap-branches">
+        <div class="sitemap-branch">
+          <div class="sitemap-node sitemap-node-primary"><span>Dashboard</span><span class="sitemap-node-tag">default</span></div>
+          <div class="sitemap-children">
+            <div class="sitemap-leaf">My activities at a glance</div>
+          </div>
+        </div>
+        <div class="sitemap-branch">
+          <div class="sitemap-node"><span>Review queue</span></div>
+          <div class="sitemap-children">
+            <div class="sitemap-leaf">Registrations to approve</div>
+            <div class="sitemap-leaf">Documents to verify</div>
+          </div>
+        </div>
+        <div class="sitemap-branch">
+          <div class="sitemap-node"><span>Activities</span><span class="sitemap-node-tag">new filter</span></div>
+          <div class="sitemap-children">
+            <div class="sitemap-leaf">"Assigned to me" first</div>
+            <div class="sitemap-leaf">Activity → Participants</div>
+            <div class="sitemap-leaf">Activity → Verify documents</div>
+            <div class="sitemap-leaf">Calendar view</div>
+          </div>
+        </div>
+        <div class="sitemap-branch">
+          <div class="sitemap-node"><span>Equipment</span><span class="sitemap-node-tag">renamed</span></div>
+          <div class="sitemap-children">
+            <div class="sitemap-leaf">Catalog</div>
+            <div class="sitemap-leaf">My reservations</div>
+          </div>
+        </div>
+        <div class="sitemap-branch">
+          <div class="sitemap-node"><span>Announcements</span></div>
+          <div class="sitemap-children"><div class="sitemap-leaf">All posts</div></div>
+        </div>
+        <div class="sitemap-branch">
+          <div class="sitemap-node"><span>Reports</span></div>
+          <div class="sitemap-children"><div class="sitemap-leaf">Participation (own activities)</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================== STAFF & ADMIN -->
+  <div class="visual-diagram">
+    <div class="visual-label">Office staff &amp; admin · at a desk</div>
+    <div class="sitemap-tree">
+      <div class="sitemap-root"><span class="sitemap-node-label">CASDevU · office</span></div>
+      <div class="sitemap-branches">
+        <div class="sitemap-branch">
+          <div class="sitemap-node sitemap-node-primary"><span>Dashboard</span><span class="sitemap-node-tag">default</span></div>
+          <div class="sitemap-children">
+            <div class="sitemap-leaf">Counts that need action</div>
+            <div class="sitemap-leaf">Upcoming activities</div>
+          </div>
+        </div>
+        <div class="sitemap-branch">
+          <div class="sitemap-node"><span>Review queue</span></div>
+          <div class="sitemap-children">
+            <div class="sitemap-leaf">Documents to verify</div>
+            <div class="sitemap-leaf">Registrations to approve</div>
+            <div class="sitemap-leaf">Reservation requests</div>
+            <div class="sitemap-leaf">New student accounts</div>
+          </div>
+        </div>
+        <div class="sitemap-branch">
+          <div class="sitemap-node"><span>Activities</span></div>
+          <div class="sitemap-children">
+            <div class="sitemap-leaf">List · Calendar view</div>
+            <div class="sitemap-leaf">Activity → Participants</div>
+            <div class="sitemap-leaf">Activity → Verify documents</div>
+            <div class="sitemap-leaf">Activity → Eligibility, Coordinators</div>
+          </div>
+        </div>
+        <div class="sitemap-branch">
+          <div class="sitemap-node sitemap-node-action"><span>New activity (+)</span></div>
+          <div class="sitemap-children"><div class="sitemap-leaf">From Dashboard or Activities</div></div>
+        </div>
+        <div class="sitemap-branch">
+          <div class="sitemap-node"><span>Equipment</span><span class="sitemap-node-tag">split</span></div>
+          <div class="sitemap-children">
+            <div class="sitemap-leaf">Catalog (was Inventory)</div>
+            <div class="sitemap-leaf">Reservations · moved</div>
+            <div class="sitemap-leaf">Loans · moved</div>
+          </div>
+        </div>
+        <div class="sitemap-branch">
+          <div class="sitemap-node"><span>Reports</span></div>
+          <div class="sitemap-children">
+            <div class="sitemap-leaf">Participation</div>
+            <div class="sitemap-leaf">Students &amp; players</div>
+            <div class="sitemap-leaf">Inventory</div>
+          </div>
+        </div>
+        <div class="sitemap-branch">
+          <div class="sitemap-node"><span>Setup</span><span class="sitemap-node-tag">split</span></div>
+          <div class="sitemap-children">
+            <div class="sitemap-leaf">Accounts / Users</div>
+            <div class="sitemap-leaf">Venues</div>
+            <div class="sitemap-leaf">Categories · admin</div>
+            <div class="sitemap-leaf">Reminders</div>
+          </div>
+        </div>
+        <div class="sitemap-branch">
+          <div class="sitemap-node"><span>System</span><span class="sitemap-node-tag">admin only</span></div>
+          <div class="sitemap-children">
+            <div class="sitemap-leaf">Audit log</div>
+            <div class="sitemap-leaf">Backup</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
