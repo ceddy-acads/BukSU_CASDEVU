@@ -1430,19 +1430,24 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 .portal-form input[type="password"],
 .portal-form input[type="text"] { min-height: 48px; font-size: 1rem; border-radius: var(--r); }
 
-/* Password with an inline Show / Hide button. */
+/* Password with an inline eye button: an open eye to show the password, a
+   struck-through eye (navy) while it is showing. */
 .password-field { position: relative; }
-.password-field input { padding-right: 5rem; }
+.password-field input { padding-right: 3.25rem; }
 .password-toggle {
     position: absolute; top: 2px; right: 2px; bottom: 2px;   /* 44px tall in a 48px field */
-    min-width: 64px; padding: 0 var(--s3);
+    width: 44px; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
     border: 0; border-radius: calc(var(--r) - 2px);
-    background: var(--navy-50); color: var(--navy);
-    font: inherit; font-size: var(--fs-sm); font-weight: 700; cursor: pointer;
+    background: transparent; color: var(--ink-soft); cursor: pointer;
 }
-.password-toggle:hover { background: var(--navy-100); }
+.password-toggle .icon { width: 20px; height: 20px; }
+.password-toggle:hover { background: var(--navy-50); color: var(--navy); }
 .password-toggle:focus-visible { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--navy-700); }
-.password-toggle[aria-pressed="true"] { background: var(--navy); color: #fff; }
+.password-toggle[aria-pressed="true"] { color: var(--navy); }
+.password-toggle .icon-hide,
+.password-toggle[aria-pressed="true"] .icon-show { display: none; }
+.password-toggle[aria-pressed="true"] .icon-hide { display: block; }
 
 /* A field with a problem: red edge, and the reason in words under it. */
 .has-error input:not(:focus), .portal-form input[aria-invalid="true"]:not(:focus) { border-color: var(--danger); }

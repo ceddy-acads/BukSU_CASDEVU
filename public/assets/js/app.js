@@ -291,18 +291,19 @@ window.CASDevU = window.CASDevU || {};
     });
 })();
 
-/* Password visibility: <button data-password-toggle="inputId" hidden>.
-   The button ships hidden and is revealed here, so without JavaScript the
-   field just stays masked. Its accessible name says what it will do, and
-   aria-pressed reports whether the password is showing. */
+/* Password visibility: <button data-password-toggle="inputId" hidden>
+   holding an eye icon and a struck-through eye; CSS shows the one that
+   matches aria-pressed. The button ships hidden and is revealed here, so
+   without JavaScript the field just stays masked. Its accessible name says
+   what it will do, and aria-pressed reports whether the password is showing. */
 (function () {
     'use strict';
     document.querySelectorAll('[data-password-toggle]').forEach(function (button) {
         var input = document.getElementById(button.getAttribute('data-password-toggle'));
         if (!input) { return; }
         function render(showing) {
-            button.textContent = showing ? 'Hide' : 'Show';
             button.setAttribute('aria-label', showing ? 'Hide password' : 'Show password');
+            button.title = showing ? 'Hide password' : 'Show password';
             button.setAttribute('aria-pressed', showing ? 'true' : 'false');
         }
         render(false);

@@ -295,7 +295,7 @@ require __DIR__ . '/../includes/layout/header.php';
                                    autocomplete="current-password" required>
                             <?php // Shown by app.js; without JavaScript the field simply stays masked. ?>
                             <button type="button" class="password-toggle" data-password-toggle="current_password"
-                                    aria-controls="current_password" aria-pressed="false" hidden>Show</button>
+                                    aria-controls="current_password" aria-pressed="false" aria-label="Show password" hidden><?= icon('eye', 'icon icon-show') ?><?= icon('eye-off', 'icon icon-hide') ?></button>
                         </div>
                     </div>
                     <div class="form-row">
@@ -304,7 +304,7 @@ require __DIR__ . '/../includes/layout/header.php';
                             <input type="password" id="new_password" name="new_password"
                                    autocomplete="new-password" required>
                             <button type="button" class="password-toggle" data-password-toggle="new_password"
-                                    aria-controls="new_password" aria-pressed="false" hidden>Show</button>
+                                    aria-controls="new_password" aria-pressed="false" aria-label="Show password" hidden><?= icon('eye', 'icon icon-show') ?><?= icon('eye-off', 'icon icon-hide') ?></button>
                         </div>
                     </div>
                     <div class="form-row">
@@ -313,7 +313,7 @@ require __DIR__ . '/../includes/layout/header.php';
                             <input type="password" id="confirm_password" name="confirm_password"
                                    autocomplete="new-password" required>
                             <button type="button" class="password-toggle" data-password-toggle="confirm_password"
-                                    aria-controls="confirm_password" aria-pressed="false" hidden>Show</button>
+                                    aria-controls="confirm_password" aria-pressed="false" aria-label="Show password" hidden><?= icon('eye', 'icon icon-show') ?><?= icon('eye-off', 'icon icon-hide') ?></button>
                         </div>
                     </div>
 

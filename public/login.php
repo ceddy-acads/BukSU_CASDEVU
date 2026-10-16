@@ -83,7 +83,7 @@ require __DIR__ . '/../includes/layout/portal-header.php';
                    <?= $passwordDescribedBy !== '' ? 'aria-describedby="' . $passwordDescribedBy . '"' : '' ?>>
             <?php // Shown by app.js; without JavaScript the field simply stays masked. ?>
             <button type="button" class="password-toggle" data-password-toggle="password"
-                    aria-controls="password" aria-pressed="false" hidden>Show</button>
+                    aria-controls="password" aria-pressed="false" aria-label="Show password" hidden><?= icon('eye', 'icon icon-show') ?><?= icon('eye-off', 'icon icon-hide') ?></button>
         </div>
         <?php if ($passwordError !== ''): ?>
             <p class="field-error" id="password-error"><?= e($passwordError) ?></p>

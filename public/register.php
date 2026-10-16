@@ -219,7 +219,7 @@ require __DIR__ . '/../includes/layout/portal-header.php';
                            autocomplete="new-password" minlength="8" required>
                     <?php // Shown by app.js; without JavaScript the field simply stays masked. ?>
                     <button type="button" class="password-toggle" data-password-toggle="password"
-                            aria-controls="password" aria-pressed="false" hidden>Show</button>
+                            aria-controls="password" aria-pressed="false" aria-label="Show password" hidden><?= icon('eye', 'icon icon-show') ?><?= icon('eye-off', 'icon icon-hide') ?></button>
                 </div>
                 <p class="hint">At least 8 characters.</p>
             </div>
@@ -229,7 +229,7 @@ require __DIR__ . '/../includes/layout/portal-header.php';
                     <input type="password" id="password_confirm" name="password_confirm"
                            autocomplete="new-password" required>
                     <button type="button" class="password-toggle" data-password-toggle="password_confirm"
-                            aria-controls="password_confirm" aria-pressed="false" hidden>Show</button>
+                            aria-controls="password_confirm" aria-pressed="false" aria-label="Show password" hidden><?= icon('eye', 'icon icon-show') ?><?= icon('eye-off', 'icon icon-hide') ?></button>
                 </div>
             </div>
         </div>
