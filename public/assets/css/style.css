@@ -58,6 +58,15 @@
     --warning:    #8a5a00;  --warning-bg: #fdf2dc;  --warning-line: #edd49a;
     --info:       #1f5f93;  --info-bg:    #e7f0f8;  --info-line:    #bcd5ea;
     --muted-bg:   #eceff3;  --muted-fg:   #4b5563;
+    --danger-hover:  #8a1818;   /* danger button hover */
+    --warning-fill:  #a86f00;   /* bars and fills; --warning is for text */
+    --ink-faint:     #6b7584;   /* placeholders, muted chart bars; 4.6:1 on white */
+
+    /* On navy: text and icons placed on the navy surfaces (sidebar, portal,
+       primary buttons). The muted and soft steps keep a hierarchy there. */
+    --on-dark:       #fff;
+    --on-dark-soft:  #dbe3ef;   /* body copy on navy */
+    --on-dark-muted: #b8c6dc;   /* labels and captions on navy */
 
     /* Type scale */
     --font-sans:  "Outfit", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -126,10 +135,10 @@ img    { max-width: 100%; height: auto; }
 
 .skip-link {
     position: absolute; left: var(--s4); top: -100px; z-index: 100;
-    background: var(--navy); color: #fff; padding: var(--s2) var(--s4);
+    background: var(--navy); color: var(--on-dark); padding: var(--s2) var(--s4);
     border-radius: var(--r-sm); font-weight: 600; text-decoration: none;
 }
-.skip-link:focus { top: var(--s4); color: #fff; }
+.skip-link:focus { top: var(--s4); color: var(--on-dark); }
 
 .sr-only {
     position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
@@ -148,7 +157,7 @@ img    { max-width: 100%; height: auto; }
     width: min(var(--sidebar-w), 86vw);
     display: flex; flex-direction: column;
     background: var(--navy);
-    color: #fff;
+    color: var(--on-dark);
     transform: translateX(-100%);
     transition: transform .22s cubic-bezier(.2, .8, .2, 1), visibility 0s linear .22s;
     visibility: hidden;
@@ -166,14 +175,14 @@ img    { max-width: 100%; height: auto; }
     padding: var(--s5) var(--s2) var(--s4) var(--s5);
 }
 .brand {
-    color: #fff; text-decoration: none; line-height: 1.15;
+    color: var(--on-dark); text-decoration: none; line-height: 1.15;
     display: flex; align-items: center; gap: var(--s2);
 }
 /* The white BukSU logo beside the name, sized to the name and university
    line. Compact in the phone/tablet drawer; full size from 960px up. */
 .brand-logo { flex: none; width: auto; height: 2rem; }
 .brand-text { display: block; min-width: 0; }
-.brand:hover { color: #fff; }
+.brand:hover { color: var(--on-dark); }
 .brand-mark {
     display: block; font-family: var(--font-display);
     font-size: 1.2rem; font-weight: 700; letter-spacing: .01em;
@@ -182,7 +191,7 @@ img    { max-width: 100%; height: auto; }
    line; on a device too narrow even for that it ends in "..." instead of
    wrapping. The desktop sidebar has room for 12px. */
 .brand-sub {
-    display: block; font-size: .6875rem; color: #b8c6dc; margin-top: 2px;
+    display: block; font-size: .6875rem; color: var(--on-dark-muted); margin-top: 2px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
@@ -197,7 +206,7 @@ img    { max-width: 100%; height: auto; }
 
 .nav-group + .nav-group { margin-top: var(--s5); }
 .nav-group-title {
-    font-size: var(--fs-xs); font-weight: 600; color: #b8c6dc;
+    font-size: var(--fs-xs); font-weight: 600; color: var(--on-dark-muted);
     padding: 0 var(--s3); margin: 0 0 var(--s1);
 }
 
@@ -207,16 +216,16 @@ img    { max-width: 100%; height: auto; }
     min-height: 40px;
     padding: var(--s2) var(--s3);
     border-radius: var(--r-sm);
-    color: #dbe3ef; text-decoration: none;
+    color: var(--on-dark-soft); text-decoration: none;
     font-size: var(--fs-base);
 }
 .nav-icon { width: 20px; height: 20px; flex: none; opacity: .85; }
 .nav-label { flex: 1; min-width: 0; }
-.nav-link:hover { background: rgba(255, 255, 255, .08); color: #fff; }
+.nav-link:hover { background: rgba(255, 255, 255, .08); color: var(--on-dark); }
 .nav-link:hover .nav-icon { opacity: 1; }
 /* "You are here": a filled row, bold label, full-strength icon, and the gold
    marker bar. Shape and weight carry it, not the colour alone. */
-.nav-link[aria-current="page"] { background: rgba(255, 255, 255, .12); color: #fff; font-weight: 600; }
+.nav-link[aria-current="page"] { background: rgba(255, 255, 255, .12); color: var(--on-dark); font-weight: 600; }
 .nav-link[aria-current="page"] .nav-icon { opacity: 1; color: var(--gold); }
 .nav-link[aria-current="page"]::before {
     content: ""; position: absolute; left: -12px; top: 8px; bottom: 8px;
@@ -249,7 +258,7 @@ img    { max-width: 100%; height: auto; }
 .icon-btn:focus-visible { box-shadow: var(--topbar-focus, 0 0 0 2px var(--navy), 0 0 0 4px var(--gold)); }
 .icon-btn svg { width: 22px; height: 22px; flex: none; }
 .icon-btn .nav-count { position: absolute; top: 3px; right: 1px; min-width: 18px; line-height: 17px; padding: 0 4px; font-size: 11px; }
-.sidebar .icon-btn { color: #fff; }
+.sidebar .icon-btn { color: var(--on-dark); }
 
 /* --------------------------------------------------------------- Top bar */
 /* Phones: the navy bar with Menu, wordmark, bell, and account.
@@ -258,7 +267,7 @@ img    { max-width: 100%; height: auto; }
     position: sticky; top: 0; z-index: 20;
     display: flex; align-items: center; gap: var(--s2);
     min-height: 56px; padding: 0 var(--s3);
-    background: var(--navy); color: #fff;
+    background: var(--navy); color: var(--on-dark);
 }
 .topbar .breadcrumb { display: none; }
 .topbar-actions { display: flex; align-items: center; gap: var(--s1); margin-left: auto; }
@@ -327,7 +336,7 @@ img    { max-width: 100%; height: auto; }
 .profile-avatar {
     flex: none; width: 64px; height: 64px; border-radius: 50%;
     display: grid; place-items: center;
-    background: var(--navy); color: #fff; font-size: 1.375rem; font-weight: 600; letter-spacing: .02em;
+    background: var(--navy); color: var(--on-dark); font-size: 1.375rem; font-weight: 600; letter-spacing: .02em;
     box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--gold);
 }
 .profile-id h2 { margin: 0; font-size: var(--fs-lg); line-height: 1.25; overflow-wrap: anywhere; }
@@ -592,13 +601,13 @@ a.stat:hover { border-color: var(--navy-700); }
 .btn:active { transform: translateY(1px); }
 
 /* Primary: navy. Form submits and the main action inside a card. */
-.btn-primary       { background: var(--navy);  color: #fff; }
-.btn-primary:hover { background: var(--navy-700); color: #fff; }
+.btn-primary       { background: var(--navy);  color: var(--on-dark); }
+.btn-primary:hover { background: var(--navy-700); color: var(--on-dark); }
 /* Gold: the one headline action of a page (New activity, Register, Submit now). */
 .btn-gold          { background: var(--gold);  color: var(--navy-900); }
 .btn-gold:hover    { background: var(--gold-600); color: var(--navy-900); }
-.btn-danger        { background: var(--danger); color: #fff; }
-.btn-danger:hover  { background: #8a1818; color: #fff; }
+.btn-danger        { background: var(--danger); color: var(--on-dark); }
+.btn-danger:hover  { background: var(--danger-hover); color: var(--on-dark); }
 /* Outline: secondary actions. */
 .btn-outline       { background: var(--surface); color: var(--navy); border-color: var(--line-input); }
 .btn-outline:hover { background: var(--navy-50); border-color: var(--navy); color: var(--navy); }
@@ -698,7 +707,7 @@ input:focus, select:focus, textarea:focus {
     border-color: var(--navy-700);
     box-shadow: 0 0 0 3px rgba(28, 61, 110, .22);
 }
-input::placeholder, textarea::placeholder { color: #6b7584; }
+input::placeholder, textarea::placeholder { color: var(--ink-faint); }
 input[disabled], select[disabled], textarea[disabled], input[readonly] { background: var(--surface-2); color: var(--ink-soft); }
 textarea { min-height: 120px; resize: vertical; line-height: 1.5; }
 select { cursor: pointer; }
@@ -886,7 +895,7 @@ table.data tfoot td { font-weight: 700; background: var(--surface-2); border-top
     border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden;
     line-height: 1.1;
 }
-.agenda-date .mon { display: block; background: var(--navy); color: #fff; font-size: var(--fs-xs); font-weight: 700; padding: 2px 0; }
+.agenda-date .mon { display: block; background: var(--navy); color: var(--on-dark); font-size: var(--fs-xs); font-weight: 700; padding: 2px 0; }
 .agenda-date .day { display: block; font-size: 1.25rem; font-weight: 700; color: var(--navy); padding: 4px 0 5px; }
 .agenda-body { flex: 1; min-width: 0; }
 .agenda-body a { font-weight: 600; }
@@ -1026,7 +1035,7 @@ table.data tfoot td { font-weight: 700; background: var(--surface-2); border-top
     background: var(--surface); color: var(--navy);
 }
 .pagination a:hover { border-color: var(--navy); background: var(--navy-50); }
-.pagination .current { background: var(--navy); color: #fff; border-color: var(--navy); }
+.pagination .current { background: var(--navy); color: var(--on-dark); border-color: var(--navy); }
 
 /* Swatch (category colours) */
 .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; border: 1px solid rgba(0, 0, 0, .12); }
@@ -1074,7 +1083,7 @@ a.cal-daynum { color: var(--navy); }
 a.cal-daynum:hover { background: var(--navy-50); text-decoration: none; }
 .cal-today .cal-daynum { background: var(--gold); color: var(--navy-900); }
 .cal-selected { box-shadow: inset 0 0 0 2px var(--navy); }
-.cal-selected .cal-daynum { background: var(--navy); color: #fff; }
+.cal-selected .cal-daynum { background: var(--navy); color: var(--on-dark); }
 
 /* The dot carries the category colour (--cat), matching the legend swatches. */
 .cal-event {
@@ -1153,7 +1162,7 @@ a.cal-daynum:hover { background: var(--navy-50); text-decoration: none; }
     display: grid; gap: var(--s2);
 }
 .auth-foot p { margin: 0; }
-.auth-legal { margin-top: var(--s5); text-align: center; font-size: var(--fs-sm); color: #b8c6dc; }
+.auth-legal { margin-top: var(--s5); text-align: center; font-size: var(--fs-sm); color: var(--on-dark-muted); }
 
 /* --------------------------------------------------------- 14. Utilities */
 
@@ -1345,10 +1354,10 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 .chart-value { font-size: var(--fs-sm); color: var(--ink-soft); }
 .chart-more { margin: var(--s4) 0 0; font-size: var(--fs-sm); font-weight: 600; }
 .chart-success { background: var(--success); }
-.chart-warning { background: #a86f00; }
+.chart-warning { background: var(--warning-fill); }
 .chart-danger  { background: var(--danger); }
 .chart-info    { background: var(--info); }
-.chart-muted   { background: #6b7584; }
+.chart-muted   { background: var(--ink-faint); }
 .chart-navy    { background: var(--navy); }
 /* Side-by-side rows only when the chart itself is wide enough, so a chart in
    a half-width card keeps a usable bar. */
@@ -1373,7 +1382,7 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 /* ---- Brand field */
 .portal-brand {
     position: relative; overflow: hidden;
-    background: var(--navy); color: #fff;
+    background: var(--navy); color: var(--on-dark);
     padding: var(--s5) var(--s5) var(--s10);
 }
 /* Campus photo (set by portal-header.php when the file exists) under a
@@ -1388,13 +1397,13 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 .portal-brand-inner { position: relative; z-index: 1; max-width: 34rem; }
 .portal-mark { margin: 0; line-height: 1.15; display: flex; align-items: center; gap: var(--s3); }
 .portal-logo { flex: none; width: auto; height: 2.5rem; }
-.portal-mark .brand-mark { display: block; color: #fff; font-size: 1.35rem; }
-.portal-mark-sub { display: block; font-size: var(--fs-sm); color: #b8c6dc; margin-top: 2px; }
+.portal-mark .brand-mark { display: block; color: var(--on-dark); font-size: 1.35rem; }
+.portal-mark-sub { display: block; font-size: var(--fs-sm); color: var(--on-dark-muted); margin-top: 2px; }
 
 /* The one loud element: the unit's three fields, set as a stack. */
 .portal-headline {
     margin: var(--s4) 0 0;
-    font-family: var(--font-display); font-weight: 650; color: #fff;
+    font-family: var(--font-display); font-weight: 650; color: var(--on-dark);
     font-size: 1.35rem; line-height: 1.05; letter-spacing: -.01em;
 }
 .portal-headline span { display: inline; }
@@ -1480,7 +1489,7 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
     .portal-mark .brand-mark { font-size: 1.6rem; }
     .portal-logo { height: 3rem; }
     .portal-headline { font-size: 3rem; margin-top: var(--s6); }
-    .portal-lede { display: block; margin: var(--s4) 0 0; max-width: 32rem; color: #dbe3ef; font-size: var(--fs-md); line-height: 1.5; }
+    .portal-lede { display: block; margin: var(--s4) 0 0; max-width: 32rem; color: var(--on-dark-soft); font-size: var(--fs-md); line-height: 1.5; }
     .portal-main { margin-top: calc(var(--s12) * -1); }
     .portal-panel { max-width: 480px; padding: var(--s6); border-radius: 24px; }
 }
@@ -1527,7 +1536,7 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
        holds (an alert makes it taller); the office line sits at the foot. */
     .portal-panel { max-width: 440px; margin: auto 0; }
     /* On the navy now, so it takes the light text colour. */
-    .portal-legal { width: 100%; max-width: 440px; color: #dbe3ef; }
+    .portal-legal { width: 100%; max-width: 440px; color: var(--on-dark-soft); }
 }
 
 /* Over the photo the card is glass, after Apple's Liquid Glass (HIG:
@@ -1681,7 +1690,7 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
     .portal-status .portal-legal {
         position: absolute; left: 0; right: 0; bottom: var(--s6);
         max-width: 480px; margin: 0 auto; padding: 0 var(--s5);
-        color: #dbe3ef; text-align: center;
+        color: var(--on-dark-soft); text-align: center;
     }
 }
 @media (min-width: 1024px) {
@@ -1735,14 +1744,19 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 .modal-body .card { border: 0; box-shadow: none; padding: 0; margin: 0; }
 
 /* ------------------------------------------------------------ Toasts ----- */
-/* Flash messages float top-center over the page instead of pushing content
-   down. Same four tones as .alert, lifted with the overlay shadow. app.js
-   dismisses each toast after a few seconds; the close button dismisses it
-   at once. */
+/* Flash messages float at the bottom of the screen instead of pushing
+   content down: across the bottom on phones, in the bottom right corner from
+   tablet width up, clear of page titles and actions. Same four tones as
+   .alert, lifted with the overlay shadow. app.js dismisses each toast after
+   a few seconds; the close button dismisses it at once. */
 .toasts {
-    position: fixed; top: var(--s4); left: 50%; transform: translateX(-50%); z-index: 60;
-    width: min(480px, calc(100vw - 2rem));
+    position: fixed; z-index: 60;
+    left: var(--s4); right: var(--s4);
+    bottom: calc(var(--s4) + env(safe-area-inset-bottom, 0px));
     display: grid; gap: var(--s2);
+}
+@media (min-width: 640px) {
+    .toasts { left: auto; right: var(--s6); bottom: var(--s6); width: min(420px, calc(100vw - 3rem)); }
 }
 .toast {
     display: flex; align-items: flex-start; gap: var(--s3);
@@ -1767,16 +1781,16 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 .toast-close svg, .toast-copy svg { width: 16px; height: 16px; }
 /* "Copied" confirmation: the button briefly becomes a text label. */
 .toast-copy.is-copied { width: auto; padding: 0 var(--s2); font-size: var(--fs-xs); font-weight: 700; opacity: 1; }
-.toast.is-leaving { opacity: 0; transform: translateY(-6px); transition: opacity .2s, transform .2s; }
+.toast.is-leaving { opacity: 0; transform: translateY(6px); transition: opacity .2s, transform .2s; }
 /* In place (the sign-in card): part of the panel, between heading and form. */
 .toasts-inline {
-    position: static; transform: none; z-index: auto; width: auto;
+    position: static; z-index: auto; width: auto;
     margin: calc(var(--s2) * -1) 0 var(--s5);
 }
 .toasts-inline .toast { box-shadow: none; }
 
 @keyframes toast-in {
-    from { opacity: 0; transform: translateY(-8px); }
+    from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: none; }
 }
 
