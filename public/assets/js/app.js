@@ -502,7 +502,9 @@ window.CASDevU = window.CASDevU || {};
 
 /* Toasts: floating flash messages dismiss themselves after a few seconds;
    the close button dismisses at once. Inline ones (the sign-in card) only
-   close on request, so the form below never shifts on its own. The wrap
+   close on request, so the form below never shifts on its own, and so do
+   ones with something to copy (a temporary password is shown only once,
+   so it must not vanish before it is copied). The wrap
    removes itself with the last toast, so nothing invisible stays in the
    tab order. */
 (function () {
@@ -520,7 +522,8 @@ window.CASDevU = window.CASDevU || {};
                 if (wrap && wrap.children.length === 0) { wrap.remove(); }
             }, 220);
         }
-        var timer = toast.closest('[data-toasts-inline]') ? null : window.setTimeout(dismiss, TOAST_MS);
+        var sticky = toast.closest('[data-toasts-inline]') || toast.querySelector('[data-toast-copy]');
+        var timer = sticky ? null : window.setTimeout(dismiss, TOAST_MS);
         var closer = toast.querySelector('[data-toast-close]');
         if (closer) {
             closer.addEventListener('click', function () {
