@@ -34,4 +34,7 @@ declare(strict_types=1);
                 <?php endif; ?>
             </header>
 
-            <?php require __DIR__ . '/toasts.php'; ?>
+            <?php // Inside the glass panel a fixed toast would pin to the panel
+                  // (backdrop-filter makes it the containing block) and cover the
+                  // heading, so messages show in place under the heading instead. ?>
+            <?php $toastsInline = true; require __DIR__ . '/toasts.php'; ?>

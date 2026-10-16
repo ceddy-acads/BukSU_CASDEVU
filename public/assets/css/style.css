@@ -1768,6 +1768,12 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 /* "Copied" confirmation: the button briefly becomes a text label. */
 .toast-copy.is-copied { width: auto; padding: 0 var(--s2); font-size: var(--fs-xs); font-weight: 700; opacity: 1; }
 .toast.is-leaving { opacity: 0; transform: translateY(-6px); transition: opacity .2s, transform .2s; }
+/* In place (the sign-in card): part of the panel, between heading and form. */
+.toasts-inline {
+    position: static; transform: none; z-index: auto; width: auto;
+    margin: calc(var(--s2) * -1) 0 var(--s5);
+}
+.toasts-inline .toast { box-shadow: none; }
 
 @keyframes toast-in {
     from { opacity: 0; transform: translateY(-8px); }

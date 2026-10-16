@@ -6,13 +6,18 @@
  * down; app.js dismisses each one after a few seconds, and the close
  * button dismisses it at once. The error tone uses role="alert" so it is
  * announced immediately; the rest use role="status".
+ *
+ * Set $toastsInline = true before including to show the messages in place
+ * instead (the sign-in card): they sit in the flow of the panel and stay
+ * until closed, so the form never jumps while someone is typing.
  */
 declare(strict_types=1);
 
 $flashes = take_flashes();
 ?>
 <?php if ($flashes !== []): ?>
-    <div class="toasts" data-toasts>
+    <div class="toasts<?= !empty($toastsInline) ? ' toasts-inline' : '' ?>" data-toasts
+         <?= !empty($toastsInline) ? 'data-toasts-inline' : '' ?>>
         <?php foreach ($flashes as $flashMessage): ?>
             <?php $copyText = (string) ($flashMessage['copy'] ?? ''); ?>
             <div class="toast toast-<?= e($flashMessage['type']) ?>"

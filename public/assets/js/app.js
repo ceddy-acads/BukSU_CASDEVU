@@ -501,8 +501,10 @@ window.CASDevU = window.CASDevU || {};
 })();
 
 /* Toasts: floating flash messages dismiss themselves after a few seconds;
-   the close button dismisses at once. The wrap removes itself with the
-   last toast, so nothing invisible stays in the tab order. */
+   the close button dismisses at once. Inline ones (the sign-in card) only
+   close on request, so the form below never shifts on its own. The wrap
+   removes itself with the last toast, so nothing invisible stays in the
+   tab order. */
 (function () {
     'use strict';
     var TOAST_MS = 6000;
@@ -518,7 +520,7 @@ window.CASDevU = window.CASDevU || {};
                 if (wrap && wrap.children.length === 0) { wrap.remove(); }
             }, 220);
         }
-        var timer = window.setTimeout(dismiss, TOAST_MS);
+        var timer = toast.closest('[data-toasts-inline]') ? null : window.setTimeout(dismiss, TOAST_MS);
         var closer = toast.querySelector('[data-toast-close]');
         if (closer) {
             closer.addEventListener('click', function () {
