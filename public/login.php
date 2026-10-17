@@ -68,7 +68,7 @@ require __DIR__ . '/../includes/layout/portal-header.php';
     <div class="form-row<?= $emailError !== '' ? ' has-error' : '' ?>">
         <label for="email">Email address</label>
         <input type="email" id="email" name="email" value="<?= e(old('email')) ?>"
-               autocomplete="username" inputmode="email" spellcheck="false" required autofocus
+               autocomplete="username" inputmode="email" spellcheck="false" required<?= $errors !== [] ? ' autofocus' : '' ?>
                <?= $emailError !== '' || $badCredentials ? 'aria-invalid="true"' : '' ?>
                <?= $emailDescribedBy !== '' ? 'aria-describedby="' . $emailDescribedBy . '"' : '' ?>>
         <?php if ($emailError !== ''): ?>
@@ -87,6 +87,21 @@ require __DIR__ . '/../includes/layout/portal-header.php';
             <button type="button" class="password-toggle" data-password-toggle="password"
                     aria-controls="password" aria-pressed="false" aria-label="Show password" hidden><?= icon('eye', 'icon icon-show') ?><?= icon('eye-off', 'icon icon-hide') ?></button>
         </div>
+        <?php if ($errors === []): ?>
+            <?php // A fresh visit opens empty: the browser's saved login is not filled
+                  // in on its own. The fields load read-only (browsers never auto-fill
+                  // those) and app.js unlocks each one the moment it is clicked, tapped
+                  // or tabbed into, so a password manager still works on request.
+                  // Set here, during parsing, before the browser's auto-fill runs;
+                  // without JavaScript the fields simply stay editable. ?>
+            <script>
+                ['email', 'password'].forEach(function (id) {
+                    var input = document.getElementById(id);
+                    input.readOnly = true;
+                    input.setAttribute('data-locked', '');
+                });
+            </script>
+        <?php endif; ?>
         <?php if ($passwordError !== ''): ?>
             <p class="field-error" id="password-error"><?= e($passwordError) ?></p>
         <?php endif; ?>

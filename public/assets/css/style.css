@@ -709,6 +709,8 @@ input:focus, select:focus, textarea:focus {
 }
 input::placeholder, textarea::placeholder { color: var(--ink-faint); }
 input[disabled], select[disabled], textarea[disabled], input[readonly] { background: var(--surface-2); color: var(--ink-soft); }
+/* Sign-in fields held read-only until touched (login.php) look like any field. */
+input[readonly][data-locked] { background: var(--surface); color: var(--ink); }
 textarea { min-height: 120px; resize: vertical; line-height: 1.5; }
 select { cursor: pointer; }
 

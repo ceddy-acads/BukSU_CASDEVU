@@ -155,6 +155,22 @@
     }
     clear(false);
     window.addEventListener('load', function () { clear(false); });
+
+    // Fields login.php loaded read-only (so the browser's saved login is not
+    // filled in on its own) become editable the moment someone reaches them.
+    forms.forEach(function (form) {
+        form.querySelectorAll('input[data-locked]').forEach(function (input) {
+            function unlock() {
+                if (!input.hasAttribute('data-locked')) { return; }
+                input.readOnly = false;
+                input.removeAttribute('data-locked');
+            }
+            // pointerdown comes before focus, so phones open the keyboard.
+            ['pointerdown', 'touchstart', 'focus', 'keydown'].forEach(function (type) {
+                input.addEventListener(type, unlock);
+            });
+        });
+    });
     // Back after signing out shows a stored copy of the page: start over.
     window.addEventListener('pageshow', function (event) { if (event.persisted) { clear(true); } });
 })();
