@@ -589,12 +589,15 @@ INSERT INTO roles (name, description) VALUES
 INSERT INTO year_levels (label, sort_order) VALUES
     ('1st Year', 1), ('2nd Year', 2), ('3rd Year', 3), ('4th Year', 4);
 
+-- Category colours sit beside BukSU navy and gold, and each reads against
+-- white (4.8:1 or more), since they mark chips and dots in the calendar.
+-- Existing installs get them from database/update-category-colours.sql.
 INSERT INTO activity_categories (name, description, color_hex) VALUES
-    ('Culture',     'Cultural programs, festivals, and heritage activities', '#8E44AD'),
-    ('Arts',        'Visual arts, music, dance, theater, and literary events', '#E67E22'),
-    ('Sports',      'Athletic competitions and training',                     '#27AE60'),
-    ('Intramurals', 'Inter-college and inter-department games',               '#2980B9'),
-    ('Others',      'Other school activities managed by the office',          '#7F8C8D');
+    ('Culture',     'Cultural programs, festivals, and heritage activities', '#7B3F78'),
+    ('Arts',        'Visual arts, music, dance, theater, and literary events', '#B5552B'),
+    ('Sports',      'Athletic competitions and training',                     '#2E7D52'),
+    ('Intramurals', 'Inter-college and inter-department games',               '#1F6F8B'),
+    ('Others',      'Other school activities managed by the office',          '#5F6B7A');
 
 INSERT INTO inventory_categories (name, description) VALUES
     ('Costume',          'Performance costumes, uniforms, and accessories'),
