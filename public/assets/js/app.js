@@ -129,6 +129,70 @@
     });
 })();
 
+/* Sign-in photos: <div data-portal-slides> (includes/portal.php) fades to
+   the next event photo every few seconds. The other photos load once the
+   page has, so signing in is never slowed. Rotation stops while someone is
+   in the form, while the tab is hidden, when the visitor pauses it, and not
+   at all when the device asks for reduced motion. Without JavaScript the
+   first photo stays. */
+(function () {
+    'use strict';
+    var stack = document.querySelector('[data-portal-slides]');
+    if (!stack) { return; }
+    var slides = Array.prototype.slice.call(stack.querySelectorAll('.portal-slide'));
+    if (slides.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { return; }
+
+    var INTERVAL_MS = 7000;
+    var current = 0, timer = null, paused = false, inForm = false;
+    var form = document.querySelector('.portal-main');
+    var toggle = document.querySelector('[data-portal-slides-toggle]');
+
+    window.addEventListener('load', function () {
+        slides.forEach(function (slide) {
+            var url = slide.getAttribute('data-photo');
+            if (url) {
+                slide.style.setProperty('--slide-photo', 'url("' + url + '")');
+                slide.removeAttribute('data-photo');
+            }
+        });
+    });
+
+    function next() {
+        slides[current].classList.remove('is-active');
+        current = (current + 1) % slides.length;
+        slides[current].classList.add('is-active');
+    }
+    function sync() {
+        var run = !paused && !inForm && !document.hidden;
+        if (run && timer === null) { timer = window.setInterval(next, INTERVAL_MS); }
+        if (!run && timer !== null) { window.clearInterval(timer); timer = null; }
+    }
+
+    if (toggle) {
+        toggle.hidden = false;
+        toggle.addEventListener('click', function () {
+            paused = !paused;
+            toggle.setAttribute('aria-pressed', paused ? 'true' : 'false');
+            toggle.textContent = paused ? 'Play background photos' : 'Pause background photos';
+            sync();
+        });
+    }
+    if (form) {
+        form.addEventListener('focusin', function (event) {
+            if (event.target !== toggle) { inForm = true; sync(); }
+        });
+        form.addEventListener('focusout', function () {
+            window.setTimeout(function () {
+                var active = document.activeElement;
+                inForm = !!active && active !== toggle && form.contains(active);
+                sync();
+            }, 0);
+        });
+    }
+    document.addEventListener('visibilitychange', sync);
+    sync();
+})();
+
 /* Forms that start empty: <form data-start-empty> (the sign-in form on a
    fresh visit). Browsers put back what was typed on a reload, or when Back
    returns to the page after signing out; clear it so nobody finds the last

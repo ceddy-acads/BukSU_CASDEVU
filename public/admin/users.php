@@ -322,23 +322,33 @@ require __DIR__ . '/../../includes/layout/header.php';
 <?php else: ?>
     <div class="card card-flush">
         <div class="table-wrap">
-            <table class="data table-stack">
+            <?php // Five columns so the table fits beside the sidebar without scrolling
+                  // sideways: email sits under the name, the student number with the
+                  // course, and each row's actions stack. ?>
+            <table class="data table-stack users-table">
                 <thead>
                     <tr>
                         <?= sort_th('Name', 'name', $sortKey, $sortDir, 'admin/users.php', $sortFilters) ?>
-                        <th>Email</th><th>Student no.</th>
-                        <th>Course / Year</th><th>Role</th><th>Status</th><th class="actions">Actions</th>
+                        <th>Student</th><th>Role</th><th>Status</th><th class="actions">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                 <?php foreach ($users as $row): ?>
                     <tr>
-                        <td data-label="Name"><strong><?= e(full_name($row, true)) ?></strong></td>
-                        <td data-label="Email"><?= e($row['email']) ?></td>
-                        <td data-label="Student no."><?= $row['student_number'] ? e($row['student_number']) : '<span class="muted">None</span>' ?></td>
-                        <td data-label="Course / Year">
-                            <?= $row['course_code'] ? e($row['course_code']) : '<span class="muted">None</span>' ?>
-                            <?= $row['year_level_label'] ? '<div class="hint">' . e($row['year_level_label']) . '</div>' : '' ?>
+                        <td data-label="Name">
+                            <strong><?= e(full_name($row, true)) ?></strong>
+                            <?php // A long address may break after the @ or before a dot, never mid-word. ?>
+                            <div class="hint user-email"><?= str_replace(['@', '.'], ['@<wbr>', '<wbr>.'], e($row['email'])) ?></div>
+                        </td>
+                        <td data-label="Student">
+                            <?php if ($row['student_number'] || $row['course_code']): ?>
+                                <?= $row['student_number'] ? '<span class="nowrap">' . e($row['student_number']) . '</span>' : '<span class="muted">No student number</span>' ?>
+                                <div class="hint">
+                                    <?= e(implode(', ', array_filter([$row['course_code'], $row['year_level_label']]))) ?>
+                                </div>
+                            <?php else: ?>
+                                <span class="muted">Not a student</span>
+                            <?php endif; ?>
                         </td>
                         <td data-label="Role">
                             <?php if ($isAdmin && (int) $row['user_id'] !== current_user_id()): ?>

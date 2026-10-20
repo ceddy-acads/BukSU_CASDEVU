@@ -212,7 +212,7 @@ $pageTitle = 'Calendar: ' . $monthLabel;
 require __DIR__ . '/../../includes/layout/header.php';
 ?>
 
-<div class="page-head cal-head">
+<div class="page-head cal-head photo-band photo-band-slim"<?= photo_band_style('cheerdance') ?>>
     <div>
         <h1><?= e($monthLabel) ?></h1>
         <p><?= count($activities) ?> activit<?= count($activities) === 1 ? 'y' : 'ies' ?> this month<?= $categoryIn !== '' ? ' in this category' : '' ?></p>

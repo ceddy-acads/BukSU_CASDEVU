@@ -95,7 +95,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 
 <?php $hasFilters = $keyword !== '' || $categoryId !== '' || $status !== ''; ?>
 
-<div class="page-head">
+<div class="page-head photo-band photo-band-slim"<?= photo_band_style('stage') ?>>
     <div>
         <h1>Activities</h1>
         <p data-live-region="summary"><?= $total ?> activit<?= $total === 1 ? 'y' : 'ies' ?> found. Open one to see details and register.</p>

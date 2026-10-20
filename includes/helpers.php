@@ -223,6 +223,45 @@ function email_delivers(): bool
 }
 
 // =====================================================================
+// Event photos — the header bands on the dashboard and activity pages
+// =====================================================================
+
+/**
+ * BukSU event photos in public/assets/img, published by the university
+ * (buksu.edu.ph). Placeholders until the office supplies its own: replace a
+ * file under the same name and every page that uses it follows.
+ */
+const EVENT_PHOTOS = [
+    // name => [file, focus]. The focus keeps the people in a wide, short band.
+    'cheerdance' => ['img/event-cheerdance.webp', 'center 55%'],   // Intramurals 2023 cheer dance
+    'stadium'    => ['img/event-stadium.webp',    'center 52%'],   // SCUAA 2023 team at the stadium
+    'stage'      => ['img/event-stage.webp',      'center 68%'],   // Folkloric Dance Troupe, award night 2023
+];
+
+/**
+ * The style attribute that puts an event photo behind a .photo-band, or ''
+ * when the file is missing, so the band falls back to plain navy.
+ */
+function photo_band_style(string $photo): string
+{
+    [$path, $focus] = EVENT_PHOTOS[$photo] ?? [null, null];
+    if ($path === null || !is_file(dirname(__DIR__) . '/public/assets/' . $path)) {
+        return '';
+    }
+    return ' style="--band-photo: url(\'' . e(asset($path)) . '\'); --band-focus: ' . e($focus) . '"';
+}
+
+/** The photo that fits an activity's category: sports at the stadium, culture and arts on stage. */
+function category_photo(string $category): string
+{
+    return match (strtolower(trim($category))) {
+        'sports', 'intramurals' => 'stadium',
+        'culture', 'arts'       => 'stage',
+        default                 => 'cheerdance',
+    };
+}
+
+// =====================================================================
 // Formatting
 // =====================================================================
 

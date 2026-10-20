@@ -110,7 +110,8 @@ $pageTitle = 'Dashboard';
 require __DIR__ . '/../includes/layout/header.php';
 ?>
 
-<div class="page-head">
+<?php // The welcome sits on a BukSU event photo: the first screen after signing in. ?>
+<div class="page-head photo-band"<?= photo_band_style('stadium') ?>>
     <div>
         <h1>Good day, <?= e($user['first_name']) ?>.</h1>
         <p>

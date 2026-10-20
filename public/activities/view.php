@@ -100,7 +100,8 @@ $pageTitle = $activity['title'];
 require __DIR__ . '/../../includes/layout/header.php';
 ?>
 
-<div class="page-head">
+<?php // The header carries a photo that fits the category: sports, or culture and arts. ?>
+<div class="page-head photo-band"<?= photo_band_style(category_photo((string) $activity['category'])) ?>>
     <div>
         <a class="crumb" href="<?= url('activities/index.php') ?>">&larr; Back to activities</a>
         <div><?= status_badge($activity['status'], 'activity') ?></div>

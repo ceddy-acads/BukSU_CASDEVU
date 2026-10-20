@@ -491,6 +491,55 @@ img    { max-width: 100%; height: auto; }
     .page-head h1 { font-size: var(--fs-2xl); }
 }
 
+/* Photo band: a page head set on a BukSU event photo (dashboard welcome,
+   activity header, and a slim band on Activities and Calendar). A navy wash,
+   deepest behind the text on the left, keeps every word at 4.5:1 or better
+   over any part of the photo. Each page sets --band-photo; without one the
+   band is plain navy. */
+.photo-band {
+    position: relative; isolation: isolate; overflow: hidden;
+    min-height: 176px; padding: var(--s6) var(--s5);
+    border-radius: var(--r);
+    background: var(--navy);
+    color: var(--on-dark);
+}
+.photo-band::before {
+    content: ""; position: absolute; inset: 0; z-index: -1;
+    background:
+        linear-gradient(180deg,
+            color-mix(in srgb, var(--navy-900) 70%, transparent) 0%,
+            color-mix(in srgb, var(--navy-900) 92%, transparent) 100%),
+        var(--band-photo, none) var(--band-focus, center) / cover no-repeat;
+}
+.photo-band-slim { min-height: 120px; padding: var(--s5); }
+.photo-band h1 { color: var(--on-dark); }
+.photo-band h1 + p, .photo-band p { color: var(--on-dark-soft); }
+.photo-band .crumb { color: var(--on-dark-soft); }
+.photo-band .crumb:hover { color: var(--on-dark); }
+@media (min-width: 640px) {
+    .photo-band { min-height: 208px; padding: var(--s8); }
+    .photo-band-slim { min-height: 136px; padding: var(--s6) var(--s8); }
+    /* Wider screens: the text sits on the left, so the wash is deepest there
+       and the photo shows more clearly on the right. */
+    .photo-band::before {
+        background:
+            linear-gradient(100deg,
+                color-mix(in srgb, var(--navy-900) 94%, transparent) 0%,
+                color-mix(in srgb, var(--navy-900) 84%, transparent) 45%,
+                color-mix(in srgb, var(--navy-900) 50%, transparent) 100%),
+            var(--band-photo, none) var(--band-focus, center) / cover no-repeat;
+    }
+}
+/* Controls that sit on the photo: the calendar's month stepper. */
+.photo-band .cal-step { color: var(--on-dark); }
+.photo-band .cal-step:hover { background: color-mix(in srgb, var(--on-dark) 14%, transparent); color: var(--on-dark); }
+.photo-band .cal-step-today { border-color: color-mix(in srgb, var(--on-dark) 55%, transparent); }
+@media print {
+    .photo-band { min-height: 0; padding: 0; background: none; color: #000; }
+    .photo-band::before { display: none; }
+    .photo-band h1, .photo-band p { color: #000; }
+}
+
 /* Back / context link above a title */
 .crumb {
     display: inline-flex; align-items: center; gap: var(--s1);
@@ -808,6 +857,19 @@ table.data td > a:first-child { font-weight: 600; }
     .card-flush table.data th:last-child,  .card-flush table.data td:last-child  { padding-right: var(--s6); }
 }
 table.data td.actions .btn-row { justify-content: flex-end; flex-wrap: nowrap; }
+
+/* Admin › Users fits beside the sidebar without scrolling sideways: a row's
+   actions stack as equal-width buttons, the role picker and its Change
+   button sit together, and long email addresses wrap. */
+table.users-table td.actions .btn-row {
+    /* One column as wide as the longest label, so every button matches and
+       none can be squeezed narrower than its text. */
+    display: inline-grid; grid-auto-flow: row; grid-template-columns: max-content;
+    gap: var(--s1);
+}
+table.users-table td.actions .btn-row > form > .btn { width: 100%; }
+table.users-table .role-form { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--s1); }
+table.users-table .user-email { overflow-wrap: break-word; }
 table.data tfoot td { font-weight: 700; background: var(--surface-2); border-top: 1px solid var(--line); }
 
 /* On phones, tables marked .table-stack turn each row into a labelled block.
@@ -1459,6 +1521,30 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
         var(--portal-photo) center / cover no-repeat,
         var(--navy);
 }
+/* Sign-in and create account: a stack of event photos that fade from one
+   to the next (portal_slides_html, app.js). The navy overlays are the same
+   as the single photo's, drawn above the stack, so every text colour keeps
+   its contrast whichever photo shows. Phones: behind the header band. */
+.portal.has-slides .portal-brand { background: var(--navy); }
+.portal-slides { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.portal-slide {
+    position: absolute; inset: 0; opacity: 0;
+    background: var(--slide-photo, none) var(--slide-focus, center) / cover no-repeat;
+    transition: opacity 1.2s cubic-bezier(.22, 1, .36, 1);
+}
+.portal-slide.is-active { opacity: 1; }
+.portal-slides::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(rgba(16, 40, 77, .9), rgba(16, 40, 77, .82));
+}
+@media (prefers-reduced-motion: reduce) { .portal-slide { transition: none; } }
+/* Pause control, at the end of the office line under the card. */
+.portal-slides-toggle {
+    display: inline; min-height: 44px; margin: 0 0 0 var(--s1); padding: var(--s2) var(--s1);
+    border: 0; background: none; color: inherit; cursor: pointer;
+    font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;
+}
+.portal-slides-toggle:hover { color: var(--navy); }
 .portal-brand-inner { position: relative; z-index: 1; max-width: 34rem; }
 .portal-mark { margin: 0; line-height: 1.15; display: flex; align-items: center; gap: var(--s3); }
 .portal-logo { flex: none; width: auto; height: 2.5rem; }
@@ -1612,6 +1698,18 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
             var(--navy);
     }
     .portal-brand, .portal.has-photo .portal-brand { background: none; }
+    /* The photo stack fills the window behind both columns, as the single
+       photo did, under the same scrims and base tint. */
+    .portal.has-slides { background: var(--navy); }
+    .portal.has-slides .portal-brand { background: none; }
+    .portal-slides { position: fixed; }
+    .portal-slides::after {
+        background:
+            linear-gradient(rgba(16, 40, 77, .7), rgba(16, 40, 77, .7) 7rem, rgba(16, 40, 77, 0) 13rem),
+            linear-gradient(to top, rgba(16, 40, 77, .7), rgba(16, 40, 77, .7) 26rem, rgba(16, 40, 77, 0) 36rem),
+            linear-gradient(rgba(16, 40, 77, .55), rgba(16, 40, 77, .55));
+    }
+    .portal-slides-toggle:hover { color: var(--on-dark); }
     .portal-brand-inner { max-width: 38rem; flex: 1; display: flex; flex-direction: column; }
     /* Auto top margin pushes the headline and description to the bottom. */
     .portal-headline {
