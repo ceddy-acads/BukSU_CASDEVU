@@ -41,6 +41,7 @@ const PORTAL_PHOTOS = [
     ['img/event-cheerdance.webp', 'center 55%'],   // Intramurals 2023 cheer dance
     ['img/event-stage.webp',      'center 68%'],   // Folkloric Dance Troupe on stage
     ['img/event-stadium.webp',    'center 52%'],   // SCUAA 2023 team at the stadium
+    ['img/buksu-campus.jpg',      'center 50%'],   // the campus the work is for
 ];
 
 /**

@@ -261,6 +261,21 @@ function category_photo(string $category): string
     };
 }
 
+/**
+ * The field colour that fits an activity's category: the page opens on the
+ * sports green, the culture maroon, or the arts teal. Anything the unit has
+ * not classified yet keeps the university navy.
+ */
+function category_field(string $category): string
+{
+    return match (strtolower(trim($category))) {
+        'sports', 'intramurals'          => 'band-sports',
+        'culture'                        => 'band-culture',
+        'arts', 'culture and arts'       => 'band-arts',
+        default                          => '',
+    };
+}
+
 // =====================================================================
 // Formatting
 // =====================================================================

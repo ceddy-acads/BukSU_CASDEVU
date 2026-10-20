@@ -28,8 +28,11 @@ $isStudent    = $role === 'student';
  * their parent highlighted.
  */
 $navSection = match (true) {
-    $currentDir === 'public' && $currentFile === 'index.php'   => 'dashboard',
-    $currentDir === 'public' && $currentFile === 'review.php'  => 'review',
+    // The document root counts as "public" when the app is served from its
+    // public folder directly (php -S), where dirname() is "/" and basename()
+    // returns an empty string.
+    in_array($currentDir, ['public', ''], true) && $currentFile === 'index.php'   => 'dashboard',
+    in_array($currentDir, ['public', ''], true) && $currentFile === 'review.php'  => 'review',
     $currentFile === 'notifications.php'                        => 'notifications',
     $currentFile === 'profile.php'                              => 'profile',
     $currentFile === 'calendar.php'                             => 'calendar',
@@ -167,6 +170,8 @@ $initials = $user
         <button type="button" class="icon-btn topbar-menu" data-nav-open aria-controls="sidebar" aria-expanded="false">
             <?= icon('menu') ?><span class="sr-only">Menu</span>
         </button>
+
+        <a class="topbar-brand" href="<?= url('index.php') ?>"><?= e(APP_NAME) ?></a>
 
         <nav class="breadcrumb" aria-label="Breadcrumb">
             <ol>

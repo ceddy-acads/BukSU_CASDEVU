@@ -12,6 +12,7 @@ storage/uploads/**
 # Tooling caches
 .impeccable/
 .playwright-mcp/
+.taste-skill/
 
 # Editor and OS noise
 .vscode/

@@ -892,3 +892,33 @@ window.CASDevU = window.CASDevU || {};
     });
 })();
 
+/* Section entrances: blocks that start below the first screen rise in as
+   they reach the viewport, staggered up to 210ms apart. The content is
+   visible without this script; it is armed only when an observer exists and
+   the device has not asked for reduced motion. */
+(function () {
+    'use strict';
+    if (!('IntersectionObserver' in window)) { return; }
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { return; }
+
+    var blocks = document.querySelectorAll('.page > .card, .page > .grid > *, .page > .stats > *, .page > .fact-strip');
+    if (blocks.length === 0) { return; }
+
+    var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+            if (!entry.isIntersecting) { return; }
+            entry.target.classList.add('reveal-in');
+            observer.unobserve(entry.target);
+        });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+
+    Array.prototype.forEach.call(blocks, function (block, index) {
+        /* Only blocks that start below the first screen are armed. Anything
+           already in view is simply there: no flash of missing content, and
+           the page reads complete on arrival. */
+        if (block.getBoundingClientRect().top < window.innerHeight - 40) { return; }
+        block.classList.add('reveal-armed');
+        block.style.transitionDelay = (index % 4) * 70 + 'ms';
+        observer.observe(block);
+    });
+})();
