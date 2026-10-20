@@ -8,9 +8,9 @@ Dial: **ENERGY 2 / RHYTHM 2 / MOTION 2**
 ## The reading
 
 Poster, not poster clutter. Flat saturated fields, heavy compressed capitals,
-one dominant photograph, square corners, no gradients, no shadows at rest, no
-ornament. The office's own world (intramurals, folkloric dance, awards night)
-is the material. Nothing invented.
+one dominant photograph, continuous squircle corners, no gradients, no shadows
+at rest, no ornament. The office's own world (intramurals, folkloric dance,
+awards night) is the material. Nothing invented.
 
 ## What the direction asked for, and what changed
 
@@ -26,6 +26,10 @@ redraws, both forced by a stated constraint:
    navy and gold (confirmed brand assets), plus one field per domain:
    sports green, culture maroon, arts teal. Mint and orange would have fought
    the university mark on every page.
+3. **Shape**: the first pass was square. The office asked for a squircle
+   language, so cards, bands, controls and fields now share one continuous
+   corner scale. The fields stay flat and the type stays loud; the softer edge
+   is the only change. Circles stay circles.
 
 ## The idea
 
@@ -49,8 +53,18 @@ place, without a reload.
 - Ink: `--ink` on light, `--on-dark` on fields.
 - Accent: `--gold`, on the one headline action only.
 - Fields: `--field-sports`, `--field-culture`, `--field-arts`.
-- Shape: square. Radius 0 on cards, buttons, inputs, badges.
+- Shape: one squircle scale — `--r-xs` 6 (badges, counts), `--r-sm` 10
+  (buttons, inputs, menu rows), `--r-md` 12 (sidebar rows and the current-page
+  chip), `--r` 16 (cards, panels, filters), `--r-lg` 24 (page bands, dialogs,
+  the sign-in panel). Every rounded surface also declares
+  `corner-shape: squircle` inside `@supports`; older browsers keep the plain
+  border-radius. Avatars, status dots and check rings stay circular.
 - Depth: no shadow at rest. Overlays only (menus, dialogs).
+- Bands: every page head shares one block height — 315px on phones, 266px from
+  720px to 1023px, 211px from 1024px up — whether it carries a photograph or a
+  flat field. The floor at each layout fits the tallest standard head;
+  unusually long copy can grow past it. Plain heads centre their copy; photo
+  heads keep their own internal geometry.
 - Type: Anton (display, uppercase, leading .86), Outfit (text, 16px+).
 - Type steps: 13 / 14 / 16 / 18 / 24 / 34 / display clamp.
 
@@ -58,9 +72,11 @@ place, without a reload.
 
 - Headlines two lines or fewer at every width.
 - No eyebrows, no monospace, no index numbers, no thin rules as decoration,
-  no gradients, no glass, no shadows at rest, no violet.
-- Nothing lies on top of a headline. Photographs sit in their own column or
-  band, never behind text.
+  no glass, no shadows at rest, no violet. One gradient is allowed: the navy
+  scrim on the dashboard band.
+- Photographs sit in their own column or band. The dashboard is the one
+  exception: its photograph runs behind the welcome, under a scrim heavy enough
+  to hold the headline at full contrast.
 - Every photograph is the project's own, credited in the report, replaceable
   under the same file name.
 - Print stays first-class: fields print as black on white, bands collapse.

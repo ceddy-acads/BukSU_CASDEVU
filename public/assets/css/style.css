@@ -108,14 +108,75 @@
     --s1: .25rem; --s2: .5rem;  --s3: .75rem; --s4: 1rem;
     --s5: 1.25rem; --s6: 1.5rem; --s8: 2rem;  --s10: 2.5rem; --s12: 3rem;
 
-    /* Shape and depth. Square everywhere the direction reaches. Only
-       overlays lift off the page. */
-    --r-sm:  0;
-    --r:     0;
+    /* Shape and depth. Continuous corners: every rounded surface uses the
+       squircle curve where the browser supports it, and a plain radius where
+       it does not. Only overlays lift off the page. */
+    --r-xs:  6px;
+    --r-sm: 10px;
+    --r-md: 12px;
+    --r:    16px;
+    --r-lg: 24px;
     --shadow-1: none;
     --shadow-2: 0 16px 40px rgba(8, 23, 48, .28);
 
     --sidebar-w: 256px;
+}
+
+/* --------------------------------------------------- 1b. Squircle corners */
+
+/* The fields stay flat and the type stays loud; only the corners soften.
+   Every rounded surface asks for a continuous corner (a superellipse) where
+   the browser supports it. Elsewhere the same elements keep their ordinary
+   border-radius, so nothing in the layout depends on the newer property.
+   Circles — avatars, status dots, check rings, day markers — are left alone:
+   `corner-shape` would turn them into something they are not. */
+@supports (corner-shape: squircle) {
+    :where(
+        .skip-link,
+        .nav-link,
+        .icon-btn,
+        .account-trigger,
+        .account-panel,
+        .account-item,
+        .notif-panel,
+        .notif-mark,
+        .profile-panel,
+        .page-head,
+        .card,
+        .card-foot,
+        .stat,
+        .filter-bar,
+        .alert,
+        .badge,
+        .nav-count,
+        .empty,
+        .agenda-date,
+        .activity-card,
+        .catalog-item,
+        .catalog-photo,
+        .item-photo,
+        .pagination a, .pagination span,
+        .cal-step,
+        .cal-filter-chip,
+        .cal-chip,
+        .cal-daynum,
+        .fact-strip,
+        .next-action,
+        .sort-btn,
+        .btn,
+        .modal-panel,
+        .toast,
+        .toast-close, .toast-copy,
+        .portal-panel,
+        .password-toggle,
+        .portal-submit,
+        input[type="text"], input[type="email"], input[type="password"],
+        input[type="date"], input[type="datetime-local"], input[type="number"],
+        input[type="search"], input[type="tel"], input[type="time"],
+        input[type="file"], input[type="color"], select, textarea
+    ) {
+        corner-shape: squircle;
+    }
 }
 
 /* --------------------------------------------------------------- 2. Base */
@@ -245,7 +306,10 @@ img    { max-width: 100%; height: auto; }
     display: flex; align-items: center; gap: var(--s3);
     min-height: 40px;
     padding: var(--s2) var(--s3);
-    border-radius: var(--r-sm);
+    /* Sidebar rows use the same squircle language as the rest of the shell:
+       the highlight reads as a button rather than a painted band. */
+    border-radius: var(--r-md);
+    corner-shape: squircle;
     color: var(--on-dark-soft); text-decoration: none;
     font-size: var(--fs-base);
 }
@@ -254,13 +318,25 @@ img    { max-width: 100%; height: auto; }
 .nav-link:hover { background: rgba(255, 255, 255, .08); color: var(--on-dark); }
 .nav-link:hover .nav-icon { opacity: 1; }
 /* "You are here": the row fills with gold and the label turns navy. Shape,
-   weight and colour together, so it is not colour alone. */
-.nav-link[aria-current="page"] { background: var(--gold); color: var(--navy-900); font-weight: 700; }
+   weight and colour together, so it is not colour alone. The gold is a chip
+   inset in the rail rather than the whole row, so the current item keeps its
+   alignment with the rest of the list. */
+.nav-link[aria-current="page"] {
+    background: transparent; color: var(--navy-900); font-weight: 700;
+    position: relative; isolation: isolate;
+}
+.nav-link[aria-current="page"]::before {
+    content: ""; position: absolute; z-index: -1;
+    inset: 2px 4px;
+    background: var(--gold);
+    border-radius: var(--r-md);
+    corner-shape: squircle;
+}
 .nav-link[aria-current="page"] .nav-icon { opacity: 1; color: var(--navy-900); }
 .nav-link:focus-visible { outline: 3px solid var(--gold); outline-offset: -3px; }
 
 .nav-count {
-    min-width: 22px; padding: 0 6px; border-radius: var(--r-sm);
+    min-width: 22px; padding: 0 6px; border-radius: var(--r-xs);
     background: var(--on-dark); color: var(--navy-900);
     font-size: var(--fs-xs); font-weight: 700; text-align: center; line-height: 20px;
 }
@@ -341,7 +417,7 @@ img    { max-width: 100%; height: auto; }
     position: absolute; right: 0; top: calc(100% + 6px); z-index: 50;
     width: min(280px, calc(100vw - 24px));
     background: var(--surface); color: var(--ink);
-    border-radius: var(--r);
+    border-radius: var(--r); overflow: hidden;
     box-shadow: var(--shadow-2); /* taste-skill-ignore: account menu floats over the page */
     padding: var(--s2);
 }
@@ -481,21 +557,20 @@ img    { max-width: 100%; height: auto; }
     .page { padding: var(--s8) var(--s10) var(--s12); }
     .footer { text-align: left; padding-inline: var(--s10); }
 
+    /* The bar separates from the navigation column by a step in tone, not by
+       a rule: a white sheet beside the navy, with the breadcrumb on ink. */
     .topbar {
-        --topbar-hover: rgba(255, 255, 255, .12);
-        background: var(--navy);
-        color: var(--on-dark);
+        --topbar-hover: var(--navy-50);
+        background: var(--surface);
+        color: var(--ink);
         padding: 0 var(--s10);
         min-height: 64px;
     }
-    .topbar .breadcrumb li { color: var(--on-dark-soft); }
-    .topbar .breadcrumb li + li::before { color: var(--on-dark-muted); }
-    .topbar .breadcrumb a { color: var(--on-dark-soft); }
-    .topbar .breadcrumb a:hover { color: var(--on-dark); }
-    .topbar .breadcrumb [aria-current="page"] { color: var(--on-dark); }
     .topbar .account-initials { background: var(--gold); color: var(--navy-900); }
-    .topbar .account-role { color: var(--on-dark-muted); }
     .topbar .breadcrumb { display: block; flex: 1; min-width: 0; }
+    /* The gold ring is for the navy bar; on white it has no contrast left. */
+    .topbar .icon-btn:focus-visible,
+    .topbar .account-trigger:focus-visible { outline-color: var(--navy-700); }
     .topbar-actions { gap: var(--s2); }
     .account-text, .account-chevron { display: block; }
     .account-trigger { padding-right: var(--s2); }
@@ -520,6 +595,7 @@ img    { max-width: 100%; height: auto; }
     padding: var(--s6) var(--s5);
     background: var(--head-field);
     color: var(--on-dark);
+    border-radius: var(--r-lg);
     overflow: hidden;
 }
 .page-head > div:first-child { min-width: 0; flex: 1 1 320px; position: relative; z-index: 1; }
@@ -560,10 +636,24 @@ img    { max-width: 100%; height: auto; }
     .page-head h1 { font-size: clamp(2.25rem, 4vw, 3.5rem); }
 }
 
+/* Every page head shares one block height, photograph or field, so the banner
+   does not change size as you move between pages. The floor at each layout
+   fits the tallest standard head; unusually long copy can still grow past it. */
+.page-head { min-height: 315px; }
+@media (min-width: 720px) {
+    .page-head { min-height: 266px; }
+}
+@media (min-width: 1024px) {
+    .page-head { min-height: 211px; }
+}
+.page-head:not(.photo-band) {
+    align-content: center;
+}
+
 /* Photo band: the page head with one of the office's own photographs in a
-   slanted panel on the right. The photograph is never behind the text, so
-   no scrim is needed and no word loses contrast. Without a photo the band is
-   simply the flat field. Phones put the photograph above the text as a strip. */
+   slanted panel on the right, so the text keeps the flat field and no scrim is
+   needed. The dashboard opts into the full-bleed variant (.band-cover, below).
+   Phones put the photograph above the text as a strip. */
 .photo-band[style*="--band-photo"] { padding-top: calc(148px + var(--s5)); }
 .photo-band[style*="--band-photo"]::after {
     content: ""; position: absolute; z-index: 0;
@@ -589,12 +679,39 @@ img    { max-width: 100%; height: auto; }
     /* Actions drop to their own row on the field, clear of the photograph. */
     .photo-band .btn-row { flex: 1 1 100%; justify-content: flex-start; }
 }
+
+/* The dashboard's welcome sits on the photograph itself. The band keeps its
+   padding, so its size does not change; only the photo layer moves out of the
+   right-hand panel to fill the field. A navy scrim runs from the text edge into
+   the picture, which keeps the headline at full contrast and is the one place
+   this system allows a gradient. Every other band keeps the slanted panel. */
+.page-head.photo-band.band-cover[style*="--band-photo"]::after {
+    left: 0; right: 0; top: 0; bottom: 0;
+    width: auto; height: auto; clip-path: none;
+    background: var(--band-photo) var(--band-focus, center) / cover no-repeat;
+}
+.page-head.photo-band.band-cover[style*="--band-photo"]::before {
+    content: ""; position: absolute; inset: 0; z-index: 1;
+    background: linear-gradient(90deg,
+        var(--navy-900) 0%, var(--navy) 32%,
+        rgba(16, 40, 77, .86) 50%, rgba(16, 40, 77, .34) 76%,
+        rgba(16, 40, 77, .06) 100%);
+    opacity: .9;
+}
+.page-head.photo-band.band-cover > div { position: relative; z-index: 2; }
+@media (max-width: 719px) {
+    .page-head.photo-band.band-cover[style*="--band-photo"]::before {
+        background: linear-gradient(to top,
+            var(--navy-900) 0%, var(--navy) 48%,
+            rgba(16, 40, 77, .72) 74%, rgba(16, 40, 77, .10) 100%);
+    }
+}
 /* Controls that sit on the field: the calendar's month stepper. */
 .page-head .cal-step { color: var(--on-dark); border-color: rgba(255, 255, 255, .45); }
 .page-head .cal-step:hover { background: rgba(255, 255, 255, .14); color: var(--on-dark); }
 .page-head .cal-step-today { border-color: rgba(255, 255, 255, .55); }
 @media print {
-    .page-head, .photo-band { min-height: 0; padding: 0; background: none !important; color: #000; border-left: 0; }
+    .page-head, .photo-band, .page-head:not(.photo-band) { min-height: 0; padding: 0; background: none !important; color: #000; border-left: 0; }
     .photo-band::after { display: none; }
     .page-head h1, .page-head p { color: #000; }
 }
@@ -629,7 +746,7 @@ img    { max-width: 100%; height: auto; }
     padding: var(--s3) var(--s5);
     border-top: 0;
     background: var(--surface-2);
-    border-radius: 0;
+    border-radius: 0 0 var(--r) var(--r);
     display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center;
 }
 /* A card whose body is a flush table. */
@@ -676,7 +793,7 @@ img    { max-width: 100%; height: auto; }
     background: var(--surface); border: 0;
     border-radius: var(--r); padding: var(--s4) var(--s4) var(--s5);
     min-width: 0;
-    display: flex; flex-direction: column; gap: var(--s1);
+    display: flex; flex-direction: column; gap: 22px;
     border-top: 6px solid var(--navy);
 }
 a.stat { text-decoration: none; color: inherit; }
@@ -885,7 +1002,7 @@ p.hint { margin: var(--s1) 0 0; }
 .badge {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 3px var(--s2);
-    border-radius: var(--r-sm);
+    border-radius: var(--r-xs);
     font-size: var(--fs-xs); font-weight: 700; line-height: 1.4;
     white-space: nowrap;
     background: var(--muted-bg); color: var(--muted-fg);
@@ -1451,6 +1568,7 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
     display: grid; gap: var(--s2); margin: 0 0 var(--s6);
     grid-template-columns: repeat(2, minmax(0, 1fr));
     border-radius: var(--r);
+    overflow: hidden;
 }
 .fact-strip > div { background: var(--surface); padding: var(--s3) var(--s4); min-width: 0; }
 .fact-strip dt { font-size: var(--fs-sm); font-weight: 600; color: var(--ink-soft); margin: 0 0 2px; }
@@ -1654,7 +1772,7 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 .portal-panel {
     width: 100%; max-width: 440px;
     background: var(--surface);
-    border-radius: 0;
+    border-radius: var(--r-lg);
     padding: var(--s5) var(--s4);
 }
 .portal-panel-head { margin-bottom: var(--s6); }
@@ -1751,7 +1869,7 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
     .portal-headline { font-size: 3rem; margin-top: var(--s6); }
     .portal-lede { display: block; margin: var(--s4) 0 0; max-width: 32rem; color: var(--on-dark-soft); font-size: var(--fs-md); line-height: 1.5; }
     .portal-main { margin-top: calc(var(--s12) * -1); }
-    .portal-panel { max-width: 480px; padding: var(--s6); border-radius: 0; }
+    .portal-panel { max-width: 480px; padding: var(--s6); }
 }
 
 /* ---- Desktop: navy and photo fill the screen; text and panel split 58 / 42
@@ -1951,7 +2069,7 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 }
 .modal::backdrop { background: rgba(11, 29, 58, .5); }
 .modal-panel {
-    background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow-2); /* taste-skill-ignore: dialog floats over the page */
+    background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow-2); /* taste-skill-ignore: dialog floats over the page */
     display: flex; flex-direction: column; overflow: hidden;
     max-height: calc(100dvh - 4rem);
 }
