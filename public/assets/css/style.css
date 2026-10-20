@@ -521,6 +521,12 @@ img    { max-width: 100%; height: auto; }
     background: var(--head-field);
     color: var(--on-dark);
     overflow: hidden;
+    /* One banner height, taken from the dashboard band: 315px on phones,
+       211px once the photo moves to the side. Taller copy can still grow. */
+    min-height: 315px;
+}
+@media (min-width: 720px) {
+    .page-head { min-height: 211px; }
 }
 .page-head > div:first-child { min-width: 0; flex: 1 1 320px; position: relative; z-index: 1; }
 .page-head h1 {
@@ -775,6 +781,14 @@ a.stat:hover .stat-value { color: var(--navy-700); }
     .form-actions > .btn, .form-actions > form > .btn,
     table.data td.actions .btn-row > .btn, table.data td.actions .btn-row > form > .btn { width: 100%; }
     .page-head .btn-row > .btn-group > .btn { flex: 1; }
+}
+@media (min-width: 720px) and (max-width: 1023px) {
+    /* The shorter tablet field keeps every page action on one line, so the
+       banner holds the dashboard's height instead of growing a second row. */
+    .page-head { gap: var(--s2) var(--s6); }
+    .page-head .btn-row > .btn,
+    .page-head .btn-row > form { flex: 0 1 auto; }
+    .page-head .btn-row .btn { padding-left: var(--s2); padding-right: var(--s2); }
 }
 /* Phones: page actions and form buttons fill the width in two columns; an
    odd one out takes the whole last row. */

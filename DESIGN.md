@@ -51,6 +51,9 @@ place, without a reload.
 - Fields: `--field-sports`, `--field-culture`, `--field-arts`.
 - Shape: square. Radius 0 on cards, buttons, inputs, badges.
 - Depth: no shadow at rest. Overlays only (menus, dialogs).
+- Bands: every page head uses the dashboard banner's block height — 315px on
+  phones, 211px from 720px up — so the page does not jump between screens.
+  Taller copy can grow past it.
 - Type: Anton (display, uppercase, leading .86), Outfit (text, 16px+).
 - Type steps: 13 / 14 / 16 / 18 / 24 / 34 / display clamp.
 
