@@ -208,6 +208,9 @@ function log_mail(string $to, string $subject, string $body): bool
  * Send an in-app notification and, when email is switched on, the same
  * message by email. Existing calls to notify() are untouched; callers that
  * want both use this instead.
+ *
+ * The email half also respects the recipient's own switch on the settings
+ * page: the in-app notification always goes out.
  */
 function notify_and_email(
     int $userId,
@@ -218,7 +221,7 @@ function notify_and_email(
 ): void {
     notify($userId, $type, $title, $message, $linkUrl);
 
-    if (!MAIL_NOTIFICATIONS_ENABLED) {
+    if (!MAIL_NOTIFICATIONS_ENABLED || !email_alerts_enabled($userId)) {
         return;
     }
 
@@ -233,9 +236,33 @@ function notify_and_email(
         'Hi ' . $user['first_name'] . ',' . PHP_EOL . PHP_EOL
         . $message . PHP_EOL . PHP_EOL
         . ($linkUrl !== null ? 'Open it here: ' . absolute_url($linkUrl) . PHP_EOL . PHP_EOL : '')
-        . OFFICE_NAME . PHP_EOL . UNIVERSITY . PHP_EOL . PHP_EOL
+        . office_name() . PHP_EOL . university_name() . PHP_EOL . PHP_EOL
         . 'This is an automated message. Please do not reply.'
     );
+}
+
+/** Has this person left the "email me about work waiting on me" switch on? */
+function email_alerts_enabled(int $userId): bool
+{
+    return user_preference_on($userId, 'email_review_alerts', true);
+}
+
+/**
+ * The notification-and-email version of notify_many(), for the handful of
+ * people who decide on one record.
+ *
+ * @param array<int, int> $userIds
+ */
+function notify_many_and_email(
+    array $userIds,
+    string $type,
+    string $title,
+    string $message,
+    ?string $linkUrl = null
+): void {
+    foreach ($userIds as $userId) {
+        notify_and_email((int) $userId, $type, $title, $message, $linkUrl);
+    }
 }
 
 /**

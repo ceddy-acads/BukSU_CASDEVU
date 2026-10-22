@@ -42,13 +42,14 @@ function store_upload(array $file, string $subdirectory): array
     }
 
     // ------------------------------------------------------------------ Size
-    $size = (int) ($file['size'] ?? 0);
+    $size     = (int) ($file['size'] ?? 0);
+    $maxBytes = max_upload_bytes();
     if ($size <= 0) {
         return ['ok' => false, 'error' => 'The file appears to be empty.'];
     }
-    if ($size > MAX_UPLOAD_BYTES) {
+    if ($size > $maxBytes) {
         return ['ok' => false, 'error' => 'That file is larger than '
-            . (int) (MAX_UPLOAD_BYTES / 1024 / 1024) . ' MB.'];
+            . (int) ($maxBytes / 1024 / 1024) . ' MB.'];
     }
 
     // ------------------------------------------------------------------ Type

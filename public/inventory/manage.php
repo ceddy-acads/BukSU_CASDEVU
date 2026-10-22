@@ -303,7 +303,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                         <span class="optional">(optional)</span>
                     </label>
                     <input type="file" id="photo" name="photo" accept="image/jpeg,image/png" aria-describedby="photo-hint">
-                    <p class="hint" id="photo-hint">JPG or PNG, up to <?= (int) (MAX_UPLOAD_BYTES / 1024 / 1024) ?> MB.</p>
+                    <p class="hint" id="photo-hint">JPG or PNG, up to <?= (int) (max_upload_bytes() / 1024 / 1024) ?> MB.</p>
                 </div>
                 <?php if (!empty($item['photo_path'])): ?>
                     <label class="check">

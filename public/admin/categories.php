@@ -143,7 +143,7 @@ if ($editId !== null && in_array($editKind, ['activity', 'inventory'], true)) {
         : fetch_one('SELECT * FROM inventory_categories WHERE inv_category_id = ?', [$editId]);
 }
 
-function category_field(string $key, ?array $row, string $default = ''): string
+function category_form_value(string $key, ?array $row, string $default = ''): string
 {
     $remembered = old($key);
     if ($remembered !== '') {
@@ -309,19 +309,19 @@ require __DIR__ . '/../../includes/layout/header.php';
             <div class="form-row">
                 <label for="name">Name <span class="req">*</span></label>
                 <input type="text" id="name" name="name" required
-                       value="<?= e(category_field('name', $editing)) ?>">
+                       value="<?= e(category_form_value('name', $editing)) ?>">
             </div>
 
             <div class="form-row">
                 <label for="description">Description <span class="optional">(optional)</span></label>
                 <input type="text" id="description" name="description"
-                       value="<?= e(category_field('description', $editing)) ?>">
+                       value="<?= e(category_form_value('description', $editing)) ?>">
             </div>
 
             <div class="form-row">
                 <label for="color_hex">Colour <span class="optional">(activity categories only)</span></label>
                 <input type="text" id="color_hex" name="color_hex" placeholder="#2980B9"
-                       value="<?= e(category_field('color_hex', $editing)) ?>">
+                       value="<?= e(category_form_value('color_hex', $editing)) ?>">
                 <div class="hint">Six-digit hex, used to colour the activity list.</div>
             </div>
 

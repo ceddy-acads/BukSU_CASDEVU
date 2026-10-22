@@ -37,6 +37,26 @@ $notificationsOpen   = get('notifications') === 'open';
             <?php endif; ?>
         </div>
 
+        <?php $attentionItems = $attentionItems ?? attention_items(); ?>
+        <?php if ($attentionItems !== []): ?>
+            <section class="notif-attention" aria-label="Needs attention">
+                <h3 class="notif-subhead">Needs attention</h3>
+                <ul class="notif-list">
+                    <?php foreach ($attentionItems as $attentionItem): ?>
+                        <li class="notice notif-item">
+                            <span class="notice-icon notice-<?= e((string) $attentionItem['tone']) ?>">
+                                <?= icon((string) $attentionItem['icon']) ?>
+                            </span>
+                            <div class="notice-body">
+                                <p class="notice-type"><?= e((string) $attentionItem['title']) ?></p>
+                                <p class="notif-message"><?= e((string) $attentionItem['message']) ?></p>
+                                <a class="notif-link" href="<?= url((string) $attentionItem['href']) ?>"><?= e((string) $attentionItem['action']) ?></a>
+                            </div>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </section>
+        <?php endif; ?>
         <?php if ($recentNotifications === []): ?>
             <p class="notif-empty">
                 <strong>No notifications yet</strong>

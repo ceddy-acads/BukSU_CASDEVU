@@ -85,9 +85,9 @@ if (is_post() && $target !== null) {
                 'Hi ' . $target['first_name'] . ',' . PHP_EOL . PHP_EOL
                 . 'The password for your account was changed on '
                 . date('d M Y \a\t g:i A') . '.' . PHP_EOL . PHP_EOL
-                . 'If this was not you, contact the ' . OFFICE_NAME
+                . 'If this was not you, contact the ' . office_name()
                 . ' immediately.' . PHP_EOL . PHP_EOL
-                . OFFICE_NAME . PHP_EOL . UNIVERSITY
+                . office_name() . PHP_EOL . university_name()
             );
 
             $done = true;

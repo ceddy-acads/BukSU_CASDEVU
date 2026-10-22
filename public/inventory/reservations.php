@@ -172,8 +172,6 @@ if ($reservations !== []) {
     }
 }
 
-$pendingCount = (int) fetch_value("SELECT COUNT(*) FROM reservations WHERE status = 'pending'");
-
 $pageTitle = 'Reservations';
 require __DIR__ . '/../../includes/layout/header.php';
 ?>
@@ -189,12 +187,7 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 </div>
 
-<?php if ($canDecide && $pendingCount > 0 && $statusFilter !== 'pending'): ?>
-    <div class="alert alert-warning">
-        <strong><?= $pendingCount ?></strong> request<?= $pendingCount === 1 ? '' : 's' ?> awaiting your decision.
-        <a href="<?= url('inventory/reservations.php?status=pending') ?>">Show only pending</a>
-    </div>
-<?php endif; ?>
+<?php // Requests awaiting a decision now open in the notification pop-up: includes/attention.php. ?>
 
 <form method="get" class="filter-bar">
     <div class="form-row">

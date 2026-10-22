@@ -112,21 +112,8 @@ audit_log('create', 'registration', $registrationId,
           'Registered for: ' . $activity['title']);
 
 // Tell whoever will review it: the assigned coordinators, or the office.
-$reviewers = fetch_all(
-    "SELECT ac.user_id FROM activity_coordinators ac
-       JOIN users u ON u.user_id = ac.user_id
-      WHERE ac.activity_id = ? AND u.status = 'active'",
-    [$activityId]
-);
-if ($reviewers === []) {
-    $reviewers = fetch_all(
-        "SELECT u.user_id FROM users u JOIN roles r ON r.role_id = u.role_id
-          WHERE r.name IN ('staff','admin') AND u.status = 'active'"
-    );
-}
-
-notify_many(
-    array_map(static fn(array $row): int => (int) $row['user_id'], $reviewers),
+notify_many_and_email(
+    activity_reviewer_ids($activityId),
     'registration',
     'New registration to review',
     full_name($student) . ' registered for ' . $activity['title'] . '.',

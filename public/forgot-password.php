@@ -67,14 +67,14 @@ if (is_post()) {
                     'Reset your ' . APP_NAME . ' password',
                     'Hi ' . $user['first_name'] . ',' . PHP_EOL . PHP_EOL
                     . 'Someone asked to reset the password for your ' . APP_NAME . ' account at the '
-                    . OFFICE_NAME . ', ' . UNIVERSITY . '.' . PHP_EOL . PHP_EOL
+                    . office_name() . ', ' . university_name() . '.' . PHP_EOL . PHP_EOL
                     . 'Open this link to choose a new password:' . PHP_EOL . PHP_EOL
                     . '  ' . $link . PHP_EOL . PHP_EOL
                     . 'The link works once and expires in '
                     . PASSWORD_RESET_TTL_MINUTES . ' minutes.' . PHP_EOL . PHP_EOL
                     . 'If this was not you, ignore this message. Your password '
                     . 'stays as it is.' . PHP_EOL . PHP_EOL
-                    . OFFICE_NAME . PHP_EOL . UNIVERSITY
+                    . office_name() . PHP_EOL . university_name()
                 );
 
                 audit_log('request', 'password_reset', (int) $user['user_id'],

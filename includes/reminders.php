@@ -38,6 +38,7 @@ function due_reminders(?int $leadDays = null): array
     return fetch_all(
         "SELECT r.registration_id, r.user_id,
                 u.email, u.first_name, u.last_name,
+                up.pref_value AS email_reminders,
                 a.activity_id, a.title AS activity_title,
                 ar.requirement_id, ar.name AS requirement_name, ar.deadline_at,
                 DATEDIFF(ar.deadline_at, CURDATE()) AS days_left,
@@ -45,6 +46,8 @@ function due_reminders(?int $leadDays = null): array
                      THEN 'due_today' ELSE 'due_soon' END AS stage
            FROM registrations r
            JOIN users u                  ON u.user_id     = r.user_id
+           LEFT JOIN user_preferences up ON up.user_id     = u.user_id
+                                        AND up.pref_key    = 'email_reminders'
            JOIN activities a             ON a.activity_id = r.activity_id
            JOIN activity_requirements ar ON ar.activity_id = a.activity_id
            LEFT JOIN requirement_submissions rs
@@ -133,7 +136,9 @@ function send_due_reminders(bool $dryRun = false): array
         );
         $sent++;
 
-        if (MAIL_NOTIFICATIONS_ENABLED) {
+        // The bell always gets the reminder; email only when the student left
+        // it on (a missing preference row means on).
+        if (MAIL_NOTIFICATIONS_ENABLED && ($row['email_reminders'] ?? '1') !== '0') {
             $ok = send_mail(
                 (string) $row['email'],
                 $title . ' — ' . $row['activity_title'],
@@ -146,7 +151,7 @@ function send_due_reminders(bool $dryRun = false): array
                 . 'Submit it here: '
                 . absolute_url(url('requirements/submit.php?activity_id=' . (int) $row['activity_id']))
                 . PHP_EOL . PHP_EOL
-                . OFFICE_NAME . PHP_EOL . UNIVERSITY . PHP_EOL . PHP_EOL
+                . office_name() . PHP_EOL . university_name() . PHP_EOL . PHP_EOL
                 . 'This is an automated message. Please do not reply.'
             );
             if ($ok) {

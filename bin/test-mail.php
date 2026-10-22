@@ -38,8 +38,8 @@ echo 'Sending as ' . MAIL_FROM_ADDRESS . ' to ' . $to . ' ...' . PHP_EOL;
 $result = smtp_send(
     $to,
     APP_NAME . ' test email',
-    'This is a test message from ' . APP_NAME . ', the ' . OFFICE_NAME . ' system of '
-    . UNIVERSITY . '.' . PHP_EOL . PHP_EOL
+    'This is a test message from ' . APP_NAME . ', the ' . office_name() . ' system of '
+    . university_name() . '.' . PHP_EOL . PHP_EOL
     . 'If you can read this, password reset links and reminders will be delivered.'
 );
 

@@ -237,7 +237,6 @@ $users = fetch_all(
 );
 
 $roles        = fetch_all('SELECT role_id, name FROM roles ORDER BY role_id');
-$pendingCount = (int) fetch_value("SELECT COUNT(*) FROM users WHERE status = 'pending'");
 
 $pageTitle = 'User accounts';
 require __DIR__ . '/../../includes/layout/header.php';
@@ -253,12 +252,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 </div>
 
 <div data-live-region="notice">
-<?php if ($pendingCount > 0 && $statusFilter !== 'pending'): ?>
-    <div class="alert alert-warning">
-        <strong><?= $pendingCount ?></strong> account<?= $pendingCount === 1 ? '' : 's' ?> awaiting approval.
-        <a href="<?= url('admin/users.php?status=pending') ?>">Show only pending</a>
-    </div>
-<?php endif; ?>
+<?php // Accounts awaiting approval now open in the notification pop-up: includes/attention.php. ?>
 </div>
 
 <form method="get" class="filter-bar" data-live-search>

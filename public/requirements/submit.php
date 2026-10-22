@@ -140,6 +140,17 @@ if (is_post()) {
     audit_log('create', 'requirement_submission', $submissionId,
               'Submitted "' . $requirement['name'] . '" for ' . $activity['title']);
 
+    // The office (or the activity's coordinators) decides on it, so it is
+    // told the document arrived rather than finding it by chance later.
+    notify_many_and_email(
+        activity_reviewer_ids($activityId),
+        'requirement',
+        'Document waiting for review',
+        full_name($student) . ' submitted "' . $requirement['name'] . '" for '
+        . $activity['title'] . '.',
+        url('requirements/verify.php?activity_id=' . $activityId)
+    );
+
     flash('success', '"' . $requirement['name'] . '" submitted. The office will review it shortly.');
     redirect('requirements/submit.php?activity_id=' . $activityId);
 }
@@ -160,7 +171,7 @@ $items = fetch_all(
 );
 
 $progress    = requirement_progress($registrationId);
-$maxUploadMb = (int) (MAX_UPLOAD_BYTES / 1024 / 1024);
+$maxUploadMb = (int) (max_upload_bytes() / 1024 / 1024);
 
 // Whose turn each requirement is, counted the same way as My requirements.
 $turns = ['student' => 0, 'office' => 0, 'none' => 0];

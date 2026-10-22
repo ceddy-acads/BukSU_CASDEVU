@@ -107,6 +107,11 @@ password) goes in `includes/config.local.php` instead, which is git-ignored and
 loaded automatically when present; a value defined there wins over the default.
 The defaults suit a local XAMPP install; the ones worth knowing about:
 
+Three of them — the office name, the university name and the upload limit — are
+only defaults. An administrator edits the live values on **Settings** (they are
+stored in the `settings` table, and the stored value wins), so no code change is
+needed to rename the office or raise the file ceiling.
+
 | Constant | Default | What it controls |
 |----------|---------|------------------|
 | `APP_NAME` / `APP_TAGLINE` / `OFFICE_NAME` | `CASDevU` / `Culture, Arts, and Sports Development Unit` | The name shown on every page, email and printed report |
@@ -119,7 +124,7 @@ The defaults suit a local XAMPP install; the ones worth knowing about:
 | `LOGIN_MAX_ATTEMPTS` | `8` | Failed sign-ins per IP address before a lockout |
 | `LOGIN_LOCKOUT_MINUTES` | `15` | How long that lockout lasts |
 | `PASSWORD_RESET_TTL_MINUTES` | `60` | Lifetime of a reset link |
-| `MAX_UPLOAD_BYTES` | 5 MB | Largest accepted requirement file or item photo |
+| `MAX_UPLOAD_BYTES` | 5 MB | Default largest accepted requirement file or item photo; **Settings** overrides it |
 | `MYSQL_BIN_PATH` | `C:/xampp/mysql/bin` | Where `mysqldump.exe` and `mysql.exe` live, used by Backup |
 
 ### Email delivery
@@ -167,6 +172,7 @@ BukSU CASDEVU/
 │                            test-accounts.pdf
 ├── bin/
 │   ├── send-reminders.php   Deadline reminder runner (command line only)
+│   ├── smoke.php            Every page as every role, in one command
 │   └── test-mail.php        Sends one test email and reports why it failed
 ├── includes/                Application code — NOT web-accessible
 │   ├── config.php           Settings and defaults
@@ -184,6 +190,8 @@ BukSU CASDEVU/
 │   │                        and the requirement workflow (state, steps)
 │   ├── review.php           Review queue counts and lists, scoped per role
 │   ├── uploads.php          Upload validation and safe storage
+│   ├── settings.php         Office settings (settings table) and personal
+│   │                        preferences (user_preferences)
 │   ├── inventory.php        Availability maths, reservations, borrowing
 │   ├── reports.php          Report queries and CSV export
 │   ├── errors.php           Global error handling and the designed status
@@ -198,7 +206,7 @@ BukSU CASDEVU/
 │   ├── login.php  logout.php  register.php
 │   ├── index.php            Role-specific dashboard
 │   ├── review.php           Review queue (staff and coordinators)
-│   ├── profile.php  notifications.php
+│   ├── profile.php  notifications.php  settings.php
 │   ├── activities/          index.php, view.php, manage.php, calendar.php,
 │   │                        coordinators.php, eligibility.php
 │   ├── participation/       register.php, my-activities.php, participants.php
@@ -378,6 +386,14 @@ branding.
 - Desktop top bar with a breadcrumb, a notification bell with the unread
   count, and an account menu (profile, sign out) that opens with Enter and
   closes with Esc or a click outside. Phones keep a compact bar and the drawer
+- The top bar is white on every screen, phones included, with a hairline
+  under it; its text is ink and its focus ring is navy, because the gold ring
+  does not read on white
+- The page head is a photograph under a navy-to-blue wash on every screen:
+  the campus picture behind the gradient, 94% navy on the text side and 82%
+  blue on the open side, so the headline and the body copy still pass 4.5:1
+  over the brightest patch of sky. The domain colour survives as a strip
+  under the band
 - Requirement workflow shown as steps (Required, Submitted, Under review,
   Verified or Rejected) with a **Your turn / With the office / Done** line, so
   a student can tell what they must do from what the office is doing
@@ -485,6 +501,23 @@ sorting by number, date and keyboard; the saving state during a real submit;
 a cancelled confirmation leaving the button untouched; the account menu from
 the keyboard; and role scoping of the review queue.
 
+**Fast regression pass.** `bin/smoke.php` signs in over HTTP as administrator,
+staff, coordinator and student, then requests every page under `public/` with
+real record ids taken from the database. It fails on a server error, a line
+written to the error log, an error message inside a page, a role that should be
+able to open a page getting 403, or a page that should be refused returning 200
+— the checks against `docs/03-role-matrix.md` that used to need a browser.
+
+```bash
+C:\xampp\php\php.exe bin\smoke.php                 # all pages, all roles
+C:\xampp\php\php.exe bin\smoke.php --only=admin/ --verbose
+C:\xampp\php\php.exe bin\smoke.php --admin=me@buksu.edu.ph:password
+```
+
+It issues GET requests only, so it never changes data. What it cannot replace:
+form submissions, uploads, JavaScript behaviour, printed output, and the 390px
+visual check. Those still need eyes.
+
 **What this testing did not cover.** These are limits of the method, not
 statements that the system fails them:
 
@@ -497,8 +530,9 @@ statements that the system fails them:
   used. Delivery to an inbox needs a real App Password; run
   `bin/test-mail.php` after setting one
 - No load or performance testing beyond the 25-row pagination in ordinary use
-- No automated test suite exists; all testing was manual and must be repeated
-  by hand after changes
+- No automated test suite exists beyond `bin/smoke.php`, which checks page
+  loads and role gates top to bottom but submits no forms; workflow testing
+  remains manual and must be repeated by hand after changes
 
 ---
 
@@ -589,6 +623,12 @@ These are what make the security checklist pass at the end of Week 4.
 22. A table that should sort gets `data-sortable` and `data-sort="text|number"`
     on its headers (dates sort as numbers through `data-sort-value`). Only on
     tables that are not paginated
+23. A custom property in `style.css` must sit outside a broken comment. An
+    unbalanced `*/` turns the rest of its line into a declaration and the
+    parser then swallows the next one, so a token like `--s1` silently stops
+    existing and every `gap`/`padding` built on it falls back to nothing.
+    `bin/smoke.php` checks the comment pairs, empty token values and every
+    `var()` that has no fallback; run it after touching the stylesheet
 
 ---
 

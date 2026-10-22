@@ -41,6 +41,12 @@ if (in_array($status, $allowedStatuses, true)) {
     $params[]     = $status;
 }
 
+// A person who asked to hide finished activities still sees them when they
+// filter by a status — otherwise "Completed" would always come back empty.
+if ($status === '' && user_preference_on((int) current_user_id(), 'hide_past_activities')) {
+    $conditions[] = 'COALESCE(a.end_at, a.start_at) >= NOW()';
+}
+
 $where = $conditions === [] ? '' : ' WHERE ' . implode(' AND ', $conditions);
 
 // --------------------------------------------------------------- Pagination
@@ -95,7 +101,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 
 <?php $hasFilters = $keyword !== '' || $categoryId !== '' || $status !== ''; ?>
 
-<div class="page-head photo-band photo-band-slim"<?= photo_band_style('stage') ?>>
+<div class="page-head photo-band"<?= photo_band_style('stage') ?>>
     <div>
         <h1>Activities</h1>
         <p data-live-region="summary"><?= $total ?> activit<?= $total === 1 ? 'y' : 'ies' ?> found. Open one to see details and register.</p>

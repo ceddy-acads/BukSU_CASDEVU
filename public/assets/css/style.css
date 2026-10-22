@@ -102,16 +102,16 @@
     --fs-lg:   1.5rem;    /* 24 · section titles */
     --fs-xl:   2.125rem;  /* 34 · page title (mobile) */
     --fs-2xl:  2.75rem;   /* 44 - page title on desktop */
-    --fs-display: clamp(2.5rem, 6.5vw, 4.75rem); · page title (desktop), stat numbers */
+    --fs-display: clamp(2.5rem, 6.5vw, 4.75rem); /* page title (desktop), stat numbers */
 
     /* Spacing: 4px steps */
     --s1: .25rem; --s2: .5rem;  --s3: .75rem; --s4: 1rem;
     --s5: 1.25rem; --s6: 1.5rem; --s8: 2rem;  --s10: 2.5rem; --s12: 3rem;
 
-    /* Shape and depth. Square everywhere the direction reaches. Only
-       overlays lift off the page. */
-    --r-sm:  0;
-    --r:     0;
+    /* Shape and depth. Rounded boxes: 8px on controls, 14px on surfaces.
+       Only overlays lift off the page. */
+    --r-sm:  8px;
+    --r:     14px;
     --shadow-1: none;
     --shadow-2: 0 16px 40px rgba(8, 23, 48, .28);
 
@@ -254,8 +254,9 @@ img    { max-width: 100%; height: auto; }
 .nav-link:hover { background: rgba(255, 255, 255, .08); color: var(--on-dark); }
 .nav-link:hover .nav-icon { opacity: 1; }
 /* "You are here": the row fills with gold and the label turns navy. Shape,
-   weight and colour together, so it is not colour alone. */
-.nav-link[aria-current="page"] { background: var(--gold); color: var(--navy-900); font-weight: 700; }
+   weight and colour together, so it is not colour alone. The marked row is
+   the one rounded shape in the sidebar. */
+.nav-link[aria-current="page"] { background: var(--gold); color: var(--navy-900); font-weight: 700; border-radius: 10px; }
 .nav-link[aria-current="page"] .nav-icon { opacity: 1; color: var(--navy-900); }
 .nav-link:focus-visible { outline: 3px solid var(--gold); outline-offset: -3px; }
 
@@ -288,21 +289,25 @@ img    { max-width: 100%; height: auto; }
 .sidebar .icon-btn { color: var(--on-dark); }
 
 /* --------------------------------------------------------------- Top bar */
-/* Phones: the navy bar with Menu, wordmark, bell, and account.
-   Desktop: a quiet white bar with the breadcrumb, bell, and account. */
+/* A white bar on every screen: phones show the Menu, wordmark, bell and
+   account; from 960px the breadcrumb takes the wordmark's place. The bar
+   sits on the white surface, so its text is ink, not on-dark, and a hairline
+   separates it from the page below. */
 .topbar {
+    --topbar-hover: rgba(16, 40, 77, .08);
     position: sticky; top: 0; z-index: 20;
     display: flex; align-items: center; gap: var(--s2);
     min-height: 56px; padding: 0 var(--s3);
-    background: var(--navy); color: var(--on-dark);
+    background: var(--surface); color: var(--ink);
+    border-bottom: 1px solid var(--line);
 }
 .topbar .breadcrumb { display: none; }
 .topbar-brand {
     display: inline-flex; align-items: center; min-height: 44px;
     font-size: 1rem; font-weight: 800; letter-spacing: .01em;
-    color: var(--on-dark); text-decoration: none; padding: var(--s2);
+    color: var(--navy); text-decoration: none; padding: var(--s2);
 }
-.topbar-brand:hover { color: var(--gold); }
+.topbar-brand:hover { color: var(--navy-700); }
 .topbar-actions { display: flex; align-items: center; gap: var(--s1); margin-left: auto; }
 
 .breadcrumb ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); }
@@ -324,6 +329,11 @@ img    { max-width: 100%; height: auto; }
 .account-trigger::-webkit-details-marker { display: none; }
 .account-trigger:hover { background: var(--topbar-hover, rgba(255, 255, 255, .1)); }
 .account-trigger:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+/* On the white bar the gold ring is too pale to see, so the ring takes the
+   navy that already marks focus on light surfaces. */
+.topbar .icon-btn:focus-visible,
+.topbar .account-trigger:focus-visible,
+.topbar .notif-trigger:focus-visible { outline-color: var(--navy-700); }
 .account-initials {
     flex: none; width: 34px; height: 34px; border-radius: 50%;
     object-fit: cover;
@@ -421,7 +431,7 @@ img    { max-width: 100%; height: auto; }
     position: sticky; top: 0; z-index: 1;
     display: flex; align-items: center; justify-content: space-between; gap: var(--s3);
     padding: var(--s2) var(--s2) var(--s2) var(--s4);
-    background: var(--surface-2);
+    background: var(--surface);
 }
 .notif-head h2 { margin: 0; font-size: var(--fs-md); }
 .notif-head form { margin: 0; }
@@ -433,8 +443,11 @@ img    { max-width: 100%; height: auto; }
 .notif-list { list-style: none; margin: 0; padding: 0; }
 .notif-item { padding: var(--s3) var(--s4); }
 .notif-item:last-child { border-bottom: 0; }
-.notif-item.is-new { background: var(--navy-50); }
+.notif-item.is-new { background: var(--navy-50); box-shadow: inset 3px 0 0 var(--navy); }
 .notif-item h3 { margin: 0 0 2px; font-size: var(--fs-base); line-height: 1.3; }
+/* A read notification steps back: the unread one keeps the bar, the tint, the
+   "New" badge and the navy title. Words carry the state; colour reinforces it. */
+.notif-item:not(.is-new) h3 { font-weight: 400; color: var(--ink-soft); }
 .notif-time { margin-left: auto; font-weight: 400; white-space: nowrap; }
 .notif-message {
     margin: 0; font-size: var(--fs-sm); color: var(--ink-soft);
@@ -443,6 +456,22 @@ img    { max-width: 100%; height: auto; }
 /* 44px to tap, without adding that much space between items. */
 .notif-link { display: inline-flex; align-items: center; min-height: 44px; margin: -8px 0 -12px; font-size: var(--fs-sm); font-weight: 600; }
 .notif-empty { margin: 0; padding: var(--s5) var(--s4); color: var(--ink-soft); font-size: var(--fs-sm); }
+/* Above the stored notifications: what needs the person now, computed from
+   the records (includes/attention.php). */
+.notif-attention { border-bottom: 1px solid var(--line); }
+.notif-subhead {
+    margin: 0; padding: var(--s3) var(--s4) var(--s2);
+    font-size: var(--fs-sm); font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--ink-soft);
+}
+.notif-attention .notif-item { border-bottom: 1px solid var(--line); }
+.notif-attention .notif-item:last-child { border-bottom: 0; }
+.notif-attention .notif-message { display: block; -webkit-line-clamp: none; line-clamp: none; overflow: visible; margin-bottom: 0; }
+/* The stored list pulls the link up into a clamped message; here the message
+   is not clamped, so the link keeps its own line. */
+.notif-attention .notif-link { display: inline-block; min-height: 0; margin: var(--s2) 0 0; }
+.notice-icon.notice-warning { background: var(--warning-bg); color: var(--warning); }
+.notice-icon.notice-danger  { background: var(--danger-bg);  color: var(--danger); }
 .notif-empty strong { display: block; color: var(--ink); margin-bottom: var(--s1); }
 
 .main { min-width: 0; display: flex; flex-direction: column; min-height: 100dvh; }
@@ -482,19 +511,12 @@ img    { max-width: 100%; height: auto; }
     .footer { text-align: left; padding-inline: var(--s10); }
 
     .topbar {
-        --topbar-hover: rgba(255, 255, 255, .12);
-        background: var(--navy);
-        color: var(--on-dark);
+        background: var(--surface); color: var(--ink);
         padding: 0 var(--s10);
         min-height: 64px;
     }
-    .topbar .breadcrumb li { color: var(--on-dark-soft); }
-    .topbar .breadcrumb li + li::before { color: var(--on-dark-muted); }
-    .topbar .breadcrumb a { color: var(--on-dark-soft); }
-    .topbar .breadcrumb a:hover { color: var(--on-dark); }
-    .topbar .breadcrumb [aria-current="page"] { color: var(--on-dark); }
     .topbar .account-initials { background: var(--gold); color: var(--navy-900); }
-    .topbar .account-role { color: var(--on-dark-muted); }
+    .topbar .account-role { color: var(--ink-soft); }
     .topbar .breadcrumb { display: block; flex: 1; min-width: 0; }
     .topbar-actions { gap: var(--s2); }
     .account-text, .account-chevron { display: block; }
@@ -507,18 +529,32 @@ img    { max-width: 100%; height: auto; }
 
 /* -------------------------------------------------------- 4. Page header */
 
-/* A page opens on a flat field: navy by default, the domain colour on an
-   activity page. White display type sits on the field; nothing is laid over
-   a headline. An optional photograph fills a panel on the right, cut on a
-   slant, so the page reads as a printed sheet rather than a card stack. */
+/* A page opens on a photograph under a blue gradient: the office's own
+   campus picture, covered by a navy-to-blue wash. The wash is heavy on the
+   text side (94% navy) and lighter on the open side (82% blue), so the
+   headline and the body copy keep at least 4.5:1 over the brightest patch
+   of sky. White display type sits on the field; nothing is laid over a
+   headline. The domain colour survives as a strip along the bottom edge. */
 .page-head {
     --head-field: var(--navy);
+    --head-photo: url("../img/buksu-campus.jpg");
+    /* The wash: one shared layer over every banner's photograph, heavy on the
+       text side and open on the other. */
+    --head-wash: linear-gradient(112deg, rgba(11, 29, 58, .94) 0%, rgba(16, 40, 77, .9) 42%, rgba(23, 64, 158, .82) 100%); /* taste-skill-ignore: blue wash over the photograph */
     position: relative; isolation: isolate;
     display: flex; flex-wrap: wrap; align-items: flex-end;
+    /* Bottom-anchored even when the actions wrap to their own row, so the
+       title sits at the same height on every page. */
+    align-content: flex-end;
     justify-content: space-between; gap: var(--s4) var(--s6);
     margin-bottom: var(--s6);
     padding: var(--s6) var(--s5);
-    background: var(--head-field);
+    background:
+        var(--head-wash),
+        var(--head-photo) center / cover no-repeat,
+        var(--head-field);
+    border-bottom: 6px solid var(--head-field);
+    border-radius: var(--r);
     color: var(--on-dark);
     overflow: hidden;
     /* One banner height, taken from the dashboard band: 315px on phones,
@@ -538,8 +574,9 @@ img    { max-width: 100%; height: auto; }
     max-width: 22ch;
 }
 .page-head h1 + p, .page-head p { margin: var(--s2) 0 0; color: var(--on-dark-soft); max-width: 56ch; }
-.page-head .badge + h1 { margin-top: var(--s2); }
-.page-head .btn-row { flex: 0 1 auto; position: relative; z-index: 1; }
+.page-head .badge { display: inline-block; }
+.page-head > div:first-child > .badge { margin-bottom: var(--s2); }
+.page-head .btn-row { flex: 0 1 auto; position: relative; z-index: 1; align-self: flex-end; }
 /* The band's own links and secondary actions read on the field. */
 .page-head a:not(.btn) { color: var(--on-dark); }
 .page-head .btn-outline { background: rgba(255, 255, 255, .14); color: var(--on-dark); border-color: transparent; }
@@ -549,58 +586,50 @@ img    { max-width: 100%; height: auto; }
 .page-head .btn-primary { background: var(--on-dark); color: var(--navy); }
 .page-head .btn-primary:hover { background: var(--on-dark-soft); color: var(--navy-900); }
 
-/* Domain fields. A page about a sport uses the sports field, and so on. */
+/* Domain fields. A page about a sport uses the sports field, and so on. The
+   colour now reads as the strip under the band, so the field stays one blue
+   on every page. */
 .band-sports  { --head-field: var(--field-sports); }
 .band-culture { --head-field: var(--field-culture); }
 .band-arts    { --head-field: var(--field-arts); }
 
-/* A themed question the field answers: a quiet variant for record pages that
-   should not shout (admin lists, long forms). */
-.page-head.quiet { background: var(--surface); color: var(--ink); border-left: 6px solid var(--gold); }
-.page-head.quiet h1 { color: var(--navy); }
-.page-head.quiet p, .page-head.quiet .crumb { color: var(--ink-soft); }
-.page-head.quiet a:not(.btn) { color: var(--navy-700); }
+/* A themed question the field answers. */
 
 @media (min-width: 640px) {
     .page-head { padding: var(--s8); }
     .page-head h1 { font-size: clamp(2.25rem, 4vw, 3.5rem); }
 }
 
-/* Photo band: the page head with one of the office's own photographs in a
-   slanted panel on the right. The photograph is never behind the text, so
-   no scrim is needed and no word loses contrast. Without a photo the band is
-   simply the flat field. Phones put the photograph above the text as a strip. */
-.photo-band[style*="--band-photo"] { padding-top: calc(148px + var(--s5)); }
-.photo-band[style*="--band-photo"]::after {
-    content: ""; position: absolute; z-index: 0;
-    left: 0; right: 0; top: 0; height: 148px;
-    background: var(--band-photo) var(--band-focus, center) / cover no-repeat;
-}
-.photo-band-slim { padding: var(--s5); }
-.photo-band-slim[style*="--band-photo"] { padding-top: calc(112px + var(--s4)); }
-.photo-band-slim[style*="--band-photo"]::after { height: 112px; }
 
+/* Photo band: the same banner, printed on one of the office's own event
+   photographs instead of the campus picture. The wash, the height and the
+   type position are the page head's, so a photo band and a plain band read
+   as one sheet; only the photograph changes. */
+.photo-band[style*="--band-photo"] {
+    /* The event photograph replaces the campus picture; no picture beneath. */
+    background: var(--head-field);
+}
+.photo-band[style*="--band-photo"]::after {
+    content: ""; position: absolute; inset: 0; z-index: 0;
+    background:
+        var(--head-wash),
+        var(--band-photo) var(--band-focus, center) / cover no-repeat;
+}
+
+/* One inset for every banner. The slim variant only names the event photo;
+   it no longer changes the padding, so text sits at the same spot on every
+   page. */
 @media (min-width: 720px) {
-    .photo-band[style*="--band-photo"],
-    .photo-band-slim[style*="--band-photo"] { padding-top: var(--s8); }
-    .photo-band[style*="--band-photo"]::after,
-    .photo-band-slim[style*="--band-photo"]::after {
-        left: auto; top: 0; bottom: 0; right: 0; height: auto;
-        width: min(42%, 600px);
-        clip-path: polygon(9% 0, 100% 0, 100% 100%, 0 100%);
-    }
-    .photo-band-slim[style*="--band-photo"]::after { width: min(30%, 440px); }
     .photo-band > div:first-child { max-width: 56%; }
-    .photo-band-slim > div:first-child { max-width: 64%; }
     /* Actions drop to their own row on the field, clear of the photograph. */
-    .photo-band .btn-row { flex: 1 1 100%; justify-content: flex-start; }
+    .page-head .btn-row { flex: 1 1 100%; justify-content: flex-start; }
 }
 /* Controls that sit on the field: the calendar's month stepper. */
 .page-head .cal-step { color: var(--on-dark); border-color: rgba(255, 255, 255, .45); }
 .page-head .cal-step:hover { background: rgba(255, 255, 255, .14); color: var(--on-dark); }
 .page-head .cal-step-today { border-color: rgba(255, 255, 255, .55); }
 @media print {
-    .page-head, .photo-band { min-height: 0; padding: 0; background: none !important; color: #000; border-left: 0; }
+    .page-head, .photo-band { min-height: 0; padding: 0; background: none !important; color: #000; border-left: 0; border-bottom: 0; }
     .photo-band::after { display: none; }
     .page-head h1, .page-head p { color: #000; }
 }
@@ -635,7 +664,7 @@ img    { max-width: 100%; height: auto; }
     padding: var(--s3) var(--s5);
     border-top: 0;
     background: var(--surface-2);
-    border-radius: 0;
+    border-radius: 0 0 var(--r) var(--r);
     display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center;
 }
 /* A card whose body is a flush table. */
@@ -648,6 +677,19 @@ img    { max-width: 100%; height: auto; }
     .card-flush { padding: 0; }
     .card-flush > .card-head { padding: var(--s5) var(--s6) 0; }
 }
+
+/* Category tabs in a card head (the review queue): one lane of a screen at a
+   time, switched from the top of the card rather than from the page banner. */
+.tabs { display: flex; flex-wrap: wrap; gap: var(--s1); }
+.tab {
+    display: inline-flex; align-items: center; gap: var(--s2);
+    min-height: 40px; padding: 0 var(--s3); border-radius: var(--r-sm);
+    color: var(--ink); font-size: var(--fs-sm); font-weight: 600; text-decoration: none;
+}
+.tab:hover { background: var(--muted-bg); color: var(--ink); text-decoration: none; }
+.tab[aria-current] { background: var(--navy); color: var(--on-dark); }
+.tab-count { font-variant-numeric: tabular-nums; opacity: .65; }
+.tab[aria-current] .tab-count { opacity: 1; }
 
 .grid { display: grid; gap: var(--s5); grid-template-columns: minmax(0, 1fr); }
 .grid > * { min-width: 0; }
@@ -677,12 +719,14 @@ img    { max-width: 100%; height: auto; }
 @media (min-width: 900px) { .stats.stats-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
 /* Stat tiles: scoreboard figures. The number is set in the display face at
-   poster size; the tile stays white so four of them read as one row. */
+   poster size; the tile stays white so four of them read as one row. The
+   label and the number are held 18px apart — the number needs its own air
+   or it reads as part of the label. */
 .stat {
     background: var(--surface); border: 0;
     border-radius: var(--r); padding: var(--s4) var(--s4) var(--s5);
     min-width: 0;
-    display: flex; flex-direction: column; gap: var(--s1);
+    display: flex; flex-direction: column; gap: 18px;
     border-top: 6px solid var(--navy);
 }
 a.stat { text-decoration: none; color: inherit; }
@@ -1077,7 +1121,7 @@ table.data tfoot td { font-weight: 700; background: var(--surface-2); border-top
 .is-unread { border-color: var(--navy-700); background: var(--navy-50); }
 
 /* Requirement progress */
-.progress { height: 8px; border-radius: 0; background: var(--muted-bg); overflow: hidden; margin: var(--s2) 0 var(--s3); }
+.progress { height: 8px; border-radius: 999px; background: var(--muted-bg); overflow: hidden; margin: var(--s2) 0 var(--s3); }
 .progress > span { display: block; height: 100%; background: var(--success); border-radius: inherit; }
 .progress-label { font-size: var(--fs-sm); color: var(--ink-soft); }
 .progress-label strong { color: var(--ink); }
@@ -1192,7 +1236,7 @@ table.data tfoot td { font-weight: 700; background: var(--surface-2); border-top
 .pagination .current { background: var(--navy); color: var(--on-dark); border-color: var(--navy); }
 
 /* Swatch (category colours) */
-.swatch { display: inline-block; width: 14px; height: 14px; border-radius: 0; vertical-align: -2px; border: 1px solid rgba(0, 0, 0, .12); }
+.swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; border: 1px solid rgba(0, 0, 0, .12); }
 
 /* ---------------------------------------------------------- 12. Calendar */
 /* A quiet month grid beside an agenda (activities/calendar.php). Rules are
@@ -1200,7 +1244,8 @@ table.data tfoot td { font-weight: 700; background: var(--surface-2); border-top
    its chips and a dot in the key, and is never the only signal: category
    and status are always written as well. Gold marks today and nothing else. */
 
-.cal-head { align-items: center; }
+/* The month banner keeps the page head's alignment: text bottom-left like
+   every other page, the stepper bottom-right. */
 .cal-stepper { display: inline-flex; align-items: center; gap: var(--s1); }
 .cal-step {
     display: inline-grid; place-items: center; min-width: 44px; height: 44px; padding: 0 var(--s3);
@@ -1480,7 +1525,7 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
     display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s2);
 }
 .step { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
-.step::before { content: ""; display: block; height: 4px; border-radius: 2px; background: var(--line); }
+.step::before { content: ""; display: block; height: 4px; border-radius: 999px; background: var(--line); }
 .step-dot { display: none; }
 .step-label { font-size: var(--fs-sm); color: var(--ink-soft); line-height: 1.3; }
 .step.is-done::before { background: var(--success); }
@@ -1564,7 +1609,7 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 .chart-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s3); }
 .chart-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s1); align-items: center; }
 .chart-label { font-weight: 600; font-size: var(--fs-sm); color: var(--ink); overflow-wrap: anywhere; }
-.chart-track { display: flex; gap: 2px; height: 14px; background: var(--muted-bg); border-radius: 3px; overflow: hidden; }
+.chart-track { display: flex; gap: 2px; height: 14px; background: var(--muted-bg); border-radius: 999px; overflow: hidden; }
 .chart-seg { display: block; height: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .chart-value { font-size: var(--fs-sm); color: var(--ink-soft); }
 .chart-more { margin: var(--s4) 0 0; font-size: var(--fs-sm); font-weight: 600; }
@@ -1668,8 +1713,11 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 .portal-panel {
     width: 100%; max-width: 440px;
     background: var(--surface);
-    border-radius: 0;
+    border-radius: var(--r);
     padding: var(--s5) var(--s4);
+    /* Sits a step below centre. `translate`, not `transform`, so sheet-in's
+       keyframes do not overwrite it. Tune with --portal-panel-offset. */
+    translate: 0 var(--portal-panel-offset, var(--s5));
 }
 .portal-panel-head { margin-bottom: var(--s6); }
 .portal-panel-head h1 {
@@ -1765,7 +1813,7 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
     .portal-headline { font-size: 3rem; margin-top: var(--s6); }
     .portal-lede { display: block; margin: var(--s4) 0 0; max-width: 32rem; color: var(--on-dark-soft); font-size: var(--fs-md); line-height: 1.5; }
     .portal-main { margin-top: calc(var(--s12) * -1); }
-    .portal-panel { max-width: 480px; padding: var(--s6); border-radius: 0; }
+    .portal-panel { max-width: 480px; padding: var(--s6); }
 }
 
 /* ---- Desktop: navy and photo fill the screen; text and panel split 58 / 42
@@ -1826,19 +1874,17 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
     .portal-legal { width: 100%; max-width: 440px; color: var(--on-dark-soft); }
 }
 
-/* Over the photo the card is a plain white sheet: flat, square, no shadow,
-   so it reads as another surface rather than a floating pane. A gold bar at
-   the top edge ties it to the page field. */
+/* Over the photo the card is a plain white sheet: flat, no shadow, so it
+   reads as another surface rather than a floating pane. */
 @media (min-width: 640px) {
     .portal-panel {
         --ink-soft: #3a4453;
         --danger:   #7d1515;
         background: var(--surface);
-        border-top: 6px solid var(--gold);
     }
 }
 @media (prefers-contrast: more) {
-    .portal-panel { background: #fff; border: 2px solid var(--navy); border-top: 6px solid var(--gold); }
+    .portal-panel { background: #fff; border: 2px solid var(--navy); }
 }
 
 /* ---- Long forms in the portal (registration: .portal-wide). The card is
@@ -1874,7 +1920,7 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
    progress line, Back / Continue, and the submit button on the last step. */
 .steps-status { margin: 0 0 var(--s5); font-size: var(--fs-sm); font-weight: 600; color: var(--ink-soft); }
 .steps-bar { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; margin-top: var(--s2); }
-.steps-bar > span { height: 4px; border-radius: 2px; background: var(--line); }
+.steps-bar > span { height: 4px; border-radius: 999px; background: var(--line); }
 .steps-bar > span.is-done { background: var(--navy); }
 .is-stepped .form-section + .form-section { margin-top: 0; padding-top: 0; border-top: 0; }
 .is-stepped .form-section > h3:focus { outline: none; }

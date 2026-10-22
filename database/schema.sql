@@ -505,6 +505,20 @@ CREATE TABLE settings (
                         ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+-- One person's overrides of the office defaults: what reaches them by email,
+-- and how their activity list opens. A missing row means "the default".
+CREATE TABLE user_preferences (
+    user_id         INT UNSIGNED NOT NULL,
+    pref_key        VARCHAR(40)  NOT NULL,
+    pref_value      VARCHAR(255) NOT NULL,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                        ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (user_id, pref_key),
+    CONSTRAINT fk_pref_user FOREIGN KEY (user_id) REFERENCES users(user_id)
+                                     ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 
 -- =====================================================================
 -- VIEWS - back the reporting screens so PHP does not rebuild these joins

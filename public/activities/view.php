@@ -100,11 +100,11 @@ $pageTitle = $activity['title'];
 require __DIR__ . '/../../includes/layout/header.php';
 ?>
 
-<?php // The header carries the domain's field colour and a photo that fits it. ?>
-<div class="page-head photo-band <?= e(category_field((string) $activity['category'])) ?>"<?= photo_band_style(category_photo((string) $activity['category'])) ?>>
+<?php // The header photo changes with the domain; the banner itself is the same on every page. ?>
+<div class="page-head photo-band"<?= photo_band_style(category_photo((string) $activity['category'])) ?>>
     <div>
         <a class="crumb" href="<?= url('activities/index.php') ?>">&larr; Back to activities</a>
-        <div><?= status_badge($activity['status'], 'activity') ?></div>
+        <?= status_badge($activity['status'], 'activity') ?>
         <h1><?= e($activity['title']) ?></h1>
         <p><?= e($activity['category']) ?></p>
     </div>

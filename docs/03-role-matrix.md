@@ -75,6 +75,8 @@ Legend: **✔** full · **◐** limited (see note) · **✘** none
 | Action | Student | Coordinator | Staff | Admin |
 |--------|:-------:|:-----------:|:-----:|:-----:|
 | Edit own profile | ✔ | ✔ | ✔ | ✔ |
+| Choose own email and list settings | ✔ | ✔ | ✔ | ✔ |
+| Edit the office's name, university, upload limit | ✘ | ✘ | ✘ | ✔ |
 | Activate pending student accounts | ✘ | ✘ | ✔ | ✔ |
 | Create / edit / deactivate any user | ✘ | ✘ | ✘ | ✔ |
 | Change a user's role | ✘ | ✘ | ✘ | ✔ |

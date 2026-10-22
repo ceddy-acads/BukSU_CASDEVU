@@ -34,6 +34,32 @@ function review_activity_scope(string $alias = 'a'): array
 }
 
 /**
+ * Who decides on one activity: the coordinators assigned to it, or the office
+ * when it has none. Used to tell reviewers that a registration or a document
+ * has arrived.
+ *
+ * @return array<int, int>
+ */
+function activity_reviewer_ids(int $activityId): array
+{
+    $reviewers = fetch_all(
+        "SELECT ac.user_id FROM activity_coordinators ac
+           JOIN users u ON u.user_id = ac.user_id
+          WHERE ac.activity_id = ? AND u.status = 'active'",
+        [$activityId]
+    );
+
+    if ($reviewers === []) {
+        $reviewers = fetch_all(
+            "SELECT u.user_id FROM users u JOIN roles r ON r.role_id = u.role_id
+              WHERE r.name IN ('staff','admin') AND u.status = 'active'"
+        );
+    }
+
+    return array_map(static fn(array $row): int => (int) $row['user_id'], $reviewers);
+}
+
+/**
  * How many items wait in each lane, for the current user.
  *
  * @return array{documents: int, registrations: int, reservations: int, accounts: int, total: int}

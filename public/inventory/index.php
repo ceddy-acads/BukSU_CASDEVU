@@ -136,12 +136,7 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 </div>
 
-<?php if ($overdue > 0 && is_office_staff()): ?>
-    <div class="alert alert-error">
-        <strong><?= $overdue ?></strong> item<?= $overdue === 1 ? ' is' : 's are' ?> past the expected return date.
-        <a href="<?= url('inventory/borrowings.php?filter=overdue') ?>">Review now</a>
-    </div>
-<?php endif; ?>
+<?php // Overdue returns now open in the notification pop-up: includes/attention.php. ?>
 
 <?php if ($isBrowser): ?>
     <div class="alert alert-info">

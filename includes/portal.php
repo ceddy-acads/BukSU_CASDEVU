@@ -85,7 +85,7 @@ function portal_open_html(bool $centred = false, bool $wide = false): string
     $photo      = $slides === [] ? portal_asset_url(PORTAL_PHOTOS[0][0]) : null;
     $logo       = portal_asset_url('img/buksu-logo-white.png');
     $appName    = defined('APP_NAME') ? APP_NAME : 'CASDevU';
-    $university = defined('UNIVERSITY') ? UNIVERSITY : 'Bukidnon State University';
+    $university = university_name();
 
     $classes = 'portal' . ($centred ? ' portal-status' : '') . ($wide ? ' portal-wide' : '')
              . ($photo ? ' has-photo' : '') . ($slides !== [] ? ' has-slides' : '');
@@ -128,8 +128,8 @@ function portal_open_html(bool $centred = false, bool $wide = false): string
 /** Closes the panel, adds the office line, and closes the portal. */
 function portal_close_html(): string
 {
-    $office     = defined('OFFICE_NAME') ? OFFICE_NAME : 'Culture, Arts, and Sports Development Unit';
-    $university = defined('UNIVERSITY') ? UNIVERSITY : 'Bukidnon State University';
+    $office     = office_name();
+    $university = university_name();
 
     return '
         </div>

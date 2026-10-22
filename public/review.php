@@ -35,13 +35,27 @@ function waiting_label(?string $since): string
     };
 }
 
+// One lane per kind of decision: a tab in the card's head, so the queue reads
+// as one card instead of four stacked ones.
 $lanes = [
-    ['documents',     'Documents to verify',       'documents',     'Students uploaded these and are waiting for your decision.'],
-    ['registrations', 'Registrations to approve',  'registrations', 'Students asked to join these activities.'],
+    'documents'     => ['Documents', 'Students uploaded these and are waiting for your decision.'],
+    'registrations' => ['Registrations', 'Students asked to join these activities.'],
 ];
 if (is_office_staff()) {
-    $lanes[] = ['reservations', 'Reservation requests', 'reservations', 'Coordinators asked to reserve costumes or equipment.'];
-    $lanes[] = ['accounts',     'New student accounts', 'accounts',     'These students cannot sign in until an account is activated.'];
+    $lanes['reservations'] = ['Reservations', 'Coordinators asked to reserve costumes or equipment.'];
+    $lanes['accounts']     = ['Accounts', 'These students cannot sign in until an account is activated.'];
+}
+
+// Open on whatever the URL asked for, else the first lane that has work.
+$lane = get('lane');
+if (!isset($lanes[$lane])) {
+    $lane = 'documents';
+    foreach (array_keys($lanes) as $key) {
+        if ($counts[$key] > 0) {
+            $lane = $key;
+            break;
+        }
+    }
 }
 
 $pageTitle = 'Review queue';
@@ -88,122 +102,110 @@ require __DIR__ . '/../includes/layout/header.php';
     </div>
 <?= $documentChart ?>
 <?php else: ?>
-    <div class="stats<?= is_office_staff() ? '' : ' stats-3' ?>">
-        <?php foreach ($lanes as [$key, $label, $anchor]): ?>
-            <a class="stat <?= stat_tone($counts[$key], 'stat-gold') ?>" href="#<?= $anchor ?>">
-                <span class="stat-value"><?= $counts[$key] ?></span>
-                <span class="stat-label"><?= e($label) ?></span>
-            </a>
-        <?php endforeach; ?>
-    </div>
-
     <?= $documentChart ?>
 
-    <section class="card card-flush" id="documents">
+    <section class="card card-flush">
         <div class="card-head">
-            <h2>Documents to verify <span class="muted">(<?= $counts['documents'] ?>)</span></h2>
-            <p class="hint">Students uploaded these and are waiting for your decision.</p>
+            <nav class="tabs" aria-label="Show one category of the queue">
+                <?php foreach ($lanes as $key => $copy): ?>
+                    <a class="tab" href="<?= url('review.php?lane=' . $key) ?>"<?= $key === $lane ? ' aria-current="page"' : '' ?>>
+                        <?= e($copy[0]) ?><span class="tab-count"><?= $counts[$key] ?></span>
+                    </a>
+                <?php endforeach; ?>
+            </nav>
+            <p class="hint"><?= e($lanes[$lane][1]) ?></p>
         </div>
-        <?php if ($documents === []): ?>
-            <div class="empty">
-                <strong>No documents waiting</strong>
-                New uploads appear here as soon as students submit them.
-            </div>
-        <?php else: ?>
-            <div class="table-wrap">
-                <table class="data table-stack" data-sortable>
-                    <thead>
-                        <tr>
-                            <th data-sort="text">Student</th><th data-sort="text">Document</th>
-                            <th data-sort="text">Activity</th><th data-sort="number">Submitted</th>
-                            <th class="actions"><span class="sr-only">Action</span></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php foreach ($documents as $row): ?>
-                        <tr>
-                            <td data-label="Student">
-                                <strong><?= e($row['last_name'] . ', ' . $row['first_name']) ?></strong>
-                                <div class="hint"><?= e($row['student_number'] ?? '') ?></div>
-                            </td>
-                            <td data-label="Document">
-                                <?= e($row['requirement_name']) ?>
-                                <?php if ($row['original_name']): ?>
-                                    <div class="hint"><?= e($row['original_name']) ?></div>
-                                <?php endif; ?>
-                            </td>
-                            <td data-label="Activity"><?= e($row['activity_title']) ?></td>
-                            <td data-label="Submitted" data-sort-value="<?= (int) strtotime((string) $row['submitted_at']) ?>">
-                                <span class="nowrap"><?= e(format_date($row['submitted_at'])) ?></span>
-                                <div class="hint"><?= e(waiting_label($row['submitted_at'])) ?></div>
-                            </td>
-                            <td class="actions">
-                                <a class="btn btn-primary btn-sm"
-                                   href="<?= url('requirements/verify.php?activity_id=' . (int) $row['activity_id'] . '&status=pending') ?>"
-                                   aria-label="Review <?= e($row['requirement_name']) ?> from <?= e($row['first_name'] . ' ' . $row['last_name']) ?>">Review</a>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php endif; ?>
-    </section>
 
-    <section class="card card-flush" id="registrations">
-        <div class="card-head">
-            <h2>Registrations to approve <span class="muted">(<?= $counts['registrations'] ?>)</span></h2>
-            <p class="hint">Students asked to join these activities.</p>
-        </div>
-        <?php if ($registrations === []): ?>
-            <div class="empty">
-                <strong>No registrations waiting</strong>
-                New sign-ups appear here as soon as students register.
-            </div>
-        <?php else: ?>
-            <div class="table-wrap">
-                <table class="data table-stack" data-sortable>
-                    <thead>
-                        <tr>
-                            <th data-sort="text">Student</th><th data-sort="text">Activity</th>
-                            <th data-sort="number">Activity date</th><th data-sort="number">Registered</th>
-                            <th class="actions"><span class="sr-only">Action</span></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php foreach ($registrations as $row): ?>
-                        <tr>
-                            <td data-label="Student">
-                                <strong><?= e($row['last_name'] . ', ' . $row['first_name']) ?></strong>
-                                <div class="hint"><?= e($row['student_number'] ?? '') ?><?= $row['team_name'] ? ' · ' . e($row['team_name']) : '' ?></div>
-                            </td>
-                            <td data-label="Activity"><?= e($row['activity_title']) ?></td>
-                            <td data-label="Activity date" data-sort-value="<?= (int) strtotime((string) $row['start_at']) ?>" class="nowrap">
-                                <?= e(format_date($row['start_at'])) ?>
-                            </td>
-                            <td data-label="Registered" data-sort-value="<?= (int) strtotime((string) $row['registered_at']) ?>">
-                                <span class="nowrap"><?= e(format_date($row['registered_at'])) ?></span>
-                                <div class="hint"><?= e(waiting_label($row['registered_at'])) ?></div>
-                            </td>
-                            <td class="actions">
-                                <a class="btn btn-primary btn-sm"
-                                   href="<?= url('participation/participants.php?activity_id=' . (int) $row['activity_id'] . '&status=pending') ?>"
-                                   aria-label="Review the registration of <?= e($row['first_name'] . ' ' . $row['last_name']) ?>">Review</a>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php endif; ?>
-    </section>
+        <?php if ($lane === 'documents'): ?>
+            <?php if ($documents === []): ?>
+                <div class="empty">
+                    <strong>No documents waiting</strong>
+                    New uploads appear here as soon as students submit them.
+                </div>
+            <?php else: ?>
+                <div class="table-wrap">
+                    <table class="data table-stack" data-sortable>
+                        <thead>
+                            <tr>
+                                <th data-sort="text">Student</th><th data-sort="text">Document</th>
+                                <th data-sort="text">Activity</th><th data-sort="number">Submitted</th>
+                                <th class="actions"><span class="sr-only">Action</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($documents as $row): ?>
+                            <tr>
+                                <td data-label="Student">
+                                    <strong><?= e($row['last_name'] . ', ' . $row['first_name']) ?></strong>
+                                    <div class="hint"><?= e($row['student_number'] ?? '') ?></div>
+                                </td>
+                                <td data-label="Document">
+                                    <?= e($row['requirement_name']) ?>
+                                    <?php if ($row['original_name']): ?>
+                                        <div class="hint"><?= e($row['original_name']) ?></div>
+                                    <?php endif; ?>
+                                </td>
+                                <td data-label="Activity"><?= e($row['activity_title']) ?></td>
+                                <td data-label="Submitted" data-sort-value="<?= (int) strtotime((string) $row['submitted_at']) ?>">
+                                    <span class="nowrap"><?= e(format_date($row['submitted_at'])) ?></span>
+                                    <div class="hint"><?= e(waiting_label($row['submitted_at'])) ?></div>
+                                </td>
+                                <td class="actions">
+                                    <a class="btn btn-primary btn-sm"
+                                       href="<?= url('requirements/verify.php?activity_id=' . (int) $row['activity_id'] . '&status=pending') ?>"
+                                       aria-label="Review <?= e($row['requirement_name']) ?> from <?= e($row['first_name'] . ' ' . $row['last_name']) ?>">Review</a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
 
-    <?php if (is_office_staff()): ?>
-        <section class="card card-flush" id="reservations">
-            <div class="card-head">
-                <h2>Reservation requests <span class="muted">(<?= $counts['reservations'] ?>)</span></h2>
-                <p class="hint">Coordinators asked to reserve costumes or equipment.</p>
-            </div>
+        <?php elseif ($lane === 'registrations'): ?>
+            <?php if ($registrations === []): ?>
+                <div class="empty">
+                    <strong>No registrations waiting</strong>
+                    New sign-ups appear here as soon as students register.
+                </div>
+            <?php else: ?>
+                <div class="table-wrap">
+                    <table class="data table-stack" data-sortable>
+                        <thead>
+                            <tr>
+                                <th data-sort="text">Student</th><th data-sort="text">Activity</th>
+                                <th data-sort="number">Activity date</th><th data-sort="number">Registered</th>
+                                <th class="actions"><span class="sr-only">Action</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($registrations as $row): ?>
+                            <tr>
+                                <td data-label="Student">
+                                    <strong><?= e($row['last_name'] . ', ' . $row['first_name']) ?></strong>
+                                    <div class="hint"><?= e($row['student_number'] ?? '') ?><?= $row['team_name'] ? ' · ' . e($row['team_name']) : '' ?></div>
+                                </td>
+                                <td data-label="Activity"><?= e($row['activity_title']) ?></td>
+                                <td data-label="Activity date" data-sort-value="<?= (int) strtotime((string) $row['start_at']) ?>" class="nowrap">
+                                    <?= e(format_date($row['start_at'])) ?>
+                                </td>
+                                <td data-label="Registered" data-sort-value="<?= (int) strtotime((string) $row['registered_at']) ?>">
+                                    <span class="nowrap"><?= e(format_date($row['registered_at'])) ?></span>
+                                    <div class="hint"><?= e(waiting_label($row['registered_at'])) ?></div>
+                                </td>
+                                <td class="actions">
+                                    <a class="btn btn-primary btn-sm"
+                                       href="<?= url('participation/participants.php?activity_id=' . (int) $row['activity_id'] . '&status=pending') ?>"
+                                       aria-label="Review the registration of <?= e($row['first_name'] . ' ' . $row['last_name']) ?>">Review</a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+
+        <?php elseif ($lane === 'reservations'): ?>
             <?php if ($reservations === []): ?>
                 <div class="empty">
                     <strong>No reservation requests waiting</strong>
@@ -241,13 +243,8 @@ require __DIR__ . '/../includes/layout/header.php';
                     </table>
                 </div>
             <?php endif; ?>
-        </section>
 
-        <section class="card card-flush" id="accounts">
-            <div class="card-head">
-                <h2>New student accounts <span class="muted">(<?= $counts['accounts'] ?>)</span></h2>
-                <p class="hint">These students cannot sign in until an account is activated.</p>
-            </div>
+        <?php elseif ($lane === 'accounts'): ?>
             <?php if ($accounts === []): ?>
                 <div class="empty">
                     <strong>No accounts waiting</strong>
@@ -280,8 +277,8 @@ require __DIR__ . '/../includes/layout/header.php';
                     </table>
                 </div>
             <?php endif; ?>
-        </section>
-    <?php endif; ?>
+        <?php endif; ?>
+    </section>
 <?php endif; ?>
 
 <?php require __DIR__ . '/../includes/layout/footer.php'; ?>

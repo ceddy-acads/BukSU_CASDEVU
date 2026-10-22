@@ -128,6 +128,7 @@ eventually drift out of sync with reality; a derived one cannot.
 |-------|---------|-----------------|
 | `audit_logs` | Who did what, when | Polymorphic: `entity_type` + `entity_id` covers every table with one log |
 | `settings` | Key/value configuration | Lets the office change reminder lead time or report headers without editing PHP |
+| `user_preferences` | One person's switches | Composite PK (`user_id`, `pref_key`). **No row = the default**, so a new switch needs no backfill and no migration of existing accounts |
 
 ---
 

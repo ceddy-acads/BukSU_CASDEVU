@@ -68,19 +68,14 @@ if ($role === 'student') {
         // Same source as the review queue, so the numbers always match it
         // (and a coordinator counts only their own activities).
         ['label' => 'Pending registrations', 'value' => review_counts()['registrations'],
-            'class' => 'stat-gold', 'href' => 'review.php#registrations'],
+            'class' => 'stat-gold', 'href' => 'review.php?lane=registrations'],
         ['label' => 'Requirements to verify', 'value' => review_counts()['documents'],
-            'class' => 'stat-gold', 'href' => 'review.php#documents'],
+            'class' => 'stat-gold', 'href' => 'review.php?lane=documents'],
         ['label' => 'Items on loan', 'value' => fetch_value(
             'SELECT COUNT(*) FROM borrowings WHERE returned_at IS NULL'),
             'class' => '', 'href' => is_office_staff() ? 'inventory/borrowings.php' : null],
     ];
 }
-
-// Accounts awaiting activation — the office's most common Week 1 task.
-$pendingAccounts = is_office_staff()
-    ? (int) fetch_value("SELECT COUNT(*) FROM users WHERE status = 'pending'")
-    : 0;
 
 // Office work queue: activities with registrations or documents waiting for
 // review. Coordinators only see the activities they are assigned to.
@@ -134,32 +129,8 @@ require __DIR__ . '/../includes/layout/header.php';
     <?php endif; ?>
 </div>
 
-<?php if ($pendingAccounts > 0): ?>
-    <div class="alert alert-warning">
-        <strong><?= $pendingAccounts ?></strong> student account<?= $pendingAccounts === 1 ? ' is' : 's are' ?>
-        waiting for approval.
-        <a href="<?= url('admin/users.php?status=pending') ?>">Review accounts</a>
-    </div>
-<?php endif; ?>
-
-<?php if (is_office_staff()): ?>
-    <?php $overdueItems = overdue_borrowing_count(); ?>
-    <?php if ($overdueItems > 0): ?>
-        <div class="alert alert-error">
-            <strong><?= $overdueItems ?></strong> borrowed item<?= $overdueItems === 1 ? ' is' : 's are' ?>
-            past the expected return date.
-            <a href="<?= url('inventory/borrowings.php?filter=overdue') ?>">See overdue items</a>
-        </div>
-    <?php endif; ?>
-<?php endif; ?>
-
-<?php if ($role === 'student' && (int) $stats[3]['value'] > 0): ?>
-    <div class="alert alert-warning">
-        You still have <strong><?= (int) $stats[3]['value'] ?></strong>
-        document<?= (int) $stats[3]['value'] === 1 ? '' : 's' ?> to submit.
-        <a href="<?= url('participation/my-activities.php') ?>">See what is missing</a>
-    </div>
-<?php endif; ?>
+<?php // Alerts that used to sit here (pending accounts, overdue returns, missing
+      // documents) now open in the notification pop-up: includes/attention.php. ?>
 
 <div class="stats">
     <?php foreach ($stats as $stat): ?>
