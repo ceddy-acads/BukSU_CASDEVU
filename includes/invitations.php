@@ -125,10 +125,11 @@ function invitation_send_decision(array $invitation): string
 }
 
 /**
- * Tell admins and coordinators a new invitation is on the calendar.
- * Staff are left out on purpose: they made the decision.
+ * Tell admins and coordinators about a change to an invitation. Staff are
+ * left out on purpose: they made the decision. Stored as 'system' because the
+ * bell shows essential types only.
  */
-function invitation_notify_approved(array $invitation): void
+function invitation_notify(array $invitation, string $title, string $message): void
 {
     $ids = array_map('intval', array_column(fetch_all(
         "SELECT u.user_id
@@ -140,13 +141,29 @@ function invitation_notify_approved(array $invitation): void
     // Column limits: notifications.title 200, message 500.
     notify_many(
         $ids,
-        'activity',
-        mb_strimwidth('New invitation: ' . $invitation['title'], 0, 200, '…'),
-        mb_strimwidth(
-            $invitation['organization'] . ' invites BukSU to ' . $invitation['title'] . ', '
-                . invitation_when($invitation) . ', ' . $invitation['place'] . '. It is on the calendar.',
-            0, 500, '…'
-        ),
+        'system',
+        mb_strimwidth($title, 0, 200, '…'),
+        mb_strimwidth($message, 0, 500, '…'),
         url('invitations/view.php?id=' . (int) $invitation['invitation_id'])
+    );
+}
+
+function invitation_notify_approved(array $invitation): void
+{
+    invitation_notify(
+        $invitation,
+        'New invitation: ' . $invitation['title'],
+        $invitation['organization'] . ' invites BukSU to ' . $invitation['title'] . ', '
+            . invitation_when($invitation) . ', ' . $invitation['place'] . '. It is on the calendar.'
+    );
+}
+
+function invitation_notify_cancelled(array $invitation): void
+{
+    invitation_notify(
+        $invitation,
+        'Invitation cancelled: ' . $invitation['title'],
+        $invitation['organization'] . "'s invitation to " . $invitation['title'] . ', '
+            . invitation_when($invitation) . ', is cancelled. It stays on the calendar, marked cancelled.'
     );
 }

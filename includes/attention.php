@@ -58,7 +58,7 @@ function attention_items(): array
                 'icon'    => 'review',
                 'title'   => 'Invitations to review',
                 'message' => $invitations . ' invitation' . ($invitations === 1 ? '' : 's')
-                             . ' from outside groups need a decision or a reply.',
+                             . ' from outside groups ' . ($invitations === 1 ? 'needs' : 'need') . ' a decision or a reply.',
                 'href'    => 'review.php?lane=invitations',
                 'action'  => 'Open the review queue',
             ];

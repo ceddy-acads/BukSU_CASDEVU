@@ -200,6 +200,19 @@ function calendar_link(int $year, int $month, int $day = 0, ?string $category = 
     return url('activities/calendar.php?' . http_build_query($query));
 }
 
+/** '2 activities, 1 invitation'; a zero part is left out; 'no activities' when both are zero. */
+function calendar_counts(int $activities, int $invitations): string
+{
+    $parts = [];
+    if ($activities > 0) {
+        $parts[] = $activities . ' activit' . ($activities === 1 ? 'y' : 'ies');
+    }
+    if ($invitations > 0) {
+        $parts[] = $invitations . ' invitation' . ($invitations === 1 ? '' : 's');
+    }
+    return $parts === [] ? 'no activities' : implode(', ', $parts);
+}
+
 /** '8:00 AM – 5:00 PM', '8:00 AM', or 'Day 2 of 3' on a later day of a long activity. */
 function calendar_when(array $event): string
 {
@@ -255,7 +268,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 <div class="page-head photo-band"<?= photo_band_style('cheerdance') ?>>
     <div>
         <h1><?= e($monthLabel) ?></h1>
-        <p><?= count($activities) ?> activit<?= count($activities) === 1 ? 'y' : 'ies' ?> this month<?= $categoryIn !== '' ? ' in this category' : '' ?><?= $invitationCount > 0 ? ', ' . $invitationCount . ' invitation' . ($invitationCount === 1 ? '' : 's') : '' ?></p>
+        <p><?= e(calendar_counts(count($activities), $invitationCount)) ?> this month<?= $categoryIn !== '' ? ' in this category' : '' ?></p>
     </div>
     <nav class="cal-stepper" aria-label="Change month">
         <a class="cal-step" href="<?= e(calendar_link($prevYear, $prevMonth)) ?>"
@@ -313,7 +326,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                                 <div class="cal-day-head">
                                     <?php // Every day can be chosen; the agenda then opens on it. ?>
                                     <a class="cal-daynum" href="<?= e(calendar_link($year, $month, $dayNumber)) ?>"
-                                       aria-label="<?= e(date('l j F', $ts)) ?><?= $isToday ? ', today' : '' ?>, <?= count($events) === 0 ? 'no activities' : count($events) . ' activit' . (count($events) === 1 ? 'y' : 'ies') ?>"
+                                       aria-label="<?= e(date('l j F', $ts)) ?><?= $isToday ? ', today' : '' ?>, <?php $dayInvitations = count(array_filter($events, static fn(array $ev): bool => $ev['kind'] === 'invitation')); ?><?= e(calendar_counts(count($events) - $dayInvitations, $dayInvitations)) ?>"
                                        <?= $isSelected ? 'aria-current="date"' : '' ?>><?= $dayNumber ?></a>
                                     <?php if ($isToday): ?><span class="cal-today-word" aria-hidden="true">Today</span><?php endif; ?>
                                 </div>
@@ -366,7 +379,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <ul class="cal-items"><?php foreach ($focusEvents as $event) { echo calendar_agenda_item($event); } ?></ul>
             <?php endif; ?>
         <?php else: ?>
-            <h2 id="cal-panel-title" class="cal-panel-title"><?= e($monthName) ?> <span><?= count($activities) ?> activit<?= count($activities) === 1 ? 'y' : 'ies' ?></span></h2>
+            <h2 id="cal-panel-title" class="cal-panel-title"><?= e($monthName) ?> <span><?= e(calendar_counts(count($activities), $invitationCount)) ?></span></h2>
         <?php endif; ?>
 
         <?php if ($byDay === []): ?>

@@ -182,7 +182,7 @@ same computer; deploy under a real hostname for links that work anywhere.
 ```
 BukSU CASDEVU/
 ├── database/
-│   ├── schema.sql           Clean installer: 22 tables, 3 views, seed data
+│   ├── schema.sql           Clean installer: 24 tables, 3 views, seed data
 │   ├── demo-data.sql        Optional realistic dataset for a walkthrough
 │   ├── update-courses.sql   Brings an existing database to BukSU's programs
 │   ├── update-notification-dismiss.sql  Adds notifications.dismissed_at

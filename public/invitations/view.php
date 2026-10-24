@@ -49,7 +49,7 @@ if (is_post()) {
             }
             $changed = query(
                 "UPDATE invitations
-                    SET status = ?, reviewed_by = ?, reviewed_at = NOW(), remarks = ?
+                    SET status = ?, reviewed_by = ?, reviewed_at = NOW(), remarks = ?, email_status = 'failed'
                   WHERE invitation_id = ? AND status = 'pending'",
                 [$action === 'approve' ? 'approved' : 'rejected', current_user_id(),
                  $remarks !== '' ? $remarks : null, $id]
@@ -97,6 +97,7 @@ if (is_post()) {
                 flash('error', 'Only a posted invitation can be cancelled.');
                 break;
             }
+            invitation_notify_cancelled($invitation);
             audit_log('cancel', 'invitation', $id, 'Cancelled invitation "' . $invitation['title'] . '"');
             flash('success', 'Invitation cancelled. It stays on the calendar, marked cancelled. No email was sent.');
             break;
@@ -155,10 +156,10 @@ $backUrl   = $isOffice
             <a href="mailto:<?= e($invitation['email']) ?>"><?= e($invitation['email']) ?></a><?php if ($invitation['phone']): ?>,
             <a href="tel:<?= e($invitation['phone']) ?>"><?= e($invitation['phone']) ?></a><?php endif; ?>
         </div>
-        <form method="post" action="<?= url($self) ?>" data-loading="Saving…">
+        <form method="post" action="<?= url($self) ?>">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="contacted">
-            <button type="submit" class="btn btn-outline btn-sm">Mark as contacted</button>
+            <button type="submit" class="btn btn-outline btn-sm" data-loading="Saving…">Mark as contacted</button>
         </form>
     </div>
 <?php endif; ?>
@@ -195,21 +196,24 @@ $backUrl   = $isOffice
 <?php if ($isOffice && $status === 'pending'): ?>
     <section class="card">
         <div class="card-head"><h2>Decide</h2></div>
+        <div class="stack">
+        <div>
         <p>Approving posts it to the calendar for admins and coordinators and emails the sender that it was received. It does not commit BukSU to attend.</p>
-        <form method="post" action="<?= url($self) ?>" data-loading="Posting…">
+        <form method="post" action="<?= url($self) ?>">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="approve">
-            <button type="submit" class="btn btn-primary">Approve</button>
+            <button type="submit" class="btn btn-primary" data-loading="Posting…">Approve</button>
         </form>
+        </div>
 
-        <form method="post" action="<?= url($self) ?>" data-loading="Rejecting…">
+        <form method="post" action="<?= url($self) ?>">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="reject">
             <div class="form-row">
                 <label for="remarks">Reason for rejecting (sent to the sender)</label>
                 <textarea id="remarks" name="remarks" maxlength="500" required></textarea>
             </div>
-            <button type="submit" class="btn btn-outline">Reject</button>
+            <button type="submit" class="btn btn-outline" data-loading="Rejecting…">Reject</button>
         </form>
 
         <form method="post" action="<?= url($self) ?>"
@@ -218,14 +222,17 @@ $backUrl   = $isOffice
             <input type="hidden" name="action" value="discard">
             <button type="submit" class="btn btn-outline">Discard as spam</button>
         </form>
+        </div>
     </section>
 <?php elseif ($isOffice && $status === 'approved'): ?>
     <section class="card">
-        <form method="post" action="<?= url($self) ?>" data-loading="Cancelling…"
+        <div class="card-head"><h2>Cancel</h2></div>
+        <p>It stays on the calendar, marked cancelled. Admins and coordinators are told. No email is sent.</p>
+        <form method="post" action="<?= url($self) ?>"
               onsubmit="return confirm('Cancel this invitation? It stays on the calendar, marked cancelled. No email is sent.');">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="cancel">
-            <button type="submit" class="btn btn-outline">Cancel invitation</button>
+            <button type="submit" class="btn btn-outline" data-loading="Cancelling…">Cancel invitation</button>
         </form>
     </section>
 <?php endif; ?>

@@ -113,8 +113,11 @@ function recent_notifications(int $userId, int $limit = 10): array
  *
  * @return array{0: string, 1: string} [icon name, label]
  */
-function notification_type_meta(string $type): array
+function notification_type_meta(string $type, ?string $linkUrl = null): array
 {
+    if ($type === 'system' && $linkUrl !== null && str_contains($linkUrl, 'invitations/view.php')) {
+        return ['calendar', 'Invitation'];
+    }
     return match ($type) {
         'activity'     => ['activities',    'Activity'],
         'announcement' => ['announcements', 'Announcement'],

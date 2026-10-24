@@ -193,6 +193,8 @@ $ids = [
     'invitation_letter' => (int) db_value($pdo,
         "SELECT invitation_id FROM invitations WHERE status IN ('approved', 'cancelled')
             AND letter_path IS NOT NULL ORDER BY invitation_id LIMIT 1"),
+    'invitation_hidden' => (int) db_value($pdo,
+        "SELECT invitation_id FROM invitations WHERE status IN ('pending', 'rejected') ORDER BY invitation_id LIMIT 1"),
 ];
 $ids['assigned'] = (int) (db_value($pdo,
     'SELECT ac.activity_id FROM activity_coordinators ac
@@ -697,6 +699,23 @@ foreach ($pages as $page) {
             }
         } else {
             fail($label . ': ' . $problem);
+        }
+    }
+}
+
+// A coordinator must get the same 404 for a pending or rejected invitation as for a missing one.
+if ($ids['invitation_hidden'] > 0 && isset($jars['coordinator'], $jars['staff'])
+    && ($options['only'] === '' || str_contains('invitations/', $options['only']))) {
+    section('Hidden invitations');
+    $hidden = $ids['invitation_hidden'];
+    foreach ([['invitations/view.php', 'coordinator', 404], ['invitations/letter.php', 'coordinator', 404],
+              ['invitations/view.php', 'staff', 200]] as [$path, $role, $want]) {
+        $checks++;
+        $r = http_request($options['base'] . '/' . $path . '?id=' . $hidden, $jars[$role], null, $options['timeout']);
+        if ($r['status'] === $want) {
+            ok($path . '?id=' . $hidden . ' as ' . $role . ' gives ' . $want);
+        } else {
+            fail($path . '?id=' . $hidden . ' as ' . $role . ': HTTP ' . $r['status'] . ' (expected ' . $want . ')');
         }
     }
 }

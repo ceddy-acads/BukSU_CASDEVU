@@ -1,7 +1,7 @@
 # CASMS — Database Design
 
 **DBMS:** MySQL / MariaDB (XAMPP), InnoDB, `utf8mb4_unicode_ci`
-**Script:** `database/schema.sql` — verified to execute cleanly; creates 22 tables, 3 views, and seed data.
+**Script:** `database/schema.sql` — verified to execute cleanly; creates 24 tables, 3 views, and seed data.
 
 ---
 

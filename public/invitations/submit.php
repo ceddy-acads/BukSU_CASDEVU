@@ -106,7 +106,7 @@ if (is_post()) {
                     $_SERVER['REMOTE_ADDR'] ?? 'unknown',
                 ]
             );
-            audit_log('create', 'invitation', (int) db()->lastInsertId(), 'Invitation received from ' . $in['organization']);
+            audit_log('create', 'invitation', (int) db()->lastInsertId(), 'Invitation received');
             $sent   = true;
             $sentTo = $in['email'];
         }
