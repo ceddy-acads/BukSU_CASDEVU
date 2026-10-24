@@ -45,13 +45,14 @@ function student_has_open_loan(int $studentId): bool
     );
 }
 
-/** An approved student request that nothing has been collected from yet. */
+/** An approved student request whose items are not all collected yet. */
 function student_has_uncollected_approved(int $studentId): bool
 {
     return (bool) fetch_value(
         "SELECT 1 FROM reservations r
           WHERE r.requested_by = ? AND r.student_request = 1 AND r.status = 'approved'
-            AND NOT EXISTS (SELECT 1 FROM borrowings b WHERE b.reservation_id = r.reservation_id)
+            AND (SELECT COALESCE(SUM(b.quantity), 0) FROM borrowings b WHERE b.reservation_id = r.reservation_id)
+              < (SELECT COALESCE(SUM(ri.quantity), 0) FROM reservation_items ri WHERE ri.reservation_id = r.reservation_id)
           LIMIT 1",
         [$studentId]
     );
@@ -69,15 +70,7 @@ function student_has_open_borrowing(int $studentId): bool
 /** Option B: approved and not fully collected, or any open loan. */
 function office_may_view_id(int $studentId): bool
 {
-    $partial = (bool) fetch_value(
-        "SELECT 1 FROM reservations r
-          WHERE r.requested_by = ? AND r.student_request = 1 AND r.status = 'approved'
-            AND (SELECT COALESCE(SUM(b.quantity), 0) FROM borrowings b WHERE b.reservation_id = r.reservation_id)
-              < (SELECT COALESCE(SUM(ri.quantity), 0) FROM reservation_items ri WHERE ri.reservation_id = r.reservation_id)
-          LIMIT 1",
-        [$studentId]
-    );
-    return $partial || student_has_open_loan($studentId);
+    return student_has_uncollected_approved($studentId) || student_has_open_loan($studentId);
 }
 
 function can_view_id_photos(int $studentId): bool
@@ -139,14 +132,26 @@ function cancel_open_student_requests(int $studentId, ?int $activityId, string $
         $params[] = $activityId;
     }
     $ids = array_map('intval', array_column(fetch_all($sql, $params), 'reservation_id'));
+    $cancelled = 0;
     foreach ($ids as $id) {
-        query("UPDATE reservations SET status = 'cancelled' WHERE reservation_id = ?", [$id]);
+        $done = query(
+            "UPDATE reservations r SET r.status = 'cancelled'
+              WHERE r.reservation_id = ? AND r.student_request = 1
+                AND (r.status = 'pending'
+                     OR (r.status = 'approved'
+                         AND NOT EXISTS (SELECT 1 FROM borrowings b WHERE b.reservation_id = r.reservation_id)))",
+            [$id]
+        );
+        if ($done->rowCount() !== 1) {
+            continue; // released or decided since the SELECT
+        }
+        $cancelled++;
         foreach (fetch_all('SELECT item_id FROM reservation_items WHERE reservation_id = ?', [$id]) as $row) {
             refresh_item_status((int) $row['item_id']);
         }
         notify($studentId, 'reservation', 'Equipment request cancelled', $reason, url('inventory/reservations.php'));
     }
-    return count($ids);
+    return $cancelled;
 }
 
 function delete_id_photos(int $studentId): void

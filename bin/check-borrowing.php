@@ -136,6 +136,17 @@ try {
     act_as($staff['email']);
     check('office may decide any', can_decide_reservation($rnRow) === true);
 
+    // --- partly released then returned stays open; pending is outside the office circle ---
+    $rpart = $mk(15, 'approved');
+    $bp = $loan($rpart, 1);
+    query('UPDATE borrowings SET returned_at = NOW() WHERE borrowing_id = ?', [$bp]);
+    check('approved, partly released and returned: still open', student_has_open_borrowing($aid) === true);
+    query('UPDATE borrowings SET returned_at = NOW() WHERE borrower_id = ? AND returned_at IS NULL', [$aid]);
+    query("UPDATE reservations SET status = 'cancelled' WHERE requested_by = ?", [$aid]);
+    $mk(15, 'pending');
+    act_as($staff['email']);
+    check('staff cannot see ID while only request is pending', can_view_id_photos($aid) === false);
+
     // --- bulk cancel ---
     query("UPDATE reservations SET status = 'cancelled' WHERE requested_by = ?", [$aid]);
     $p = $mk(15, 'pending');
