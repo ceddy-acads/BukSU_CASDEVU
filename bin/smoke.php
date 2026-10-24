@@ -458,7 +458,7 @@ $pages = [
 
     ['path' => 'inventory/index.php',             'allow' => ['admin', 'staff', 'coordinator', 'student']],
     ['path' => 'inventory/reserve.php',           'allow' => ['admin', 'staff', 'coordinator']],
-    ['path' => 'inventory/reservations.php',      'allow' => ['admin', 'staff', 'coordinator']],
+    ['path' => 'inventory/reservations.php',      'allow' => ['admin', 'staff', 'coordinator', 'student']],
     ['path' => 'inventory/borrowings.php',        'allow' => ['admin', 'staff']],
     ['path' => 'inventory/manage.php',            'allow' => ['admin', 'staff']],
     ['path' => 'inventory/photo.php',             'allow' => ['admin', 'staff', 'coordinator', 'student'],
