@@ -573,6 +573,7 @@ statements that the system fails them:
    reads correctly
 9. **No scheduled task is installed by default.** Deadline reminders only go
    out when the runner is invoked — see setup step 6
+   `bin/send-reminders.php` now also sends return reminders (one day before a student's equipment loan is due) and still needs scheduling
 10. **Default credentials ship in the repository.** `admin123` for the seeded
    administrator and `demo1234` for demo accounts. Change them before the
    system is used with real data
