@@ -28,6 +28,7 @@ require_once __DIR__ . '/uploads.php';
 require_once __DIR__ . '/inventory.php';
 require_once __DIR__ . '/reports.php';
 require_once __DIR__ . '/mailer.php';
+require_once __DIR__ . '/invitations.php';
 require_once __DIR__ . '/reminders.php';
 require_once __DIR__ . '/backup.php';
 
