@@ -41,6 +41,10 @@ if (is_post()) {
     } elseif (!can_decide_reservation($reservation)) {
         abort_page(403, 'You may not approve or reject this reservation.');
     }
+    if (($action === 'approve' || $action === 'reject') && $reservation['status'] !== 'pending') {
+        flash('error', 'This request has already been decided.');
+        redirect('inventory/reservations.php');
+    }
 
     $lines = fetch_all('SELECT item_id, quantity FROM reservation_items WHERE reservation_id = ?', [$reservationId]);
 
@@ -76,13 +80,17 @@ if (is_post()) {
                 break;
             }
 
-            query(
+            $done = query(
                 "UPDATE reservations
                     SET status = 'approved', reviewed_by = ?, reviewed_at = NOW(), review_remarks = NULL,
                         needed_until = ?
-                  WHERE reservation_id = ?",
+                  WHERE reservation_id = ? AND status = 'pending'",
                 [current_user_id(), $returnAt, $reservationId]
             );
+            if ($done->rowCount() !== 1) {
+                flash('error', 'This request has already been decided.');
+                break;
+            }
             foreach ($lines as $line) {
                 refresh_item_status((int) $line['item_id']);
             }
@@ -97,8 +105,8 @@ if (is_post()) {
             }
             if ((int) $reservation['student_request'] === 1) {
                 $note = 'Approved. Please return the items by ' . format_datetime($returnAt) . '.'
-                      . ($changed ? ' (your coordinator changed the date you proposed, '
-                          . format_datetime($reservation['needed_until']) . ')' : '');
+                      . ($changed ? ' (the return date was changed from the one you proposed, '
+                          . format_datetime($reservation['proposed_until'] ?? $reservation['needed_until']) . ')' : '');
             } else {
                 $note = 'Your reservation for ' . format_date($reservation['needed_from']) . ' has been approved.';
             }
@@ -117,12 +125,16 @@ if (is_post()) {
                 break;
             }
 
-            query(
+            $done = query(
                 "UPDATE reservations
                     SET status = 'rejected', reviewed_by = ?, reviewed_at = NOW(), review_remarks = ?
-                  WHERE reservation_id = ?",
+                  WHERE reservation_id = ? AND status = 'pending'",
                 [current_user_id(), $reason, $reservationId]
             );
+            if ($done->rowCount() !== 1) {
+                flash('error', 'This request has already been decided.');
+                break;
+            }
             audit_log('reject', 'reservation', $reservationId, 'Rejected reservation');
             notify(
                 (int) $reservation['requested_by'], 'reservation',
