@@ -137,10 +137,16 @@ try {
     check('office may decide any', can_decide_reservation($rnRow) === true);
 
     // --- partly released then returned stays open; pending is outside the office circle ---
+    // Only the partial-collection rule can make this true: no open loan, no other request.
+    query('UPDATE borrowings SET returned_at = NOW() WHERE borrower_id = ? AND returned_at IS NULL', [$aid]);
+    query("UPDATE reservations SET status = 'cancelled' WHERE requested_by = ? AND status IN ('pending','approved')", [$aid]);
+    check('baseline: nothing open', student_has_open_borrowing($aid) === false);
     $rpart = $mk(15, 'approved');
     $bp = $loan($rpart, 1);
     query('UPDATE borrowings SET returned_at = NOW() WHERE borrowing_id = ?', [$bp]);
     check('approved, partly released and returned: still open', student_has_open_borrowing($aid) === true);
+    query("UPDATE reservations SET status = 'fulfilled' WHERE reservation_id = ?", [$rpart]);
+    check('fulfilled: no longer open', student_has_open_borrowing($aid) === false);
     query('UPDATE borrowings SET returned_at = NOW() WHERE borrower_id = ? AND returned_at IS NULL', [$aid]);
     query("UPDATE reservations SET status = 'cancelled' WHERE requested_by = ?", [$aid]);
     $mk(15, 'pending');
