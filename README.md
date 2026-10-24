@@ -49,7 +49,8 @@ registrations pending/approved/rejected/completed, two accounts awaiting
 approval, one overdue loan, one damaged item and one under maintenance.
 
 All demo accounts use the password `demo1234`; the administrator seeded by
-`schema.sql` keeps its own password and is left untouched. The script is
+`schema.sql` keeps its own password and is left untouched. The guest demo accounts are
+`reyes.guest@example.com` (active) and `lim.guest@example.com` (pending). The script is
 idempotent — re-running it adds nothing.
 
 **2c. Already have a database? Add the bell's dismiss column**
@@ -176,6 +177,7 @@ BukSU CASDEVU/
 │   ├── schema.sql           Clean installer: 22 tables, 3 views, seed data
 │   ├── demo-data.sql        Optional realistic dataset for a walkthrough
 │   ├── update-courses.sql   Brings an existing database to BukSU's programs
+│   ├── update-guest-accounts.sql  Adds the guest role and users.connection_note
 │   └── update-notification-dismiss.sql  Adds notifications.dismissed_at
 ├── docs/                    Requirements, DB design, role matrix, build plan,
 │                            test-accounts.pdf
@@ -511,7 +513,7 @@ a cancelled confirmation leaving the button untouched; the account menu from
 the keyboard; and role scoping of the review queue.
 
 **Fast regression pass.** `bin/smoke.php` signs in over HTTP as administrator,
-staff, coordinator and student, then requests every page under `public/` with
+staff, coordinator, student and guest, then requests every page under `public/` with
 real record ids taken from the database. It fails on a server error, a line
 written to the error log, an error message inside a page, a role that should be
 able to open a page getting 403, or a page that should be refused returning 200
@@ -521,6 +523,7 @@ able to open a page getting 403, or a page that should be refused returning 200
 C:\xampp\php\php.exe bin\smoke.php                 # all pages, all roles
 C:\xampp\php\php.exe bin\smoke.php --only=admin/ --verbose
 C:\xampp\php\php.exe bin\smoke.php --admin=me@buksu.edu.ph:password
+C:\xampp\php\php.exe bin\smoke.php --guest=reyes.guest@example.com:demo1234
 ```
 
 It issues GET requests only, so it never changes data. What it cannot replace:

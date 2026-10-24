@@ -38,7 +38,7 @@ C:\xampp\php\php.exe bin\smoke.php          # every page, every role
 ```
 
 `bin/smoke.php` is the regression gate. It signs in over HTTP as admin, staff,
-coordinator and student, requests every page under `public/` with real ids from
+coordinator, student and guest, requests every page under `public/` with real ids from
 the database, and fails on a 5xx, a notice in the log, a page containing an
 error, or a role getting the wrong answer against `docs/03-role-matrix.md`.
 Run it after any change to `includes/`, `style.css`, the layout or a page gate.
@@ -59,6 +59,7 @@ Demo accounts use password `demo1234`; the seeded administrator is
 | staff | `rosales.office@buksu.edu.ph` |
 | coordinator | `bautista.coach@buksu.edu.ph` (assigned to Intramurals 2026) |
 | student | `andrea.santos@student.buksu.edu.ph` |
+| guest | `reyes.guest@example.com` (view-only; `lim.guest@example.com` is pending) |
 
 ## Security rules — non-negotiable
 
