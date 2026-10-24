@@ -139,10 +139,10 @@ require __DIR__ . '/../../includes/layout/header.php';
 <?php // Overdue returns now open in the notification pop-up: includes/attention.php. ?>
 
 <?php if ($isBrowser): ?>
-    <div class="alert alert-info">
+    <p class="hint mt-0 mb-4">
         <strong>Need something for an activity?</strong> Ask your activity coordinator or the office.
         They reserve and release items for you; the counts here update as items go out and come back.
-    </div>
+    </p>
 <?php else: ?>
 <div class="stats">
     <div class="stat">

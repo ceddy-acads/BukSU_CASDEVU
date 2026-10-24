@@ -410,6 +410,61 @@ img    { max-width: 100%; height: auto; }
 .profile-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--s2); margin-top: var(--s5); }
 .profile-panel .profile-actions { margin-top: var(--s2); }
 
+/* Settings (settings.php): a column of section links beside a centred column
+   of titled cards. Each row is a label and a short description on the left
+   with its control on the right; a switch saves the moment it flips, and
+   "Change" opens a value in place. Container queries, so the app sidebar
+   never squeezes the rows. */
+.settings { container-type: inline-size; }
+.settings-layout { display: grid; gap: var(--s5); grid-template-columns: minmax(0, 1fr); }
+.settings-nav { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s2); }
+.settings-nav a {
+    display: flex; align-items: center; min-height: 44px; padding: 0 var(--s3);
+    border-radius: var(--r-sm); color: var(--ink-soft); font-weight: 600; text-decoration: none;
+}
+.settings-nav a:hover { background: var(--surface-3); color: var(--navy); }
+.settings-cards { display: grid; gap: var(--s5); min-width: 0; }
+@container (min-width: 820px) {
+    .settings-layout { grid-template-columns: 12rem minmax(0, 46rem); gap: var(--s8); justify-content: center; }
+    .settings-nav { flex-direction: column; position: sticky; top: calc(64px + var(--s4)); align-self: start; }
+}
+.set-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); scroll-margin-top: calc(64px + var(--s4)); }
+.set-card-head { padding: var(--s4) var(--s5); border-bottom: 1px solid var(--line); }
+.set-card-head h2 { margin: 0; font-size: var(--fs-md); font-weight: 600; color: var(--ink); letter-spacing: 0; }
+.set-card-body { padding: var(--s2) var(--s5) var(--s3); }
+.set-row { display: flex; gap: var(--s4); align-items: center; justify-content: space-between; padding: var(--s3) 0; margin: 0; }
+.set-text { min-width: 0; }
+.set-label { display: block; margin: 0; font-size: var(--fs-base); font-weight: 600; color: var(--ink); }
+.set-row > .btn { flex: none; white-space: nowrap; }
+.set-desc { margin: 2px 0 0; font-size: var(--fs-sm); color: var(--ink-soft); overflow-wrap: anywhere; }
+.set-value { min-width: 0; text-align: right; color: var(--ink); overflow-wrap: anywhere; }
+.set-control { display: flex; align-items: center; gap: var(--s3); flex: none; }
+.set-edit { margin: var(--s2) calc(-1 * var(--s5)); padding: var(--s4) var(--s5); background: var(--navy-50); border-block: 1px solid var(--line); }
+.set-edit .form-actions { margin-top: var(--s4); }
+@container (max-width: 479px) {
+    .set-card-head, .set-card-body { padding-inline: var(--s4); }
+    .set-edit { margin-inline: calc(-1 * var(--s4)); padding-inline: var(--s4); }
+    .set-row.is-value { flex-wrap: wrap; row-gap: 2px; }
+    .set-row.is-value .set-value { text-align: left; }
+}
+.set-switch-state { font-size: var(--fs-sm); font-weight: 700; color: var(--ink-soft); min-width: 2.2em; text-align: right; }
+/* A real checkbox with role="switch": the screen reader hears on/off, the label stays clickable. */
+input[type="checkbox"].switch {
+    appearance: none; -webkit-appearance: none; flex: none; margin: 0; cursor: pointer;
+    width: 52px; height: 30px; border-radius: 999px; position: relative;
+    background: var(--surface-3); border: 2px solid var(--line-input);
+    transition: background-color .18s ease-out, border-color .18s ease-out;
+}
+input[type="checkbox"].switch::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--surface); box-shadow: 0 1px 3px rgba(8, 23, 48, .35);
+    transition: transform .18s cubic-bezier(.2, .8, .2, 1);
+}
+input[type="checkbox"].switch:checked { background: var(--navy); border-color: var(--navy); }
+input[type="checkbox"].switch:checked::after { transform: translateX(22px); }
+input[type="checkbox"].switch:focus-visible { outline: 3px solid var(--navy-700); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { input[type="checkbox"].switch, input[type="checkbox"].switch::after { transition: none; } }
+
 /* Notifications pop-up under the bell (layout/notifications-menu.php): a
    <details> like the account menu. On phones the panel spans the screen
    just below the top bar; from 640px it hangs from the bell. */

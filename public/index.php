@@ -77,30 +77,6 @@ if ($role === 'student') {
     ];
 }
 
-// Office work queue: activities with registrations or documents waiting for
-// review. Coordinators only see the activities they are assigned to.
-$workQueue = [];
-if ($role !== 'student') {
-    $candidates = fetch_all(
-        "SELECT a.activity_id, a.title, a.start_at,
-                (SELECT COUNT(*) FROM registrations r
-                  WHERE r.activity_id = a.activity_id AND r.status = 'pending') AS pending_registrations,
-                (SELECT COUNT(*) FROM requirement_submissions rs
-                   JOIN activity_requirements ar ON ar.requirement_id = rs.requirement_id
-                  WHERE ar.activity_id = a.activity_id AND rs.status = 'pending') AS pending_documents
-           FROM activities a
-          WHERE a.status NOT IN ('cancelled', 'completed')
-         HAVING pending_registrations > 0 OR pending_documents > 0
-          ORDER BY a.start_at ASC
-          LIMIT 8"
-    );
-    foreach ($candidates as $candidate) {
-        if (can_manage_activity((int) $candidate['activity_id'])) {
-            $workQueue[] = $candidate;
-        }
-    }
-}
-
 $pageTitle = 'Dashboard';
 require __DIR__ . '/../includes/layout/header.php';
 ?>
@@ -148,53 +124,10 @@ require __DIR__ . '/../includes/layout/header.php';
 </div>
 
 <div class="grid grid-2">
-    <?php if ($role !== 'student'): ?>
-        <section class="card">
-            <div class="card-head">
-                <h2>Needs your attention</h2>
-                <a class="btn btn-ghost btn-sm" href="<?= url('review.php') ?>">Open review queue</a>
-                <p class="hint">Registrations and documents waiting for a decision.</p>
-            </div>
-
-            <?php if ($workQueue === []): ?>
-                <div class="empty">
-                    <strong>You are all caught up</strong>
-                    No registrations or documents are waiting for review.
-                </div>
-            <?php else: ?>
-                <ul class="feed">
-                    <?php foreach ($workQueue as $item): ?>
-                        <li>
-                            <h3>
-                                <a href="<?= url('activities/view.php?id=' . (int) $item['activity_id']) ?>">
-                                    <?= e($item['title']) ?>
-                                </a>
-                            </h3>
-                            <p class="meta"><?= e(format_datetime($item['start_at'])) ?></p>
-                            <div class="btn-row">
-                                <?php if ((int) $item['pending_registrations'] > 0): ?>
-                                    <a class="btn btn-outline btn-sm"
-                                       href="<?= url('participation/participants.php?activity_id=' . (int) $item['activity_id'] . '&status=pending') ?>">
-                                        Review <?= (int) $item['pending_registrations'] ?>
-                                        registration<?= (int) $item['pending_registrations'] === 1 ? '' : 's' ?>
-                                    </a>
-                                <?php endif; ?>
-                                <?php if ((int) $item['pending_documents'] > 0): ?>
-                                    <a class="btn btn-outline btn-sm"
-                                       href="<?= url('requirements/verify.php?activity_id=' . (int) $item['activity_id']) ?>">
-                                        Verify <?= (int) $item['pending_documents'] ?>
-                                        document<?= (int) $item['pending_documents'] === 1 ? '' : 's' ?>
-                                    </a>
-                                <?php endif; ?>
-                            </div>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-            <?php endif; ?>
-        </section>
-    <?php endif; ?>
-
-    <section class="card">
+    <?php // Registrations and documents waiting for review open in the
+          // notification pop-up (includes/attention.php), so for office roles
+          // the agenda takes the row the old work-queue card shared. ?>
+    <section class="card<?= $role !== 'student' ? ' span-all' : '' ?>">
         <div class="card-head">
             <h2>Upcoming activities</h2>
             <?php if ($upcoming !== []): ?>
@@ -257,7 +190,7 @@ require __DIR__ . '/../includes/layout/header.php';
         </section>
     <?php endif; ?>
 
-    <?php // Office roles have three cards; the news row takes the full width below. ?>
+    <?php // The news row takes the full width below for office roles. ?>
     <section class="card<?= $role !== 'student' ? ' span-all' : '' ?>">
         <div class="card-head">
             <h2>Latest announcements</h2>

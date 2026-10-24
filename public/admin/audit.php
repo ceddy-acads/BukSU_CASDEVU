@@ -136,13 +136,7 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 </div>
 
-<?php if ($failedLogins > 0): ?>
-    <div class="alert alert-warning">
-        <strong><?= $failedLogins ?></strong> failed sign-in attempt<?= $failedLogins === 1 ? '' : 's' ?>
-        in the last 7 days.
-        <a href="<?= e(audit_link(['action_type' => 'login_failed'])) ?>">Review them</a>
-    </div>
-<?php endif; ?>
+<?php // Failed sign-ins in the last 7 days open in the notification pop-up: includes/attention.php. ?>
 
 <div class="stats stats-3">
     <div class="stat">

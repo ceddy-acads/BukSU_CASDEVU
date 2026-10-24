@@ -193,17 +193,17 @@ require __DIR__ . '/../../includes/layout/header.php';
 <?php endif; ?>
 
 <?php if ($rules === []): ?>
-    <div class="alert alert-info">
+    <p class="hint mt-0 mb-4">
         <strong>No restrictions.</strong> This activity is open to all
         <?= $eligibleCount ?> active student<?= $eligibleCount === 1 ? '' : 's' ?>.
         Adding a rule restricts it to students who match at least one rule.
-    </div>
+    </p>
 <?php else: ?>
-    <div class="alert alert-warning">
+    <p class="hint mt-0 mb-4">
         <strong>Restricted.</strong> Only students matching one of the
         <?= count($rules) ?> rule<?= count($rules) === 1 ? '' : 's' ?> below may register,
         currently <?= $eligibleCount ?> student<?= $eligibleCount === 1 ? '' : 's' ?>.
-    </div>
+    </p>
 <?php endif; ?>
 
 <div class="split">

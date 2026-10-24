@@ -584,6 +584,32 @@ window.CASDevU = window.CASDevU || {};
         });
     });
     if (menu.open) { markRead(); }        // opened by ?notifications=open
+
+    // A clicked item leaves the bell. A beacon survives the page unloading
+    // as the browser follows the link; the server answers 204.
+    menu.addEventListener('click', function (event) {
+        var link = event.target.closest('a[data-dismiss]');
+        if (!link || !navigator.sendBeacon) { return; }
+        var data = new FormData();
+        data.append('csrf_token', menu.getAttribute('data-dismiss-token'));
+        data.append('dismiss', link.getAttribute('data-dismiss'));
+        navigator.sendBeacon(menu.getAttribute('data-dismiss-url'), data);
+    });
+})();
+
+/* Settings switches: flipping one saves it at once, so the Save button is
+   only needed without JavaScript (as with the profile photo below). */
+(function () {
+    'use strict';
+    document.querySelectorAll('form[data-autosave]').forEach(function (form) {
+        var submit = form.querySelector('[data-autosave-submit]');
+        var state = form.querySelector('.set-switch-state');
+        if (submit) { submit.hidden = true; }
+        form.addEventListener('change', function (event) {
+            if (state) { state.textContent = event.target.checked ? 'On' : 'Off'; }
+            if (form.requestSubmit) { form.requestSubmit(); } else { form.submit(); }
+        });
+    });
 })();
 
 /* Profile photo: choosing a file crops it to the centre square, resizes it

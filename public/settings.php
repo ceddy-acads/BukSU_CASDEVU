@@ -90,6 +90,20 @@ $emailAlertsOn = $isStudent
     : user_preference_on($userId, 'email_review_alerts', true);
 $hidePast      = user_preference_on($userId, 'hide_past_activities');
 
+// Office details as summary rows. "Change" opens one in place (?edit=key);
+// its form still posts all three, the other two as hidden fields, so the
+// handler above validates the set exactly as before.
+$officeFields = [
+    'office_name'        => ['Office name', (string) office_setting('office_name', OFFICE_NAME)],
+    'university_name'    => ['University name', (string) office_setting('university_name', UNIVERSITY)],
+    'max_upload_size_mb' => ['Largest file', (string) (int) (max_upload_bytes() / 1024 / 1024)],
+];
+$editing = is_post() ? post('edit') : get('edit');
+if (!$isAdmin || !isset($officeFields[$editing])) {
+    $editing = '';
+}
+$emailKey = $isStudent ? 'email_reminders' : 'email_review_alerts';
+
 $pageTitle = 'Settings';
 require __DIR__ . '/../includes/layout/header.php';
 ?>
@@ -97,122 +111,164 @@ require __DIR__ . '/../includes/layout/header.php';
 <div class="page-head">
     <div>
         <h1>Settings</h1>
-        <p>What reaches you by email, and how your activity list opens<?= $isAdmin ? ' — and the details the office prints on its messages' : '' ?>.</p>
+        <p>What reaches you by email, how your activity list opens<?= $isAdmin ? ', and the details the office prints on its messages' : '' ?>.</p>
     </div>
 </div>
 
-<?php if ($errors !== []): ?>
-    <div class="alert alert-error" role="alert">
-        <?php foreach ($errors as $error): ?>
-            <div><?= e($error) ?></div>
-        <?php endforeach; ?>
-    </div>
-<?php endif; ?>
+<div class="settings">
+<div class="settings-layout">
+
+<nav class="settings-nav" aria-label="Settings sections">
+    <a href="#notifications">Notifications</a>
+    <a href="#activity-list">Activity list</a>
+    <?php if ($isAdmin): ?><a href="#office">Office</a><?php endif; ?>
+    <a href="#account">Account</a>
+</nav>
+
+<div class="settings-cards">
 
 <?php // ---------------------------------------------------- Notifications ?>
-<section class="card">
-    <div class="card-head"><h2>Notifications</h2></div>
-    <p class="card-intro">Decisions on your own records always appear in the bell. Email is optional.</p>
-
-    <form method="post" action="<?= url('settings.php') ?>">
-        <?= csrf_field() ?>
-        <input type="hidden" name="action" value="notifications">
-
-        <div class="form-row">
-            <label class="check">
-                <input type="checkbox" name="<?= $isStudent ? 'email_reminders' : 'email_review_alerts' ?>" value="1"
+<section class="set-card" id="notifications" aria-labelledby="notifications-title">
+    <div class="set-card-head"><h2 id="notifications-title">Notifications</h2></div>
+    <div class="set-card-body">
+        <form class="set-row" method="post" action="<?= url('settings.php') ?>" data-autosave>
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="notifications">
+            <div class="set-text">
+                <label class="set-label" for="<?= $emailKey ?>"><?= $isStudent ? 'Deadline emails' : 'Review emails' ?></label>
+                <p class="set-desc"><?= $isStudent
+                    ? 'An email a few days before a requirement deadline and again on the day. The bell shows them either way.'
+                    : 'An email when a registration or document waits for you. The bell shows them either way.' ?></p>
+            </div>
+            <div class="set-control">
+                <span class="set-switch-state" aria-hidden="true"><?= $emailAlertsOn ? 'On' : 'Off' ?></span>
+                <input class="switch" type="checkbox" role="switch" id="<?= $emailKey ?>" name="<?= $emailKey ?>" value="1"
                     <?= $emailAlertsOn ? 'checked' : '' ?>>
-                <span><?= $isStudent
-                    ? 'Email me when a requirement deadline is near'
-                    : 'Email me when a registration or document is waiting for review' ?></span>
-            </label>
-            <div class="hint"><?= $isStudent
-                ? 'A few days before the deadline and again on the day. The bell keeps showing them either way.'
-                : 'Sent when a student registers for one of your activities or uploads a document. Office staff and administrators also get the office-wide queue.' ?></div>
-        </div>
-
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary" data-loading="Saving…">Save</button>
-        </div>
-    </form>
+                <button type="submit" class="btn btn-primary btn-sm" data-autosave-submit>Save</button>
+            </div>
+        </form>
+    </div>
 </section>
 
 <?php // --------------------------------------------------- Activity list ?>
-<section class="card">
-    <div class="card-head"><h2>Activity list</h2></div>
-    <p class="card-intro">The Activities page lists what is coming and what has already finished.</p>
-
-    <form method="post" action="<?= url('settings.php') ?>">
-        <?= csrf_field() ?>
-        <input type="hidden" name="action" value="list">
-
-        <div class="form-row">
-            <label class="check">
-                <input type="checkbox" name="hide_past_activities" value="1" <?= $hidePast ? 'checked' : '' ?>>
-                <span>Hide activities that have already ended</span>
-            </label>
-            <div class="hint">Filtering by status shows those activities anyway, so a report or a closed event is still reachable.</div>
-        </div>
-
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary" data-loading="Saving…">Save</button>
-        </div>
-    </form>
+<section class="set-card" id="activity-list" aria-labelledby="activity-list-title">
+    <div class="set-card-head"><h2 id="activity-list-title">Activity list</h2></div>
+    <div class="set-card-body">
+        <form class="set-row" method="post" action="<?= url('settings.php') ?>" data-autosave>
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="list">
+            <div class="set-text">
+                <label class="set-label" for="hide_past_activities">Hide ended activities</label>
+                <p class="set-desc">Filtering by status still shows them, so a report or a closed event stays reachable.</p>
+            </div>
+            <div class="set-control">
+                <span class="set-switch-state" aria-hidden="true"><?= $hidePast ? 'On' : 'Off' ?></span>
+                <input class="switch" type="checkbox" role="switch" id="hide_past_activities" name="hide_past_activities" value="1"
+                    <?= $hidePast ? 'checked' : '' ?>>
+                <button type="submit" class="btn btn-primary btn-sm" data-autosave-submit>Save</button>
+            </div>
+        </form>
+    </div>
 </section>
 
 <?php if ($isAdmin): ?>
     <?php // ------------------------------------------------------- Office ?>
-    <section class="card">
-        <div class="card-head"><h2>Office</h2></div>
-        <p class="card-intro">Printed at the foot of every message the system sends, and the ceiling on requirement documents.</p>
+    <section class="set-card" id="office" aria-labelledby="office-title">
+        <div class="set-card-head"><h2 id="office-title">Office</h2></div>
+        <div class="set-card-body">
+            <?php foreach ($officeFields as $key => [$label, $value]): ?>
+                <?php if ($key === $editing): ?>
+                    <form class="set-edit" method="post" action="<?= url('settings.php#office') ?>">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="action" value="office">
+                        <input type="hidden" name="edit" value="<?= e($key) ?>">
+                        <?php foreach ($officeFields as $otherKey => [, $otherValue]): ?>
+                            <?php if ($otherKey !== $key): ?>
+                                <input type="hidden" name="<?= e($otherKey) ?>" value="<?= e(post($otherKey, $otherValue)) ?>">
+                            <?php endif; ?>
+                        <?php endforeach; ?>
 
-        <form method="post" action="<?= url('settings.php') ?>">
-            <?= csrf_field() ?>
-            <input type="hidden" name="action" value="office">
+                        <?php if ($errors !== []): ?>
+                            <div class="alert alert-error" role="alert">
+                                <?php foreach ($errors as $error): ?><div><?= e($error) ?></div><?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
 
-            <div class="form-grid form-grid-2">
-                <div class="form-row">
-                    <label for="office_name">Office name <span class="req">*</span></label>
-                    <input type="text" id="office_name" name="office_name" required maxlength="120"
-                           value="<?= e(post('office_name', (string) office_setting('office_name', OFFICE_NAME))) ?>">
+                        <div class="form-row">
+                            <label for="<?= e($key) ?>"><?= e($label) ?><?= $key === 'max_upload_size_mb' ? ' (MB)' : '' ?></label>
+                            <?php if ($key === 'max_upload_size_mb'): ?>
+                                <input type="number" id="<?= e($key) ?>" name="<?= e($key) ?>" min="1" max="50" required autofocus
+                                       value="<?= e(post($key, $value)) ?>">
+                                <div class="hint">1&ndash;50. Students see this limit on the upload page.</div>
+                            <?php else: ?>
+                                <input type="text" id="<?= e($key) ?>" name="<?= e($key) ?>" required maxlength="120" autofocus
+                                       value="<?= e(post($key, $value)) ?>">
+                            <?php endif; ?>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary" data-loading="Saving…">Save</button>
+                            <a class="btn btn-outline" href="<?= url('settings.php#office') ?>">Cancel</a>
+                        </div>
+                    </form>
+                <?php else: ?>
+                    <div class="set-row">
+                        <div class="set-text">
+                            <span class="set-label"><?= e($label) ?></span>
+                            <p class="set-desc"><?= e($value) ?><?= $key === 'max_upload_size_mb' ? ' MB per requirement document' : '' ?></p>
+                        </div>
+                        <a class="btn btn-outline btn-sm" href="<?= url('settings.php?edit=' . $key . '#office') ?>">Change<span class="sr-only"> <?= e(strtolower($label)) ?></span></a>
+                    </div>
+                <?php endif; ?>
+            <?php endforeach; ?>
+            <div class="set-row">
+                <div class="set-text">
+                    <span class="set-label">Deadline reminders</span>
+                    <p class="set-desc">What is due soon, and sending reminders by hand.</p>
                 </div>
-                <div class="form-row">
-                    <label for="university_name">University name <span class="req">*</span></label>
-                    <input type="text" id="university_name" name="university_name" required maxlength="120"
-                           value="<?= e(post('university_name', (string) office_setting('university_name', UNIVERSITY))) ?>">
-                </div>
+                <a class="btn btn-outline btn-sm" href="<?= url('admin/reminders.php') ?>">Open<span class="sr-only"> reminders</span></a>
             </div>
-
-            <div class="form-row">
-                <label for="max_upload_size_mb">Largest requirement file</label>
-                <input type="number" id="max_upload_size_mb" name="max_upload_size_mb" min="1" max="50" required
-                       value="<?= e(post('max_upload_size_mb', (string) (int) (max_upload_bytes() / 1024 / 1024))) ?>">
-                <div class="hint">In megabytes, 1&ndash;50. Students see this limit on the upload page.</div>
-            </div>
-
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary" data-loading="Saving…">Save</button>
-                <a class="btn btn-outline" href="<?= url('admin/reminders.php') ?>">Reminder timing</a>
-            </div>
-        </form>
+        </div>
     </section>
 <?php endif; ?>
 
 <?php // -------------------------------------------------------- Account ?>
-<section class="card">
-    <div class="card-head"><h2>Account</h2></div>
-    <p class="card-intro">Your name, photo and password are kept on your profile, so both pages agree.</p>
-
-    <dl class="profile-fields">
-        <div class="profile-wide"><dt>Email address</dt><dd><?= str_replace('@', '@<wbr>', e($user['email'])) ?></dd></div>
-        <div><dt>Role</dt><dd><?= e(ucfirst((string) $user['role_name'])) ?></dd></div>
-        <div><dt>Account status</dt><dd><?= status_badge((string) $user['status'], 'account') ?></dd></div>
-    </dl>
-
-    <div class="form-actions">
-        <a class="btn btn-outline" href="<?= url('profile.php') ?>">My profile</a>
-        <a class="btn btn-outline" href="<?= url('profile.php?edit=password#password') ?>">Change password</a>
+<section class="set-card" id="account" aria-labelledby="account-title">
+    <div class="set-card-head"><h2 id="account-title">Account</h2></div>
+    <div class="set-card-body">
+        <div class="set-row is-value">
+            <div class="set-text">
+                <span class="set-label">Email address</span>
+                <p class="set-desc">The address you sign in with.</p>
+            </div>
+            <span class="set-value"><?= str_replace('@', '@<wbr>', e($user['email'])) ?></span>
+        </div>
+        <div class="set-row is-value">
+            <span class="set-label">Role</span>
+            <span class="set-value"><?= e(ucfirst((string) $user['role_name'])) ?></span>
+        </div>
+        <div class="set-row is-value">
+            <span class="set-label">Account status</span>
+            <span class="set-value"><?= status_badge((string) $user['status'], 'account') ?></span>
+        </div>
+        <div class="set-row">
+            <div class="set-text">
+                <span class="set-label">Password</span>
+                <p class="set-desc">Changed on your profile, where you confirm the current one first.</p>
+            </div>
+            <a class="btn btn-outline btn-sm" href="<?= url('profile.php?edit=password#password') ?>">Change password</a>
+        </div>
+        <div class="set-row">
+            <div class="set-text">
+                <span class="set-label">Name and photo</span>
+                <p class="set-desc">Kept on your profile, so both pages agree.</p>
+            </div>
+            <a class="btn btn-outline btn-sm" href="<?= url('profile.php') ?>">Open profile</a>
+        </div>
     </div>
 </section>
+
+</div>
+</div>
+</div>
 
 <?php require __DIR__ . '/../includes/layout/footer.php'; ?>

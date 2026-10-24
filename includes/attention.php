@@ -22,6 +22,34 @@ function attention_items(): array
     $items = [];
     $userId = (int) $user['user_id'];
 
+    if (can_review()) {
+        // Same counts as the review queue, so a coordinator sees only the
+        // activities they are assigned to (replaces the dashboard work queue).
+        $counts = review_counts();
+        if ($counts['registrations'] > 0) {
+            $items[] = [
+                'tone'    => 'warning',
+                'icon'    => 'review',
+                'title'   => 'Registrations to review',
+                'message' => $counts['registrations'] . ' registration' . ($counts['registrations'] === 1 ? ' is' : 's are')
+                             . ' waiting for a decision.',
+                'href'    => 'review.php?lane=registrations',
+                'action'  => 'Open the review queue',
+            ];
+        }
+        if ($counts['documents'] > 0) {
+            $items[] = [
+                'tone'    => 'warning',
+                'icon'    => 'requirements',
+                'title'   => 'Documents to verify',
+                'message' => $counts['documents'] . ' document' . ($counts['documents'] === 1 ? ' is' : 's are')
+                             . ' waiting to be checked.',
+                'href'    => 'review.php?lane=documents',
+                'action'  => 'Open the review queue',
+            ];
+        }
+    }
+
     if (is_office_staff()) {
         // Accounts awaiting activation — the office's most common Week 1 task.
         $pendingAccounts = (int) fetch_value("SELECT COUNT(*) FROM users WHERE status = 'pending'");
@@ -62,6 +90,50 @@ function attention_items(): array
                 'action'  => 'Show only pending',
             ];
         }
+
+        // Without a venue, activities cannot record a location or check double-booking.
+        if ((int) fetch_value('SELECT COUNT(*) FROM venues') === 0) {
+            $items[] = [
+                'tone'    => 'warning',
+                'icon'    => 'venues',
+                'title'   => 'No venues yet',
+                'message' => 'Activities cannot record a location, and double-booking checks will not run.',
+                'href'    => 'admin/venues.php',
+                'action'  => 'Add a venue',
+            ];
+        }
+    }
+
+    if (current_role() === 'admin') {
+        $failedLogins = (int) fetch_value(
+            "SELECT COUNT(*) FROM audit_logs
+              WHERE action = 'login_failed' AND created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)"
+        );
+        if ($failedLogins > 0) {
+            $items[] = [
+                'tone'    => 'danger',
+                'icon'    => 'audit',
+                'title'   => 'Failed sign-ins',
+                'message' => $failedLogins . ' failed sign-in attempt' . ($failedLogins === 1 ? '' : 's')
+                             . ' in the last 7 days.',
+                'href'    => 'admin/audit.php?action_type=login_failed',
+                'action'  => 'Review them',
+            ];
+        }
+
+        // is_dir first: backup_directory() would try to create the folder on every page.
+        $backupCount = is_dir(BACKUP_PATH) ? count(list_backups()) : 0;
+        if ($backupCount > BACKUP_KEEP) {
+            $items[] = [
+                'tone'    => 'warning',
+                'icon'    => 'backup',
+                'title'   => 'Too many backups stored',
+                'message' => $backupCount . ' backups are stored, more than the ' . BACKUP_KEEP
+                             . ' recommended. Delete the oldest to save space.',
+                'href'    => 'admin/backup.php',
+                'action'  => 'Manage backups',
+            ];
+        }
     }
 
     if (current_role() === 'student') {
@@ -85,5 +157,22 @@ function attention_items(): array
         }
     }
 
-    return $items;
+    // Clicked items stay hidden while their wording is unchanged; a new count
+    // changes the message and brings the item back.
+    // shortcut: kept in the session, so items return after signing in again; move to a table if that annoys.
+    $dismissed = $_SESSION['attention_dismissed'] ?? [];
+    return array_values(array_filter(
+        $items,
+        static fn(array $item): bool => ($dismissed[$item['href']] ?? null) !== $item['message']
+    ));
+}
+
+/** Hide the attention item that links to $href, as it reads right now. */
+function dismiss_attention_item(string $href): void
+{
+    foreach (attention_items() as $item) {
+        if ($item['href'] === $href) {
+            $_SESSION['attention_dismissed'][$href] = $item['message'];
+        }
+    }
 }

@@ -245,6 +245,7 @@ CREATE TABLE notifications (
     link_url        VARCHAR(255) NULL,
     is_read         TINYINT(1)   NOT NULL DEFAULT 0,
     read_at         DATETIME     NULL,
+    dismissed_at    DATETIME     NULL,     -- clicked in the bell: hidden, kept for reminder checks
     created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_notif_user FOREIGN KEY (user_id) REFERENCES users(user_id)

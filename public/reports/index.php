@@ -70,11 +70,11 @@ require __DIR__ . '/../../includes/layout/header.php';
         </section>
     <?php endif; ?>
 
-    <div class="alert alert-info">
+    <p class="hint mt-0 mb-4">
         <strong>Exports.</strong> CSV files open in Excel or Google Sheets and carry
         the filters you have applied. Use Print for a paper copy. The navigation
         and buttons are hidden automatically.
-    </div>
+    </p>
 </div>
 
 <?php require __DIR__ . '/../../includes/layout/footer.php'; ?>

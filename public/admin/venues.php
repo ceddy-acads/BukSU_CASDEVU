@@ -154,12 +154,7 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 <?php endif; ?>
 
-<?php if ($venues === []): ?>
-    <div class="alert alert-warning">
-        No venues exist yet. Activities cannot record a location, and venue
-        double-booking checks will not run until at least one venue is added.
-    </div>
-<?php endif; ?>
+<?php // "No venues yet" opens in the notification pop-up: includes/attention.php. ?>
 
 <div class="split">
     <section class="card<?= $venues === [] ? '' : ' card-flush' ?>">

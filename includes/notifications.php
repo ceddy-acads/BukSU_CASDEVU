@@ -80,7 +80,8 @@ function recent_essential_notifications(int $userId, int $limit = 15): array
     $limit = max(1, min(100, $limit));
     $placeholders = implode(',', array_fill(0, count(ESSENTIAL_NOTIFICATION_TYPES), '?'));
     return fetch_all(
-        "SELECT * FROM notifications WHERE user_id = ? AND type IN ($placeholders)
+        "SELECT * FROM notifications
+          WHERE user_id = ? AND type IN ($placeholders) AND dismissed_at IS NULL
           ORDER BY created_at DESC LIMIT $limit",
         array_merge([$userId], ESSENTIAL_NOTIFICATION_TYPES)
     );
@@ -134,6 +135,19 @@ function notification_time(string $createdAt): string
         return date('g:i A', $time);
     }
     return date('Y', $time) === date('Y') ? date('j M, g:i A', $time) : date('j M Y', $time);
+}
+
+/**
+ * Hide one notification from the bell once its link is clicked. The row
+ * stays: reminder_already_sent() reads it to avoid a second reminder.
+ */
+function dismiss_notification(int $userId, int $notificationId): void
+{
+    query(
+        'UPDATE notifications SET dismissed_at = NOW(), is_read = 1, read_at = COALESCE(read_at, NOW())
+          WHERE notification_id = ? AND user_id = ?',
+        [$notificationId, $userId]
+    );
 }
 
 function mark_notifications_read(int $userId): void

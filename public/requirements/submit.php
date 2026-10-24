@@ -207,11 +207,12 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 <?php else: ?>
     <?php if ($progress['complete']): ?>
-        <div class="alert alert-success">
+        <p class="hint mt-0 mb-4">
             All required documents have been verified. Nothing further is needed from you.
-        </div>
+        </p>
     <?php else: ?>
-        <div class="alert <?= $turns['student'] > 0 ? 'alert-warning' : 'alert-info' ?>">
+        <?php // What needs the student also opens in the notification pop-up: includes/attention.php. ?>
+        <p class="hint mt-0 mb-4">
             <?php if ($turns['student'] > 0): ?>
                 <strong><?= $turns['student'] ?></strong> required document<?= $turns['student'] === 1 ? ' needs' : 's need' ?> you.
             <?php endif; ?>
@@ -219,7 +220,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <strong><?= $turns['office'] ?></strong> <?= $turns['office'] === 1 ? 'is' : 'are' ?> with the office for review.
             <?php endif; ?>
             <strong><?= $turns['none'] ?></strong> of <?= $progress['total'] ?> verified.
-        </div>
+        </p>
     <?php endif; ?>
 
     <?php foreach ($items as $item): ?>

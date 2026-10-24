@@ -90,7 +90,7 @@ requirement submission is meaningless without a registration.
 | Table | Purpose | Key design note |
 |-------|---------|-----------------|
 | `announcements` | Office posts | Has a `FULLTEXT` index on (title, body) for keyword search |
-| `notifications` | Per-user inbox | One row per user per event. `link_url` deep-links to what changed |
+| `notifications` | Per-user inbox | One row per user per event. `link_url` deep-links to what changed; `dismissed_at` hides it from the bell once clicked |
 
 ### Module 4 — Participation
 

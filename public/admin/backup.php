@@ -138,11 +138,11 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 <?php endif; ?>
 
-<div class="alert alert-warning">
+<p class="hint mt-0 mb-4">
     <strong>Backup files contain everything, including password hashes.</strong>
     They are stored outside the web root and can only be downloaded
     from this page. Keep downloaded copies somewhere safe.
-</div>
+</p>
 
 <div class="split">
     <section class="card">
@@ -154,12 +154,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                 Create one before making any large change to the data.
             </div>
         <?php else: ?>
-            <?php if (count($backups) > BACKUP_KEEP): ?>
-                <div class="alert alert-info">
-                    There are more than <?= BACKUP_KEEP ?> backups stored. Consider
-                    deleting the oldest to save space.
-                </div>
-            <?php endif; ?>
+            <?php // "Too many backups" opens in the notification pop-up: includes/attention.php. ?>
 
             <ul class="feed">
             <?php foreach ($backups as $index => $backup): ?>

@@ -160,10 +160,7 @@ $initials = $user
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
-
-            <div class="nav-group">
-                <?= nav_link('settings', 'settings.php', 'Settings', $navSection) ?>
-            </div>
+            <?php // Settings lives in the account menu, beside My profile and Sign out. ?>
         </nav>
     </aside>
 <?php endif; ?>

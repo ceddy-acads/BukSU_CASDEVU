@@ -52,7 +52,15 @@ All demo accounts use the password `demo1234`; the administrator seeded by
 `schema.sql` keeps its own password and is left untouched. The script is
 idempotent — re-running it adds nothing.
 
-**2c. Already have a database? Update its course list**
+**2c. Already have a database? Add the bell's dismiss column**
+
+```bash
+C:\xampp\mysql\bin\mysql.exe -u root casms < database/update-notification-dismiss.sql
+```
+
+Clicking a notification in the bell hides it. Safe to run twice.
+
+**2d. Already have a database? Update its course list**
 
 ```bash
 C:\xampp\mysql\bin\mysql.exe -u root casms < database/update-courses.sql
@@ -167,7 +175,8 @@ BukSU CASDEVU/
 ├── database/
 │   ├── schema.sql           Clean installer: 22 tables, 3 views, seed data
 │   ├── demo-data.sql        Optional realistic dataset for a walkthrough
-│   └── update-courses.sql   Brings an existing database to BukSU's programs
+│   ├── update-courses.sql   Brings an existing database to BukSU's programs
+│   └── update-notification-dismiss.sql  Adds notifications.dismissed_at
 ├── docs/                    Requirements, DB design, role matrix, build plan,
 │                            test-accounts.pdf
 ├── bin/

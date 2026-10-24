@@ -182,10 +182,10 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 <?php endif; ?>
 
-<div class="alert alert-info">
+<p class="hint mt-0 mb-4">
     An assigned coordinator can manage this activity's participants, requirements,
     and announcements. They have no access to activities they are not assigned to.
-</div>
+</p>
 
 <div class="split">
     <section class="card<?= $assigned !== [] ? ' card-flush' : '' ?>">

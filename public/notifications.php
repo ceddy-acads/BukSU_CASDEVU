@@ -21,6 +21,20 @@ if (!is_post()) {
 }
 
 csrf_verify();
+
+// A link clicked in the pop-up: app.js sends this as a beacon while the
+// browser follows the link, so there is no page to answer.
+$dismiss = post('dismiss');
+if ($dismiss !== '') {
+    if (str_starts_with($dismiss, 'notification:')) {
+        dismiss_notification((int) current_user_id(), (int) substr($dismiss, strlen('notification:')));
+    } elseif (str_starts_with($dismiss, 'attention:')) {
+        dismiss_attention_item(substr($dismiss, strlen('attention:')));
+    }
+    http_response_code(204);
+    exit;
+}
+
 mark_notifications_read((int) current_user_id());
 
 if (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'fetch') {
