@@ -51,6 +51,19 @@ function attention_items(): array
     }
 
     if (is_office_staff()) {
+        $invitations = review_counts()['invitations'];
+        if ($invitations > 0) {
+            $items[] = [
+                'tone'    => 'warning',
+                'icon'    => 'review',
+                'title'   => 'Invitations to review',
+                'message' => $invitations . ' invitation' . ($invitations === 1 ? '' : 's')
+                             . ' from outside groups need a decision or a reply.',
+                'href'    => 'review.php?lane=invitations',
+                'action'  => 'Open the review queue',
+            ];
+        }
+
         // Accounts awaiting activation — the office's most common Week 1 task.
         $pendingAccounts = (int) fetch_value("SELECT COUNT(*) FROM users WHERE status = 'pending'");
         if ($pendingAccounts > 0) {

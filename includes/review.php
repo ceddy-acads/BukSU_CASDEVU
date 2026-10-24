@@ -5,7 +5,7 @@
  * Read-only views over existing tables. The same scoping rules as the review
  * screens themselves apply: office staff see every activity, a coordinator
  * sees only the activities they are assigned to, and reservation requests
- * and account approvals are office-only. The sidebar badge, the dashboard,
+ * account approvals and invitations from outside groups are office-only. The sidebar badge, the dashboard,
  * and review.php all read from here, so their numbers always agree.
  */
 
@@ -62,7 +62,7 @@ function activity_reviewer_ids(int $activityId): array
 /**
  * How many items wait in each lane, for the current user.
  *
- * @return array{documents: int, registrations: int, reservations: int, accounts: int, total: int}
+ * @return array{documents: int, registrations: int, reservations: int, accounts: int, invitations: int, total: int}
  */
 function review_counts(): array
 {
@@ -71,7 +71,7 @@ function review_counts(): array
         return $cache;
     }
 
-    $counts = ['documents' => 0, 'registrations' => 0, 'reservations' => 0, 'accounts' => 0, 'total' => 0];
+    $counts = ['documents' => 0, 'registrations' => 0, 'reservations' => 0, 'accounts' => 0, 'invitations' => 0, 'total' => 0];
     if (!can_review()) {
         return $cache = $counts;
     }
@@ -94,8 +94,12 @@ function review_counts(): array
     if (is_office_staff()) {
         $counts['reservations'] = (int) fetch_value("SELECT COUNT(*) FROM reservations WHERE status = 'pending'");
         $counts['accounts']     = (int) fetch_value("SELECT COUNT(*) FROM users WHERE status = 'pending'");
+        // Pending decisions, plus decided ones whose sender still has to be told by hand.
+        $counts['invitations']  = (int) fetch_value(
+            "SELECT COUNT(*) FROM invitations WHERE status = 'pending' OR email_status IN ('logged','failed')"
+        );
     }
-    $counts['total'] = $counts['documents'] + $counts['registrations'] + $counts['reservations'] + $counts['accounts'];
+    $counts['total'] = $counts['documents'] + $counts['registrations'] + $counts['reservations'] + $counts['accounts'] + $counts['invitations'];
 
     return $cache = $counts;
 }
@@ -169,6 +173,37 @@ function review_pending_accounts(int $limit = 50): array
            FROM users u
           WHERE u.status = 'pending'
           ORDER BY u.created_at ASC
+          LIMIT " . max(1, $limit)
+    );
+}
+
+/** Invitations from outside groups waiting for a decision, oldest first. Office only. */
+function review_pending_invitations(int $limit = 50): array
+{
+    if (!is_office_staff()) {
+        return [];
+    }
+    return fetch_all(
+        "SELECT invitation_id, organization, contact_name, title, start_at, end_at, place, created_at,
+                letter_path IS NOT NULL AS has_letter
+           FROM invitations
+          WHERE status = 'pending'
+          ORDER BY created_at ASC
+          LIMIT " . max(1, $limit)
+    );
+}
+
+/** Decided invitations whose sender was not emailed, oldest decision first. Office only. */
+function review_unsent_invitations(int $limit = 50): array
+{
+    if (!is_office_staff()) {
+        return [];
+    }
+    return fetch_all(
+        "SELECT invitation_id, organization, contact_name, title, status, email, phone, reviewed_at, email_status
+           FROM invitations
+          WHERE email_status IN ('logged','failed')
+          ORDER BY reviewed_at ASC
           LIMIT " . max(1, $limit)
     );
 }
