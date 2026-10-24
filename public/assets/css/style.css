@@ -1380,6 +1380,9 @@ a.cal-daynum:hover { background: var(--navy-50); color: var(--navy); text-decora
 .cal-chip.is-cancelled .cal-chip-title { text-decoration: line-through; }
 .cal-chip.is-cancelled .cal-chip-meta { color: var(--danger); font-weight: 700; }
 .cal-chip.is-draft { background: var(--surface); outline: 1px dashed var(--line-input); outline-offset: -1px; }
+.cal-chip.is-invitation { --cat: var(--ink-soft); background: var(--surface); border: 1px solid var(--line); }
+.cal-chip.is-invitation:hover { background: var(--surface-2); }
+.cal-item.is-invitation { --cat: var(--ink-soft); }
 .cal-past .cal-chip { opacity: .75; }
 .cal-more { display: inline-block; margin-top: 3px; font-size: var(--fs-xs); font-weight: 700; color: var(--navy); }
 .cal-dots { display: none; }
