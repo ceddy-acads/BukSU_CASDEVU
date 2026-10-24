@@ -114,6 +114,7 @@ require __DIR__ . '/../includes/layout/portal-header.php';
 <div class="portal-secondary">
     <a href="<?= url('forgot-password.php') ?>">Forgot password?</a>
     <p>Don't have an account? <a href="<?= url('register.php') ?>">Create an account</a></p>
+    <p>Inviting BukSU students to your program? <a href="<?= url('invitations/submit.php') ?>">Submit an invitation</a></p>
 </div>
 
 <?php require __DIR__ . '/../includes/layout/portal-footer.php'; ?>
