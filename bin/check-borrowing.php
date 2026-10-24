@@ -60,6 +60,90 @@ try {
     // Coordinator runs activities 15 and 17, not 16.
 
     check('db columns', (bool) fetch_value("SHOW COLUMNS FROM users LIKE 'id_front_path'"));
+
+    $aid   = (int) $andrea['user_id'];
+    $other = fetch_one(
+        "SELECT u.* FROM users u JOIN roles r ON r.role_id = u.role_id
+         WHERE r.name = 'student' AND u.user_id <> ? ORDER BY u.user_id LIMIT 1",
+        [$aid]
+    );
+    $itemId = (int) fetch_value('SELECT item_id FROM inventory_items ORDER BY item_id LIMIT 1');
+
+    /** Insert a student request for Andrea with one line of quantity 2; returns its id. */
+    $mk = function (int $activityId, string $status, int $studentRequest = 1) use ($aid, $itemId): int {
+        query(
+            'INSERT INTO reservations (activity_id, requested_by, purpose, needed_from, needed_until, status, student_request)
+             VALUES (?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 2 DAY), ?, ?)',
+            [$activityId, $aid, 'check', $status, $studentRequest]
+        );
+        $id = (int) db()->lastInsertId();
+        query('INSERT INTO reservation_items (reservation_id, item_id, quantity) VALUES (?, ?, 2)', [$id, $itemId]);
+        return $id;
+    };
+    $loan = function (int $resId, int $qty) use ($aid, $itemId, $staff): int {
+        query(
+            'INSERT INTO borrowings (reservation_id, item_id, borrower_id, quantity, released_by, released_at, expected_return_at)
+             VALUES (?, ?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 1 DAY))',
+            [$resId, $itemId, $aid, $qty, (int) $staff['user_id']]
+        );
+        return (int) db()->lastInsertId();
+    };
+
+    // --- ID photo visibility ---
+    $r16 = $mk(16, 'pending');
+    act_as($coordinator['email']);
+    check('coord cannot see ID: pending request is for activity 16', can_view_id_photos($aid) === false);
+    query('UPDATE reservations SET activity_id = 15 WHERE reservation_id = ?', [$r16]);
+    check('coord sees ID: pending request for activity 15', can_view_id_photos($aid) === true);
+    query("UPDATE reservations SET status = 'approved' WHERE reservation_id = ?", [$r16]);
+    check('coord cannot see ID once approved', can_view_id_photos($aid) === false);
+    act_as($staff['email']);
+    check('staff sees ID: approved, nothing collected', can_view_id_photos($aid) === true);
+    $b = $loan($r16, 2);
+    check('collected quantity is 2', reservation_collected_quantity($r16) === 2);
+    check('staff sees ID: open loan', can_view_id_photos($aid) === true);
+    query('UPDATE borrowings SET returned_at = NOW() WHERE borrowing_id = ?', [$b]);
+    check('staff cannot see ID after return', can_view_id_photos($aid) === false);
+    act_as($other['email']);
+    check('other student cannot see ID', can_view_id_photos($aid) === false);
+    act_as($andrea['email']);
+    check('student sees own ID', can_view_id_photos($aid) === true);
+
+    // --- helpers ---
+    check('has_id_photos false when empty', has_id_photos(['id_front_path' => 'a', 'id_back_path' => '']) === false);
+    check('has_id_photos true when both set', has_id_photos(['id_front_path' => 'a', 'id_back_path' => 'b']) === true);
+    check('no open borrowing after return', student_has_open_borrowing($aid) === false);
+    $rp = $mk(15, 'pending');
+    check('pending request counts as open borrowing', student_has_open_borrowing($aid) === true);
+    query("UPDATE reservations SET status = 'cancelled' WHERE reservation_id = ?", [$rp]);
+    $enrolled = student_borrow_activities($aid);
+    check('student_borrow_activities lists activity 15', in_array(15, array_map('intval', array_column($enrolled, 'activity_id')), true));
+
+    // --- cancel / decide ---
+    $rc = $mk(15, 'approved');
+    act_as($andrea['email']);
+    $resRow = fetch_one('SELECT * FROM reservations WHERE reservation_id = ?', [$rc]);
+    check('requester may cancel approved uncollected', can_cancel_reservation($resRow) === true);
+    $loan($rc, 1);
+    check('cannot cancel once one borrowing exists', can_cancel_reservation($resRow) === false);
+    act_as($coordinator['email']);
+    check('coord may decide student request for own activity', can_decide_reservation($resRow) === true);
+    $rn = $mk(15, 'pending', 0);
+    $rnRow = fetch_one('SELECT * FROM reservations WHERE reservation_id = ?', [$rn]);
+    check('coord cannot decide non-student request', can_decide_reservation($rnRow) === false);
+    $r16Row = fetch_one('SELECT * FROM reservations WHERE reservation_id = ?', [$mk(16, 'pending')]);
+    check('coord cannot decide request for unassigned activity', can_decide_reservation($r16Row) === false);
+    act_as($staff['email']);
+    check('office may decide any', can_decide_reservation($rnRow) === true);
+
+    // --- bulk cancel ---
+    query("UPDATE reservations SET status = 'cancelled' WHERE requested_by = ?", [$aid]);
+    $p = $mk(15, 'pending');
+    $a = $mk(15, 'approved');
+    $f = $mk(15, 'fulfilled');
+    check('cancel_open_student_requests returns 2', cancel_open_student_requests($aid, 15, 'x') === 2);
+    check('fulfilled left alone', fetch_value('SELECT status FROM reservations WHERE reservation_id = ?', [$f]) === 'fulfilled');
+    check('pending and approved now cancelled', fetch_value("SELECT COUNT(*) FROM reservations WHERE reservation_id IN (?, ?) AND status = 'cancelled'", [$p, $a]) == 2);
 } catch (Throwable $e) {
     check('script ran', false, $e->getMessage());
 } finally {
