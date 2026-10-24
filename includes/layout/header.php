@@ -43,6 +43,7 @@ $navSection = match (true) {
     $currentFile === 'calendar.php'                             => 'calendar',
     $currentDir === 'activities'                                => 'activities',
     $currentDir === 'announcements'                             => 'announcements',
+    $currentDir === 'highlights'                                => 'highlights',
     $currentDir === 'inventory'                                 => 'inventory',
     $currentDir === 'reports'                                   => 'reports',
     $currentDir === 'admin'                                     => pathinfo($currentFile, PATHINFO_FILENAME),
@@ -62,6 +63,7 @@ $sections = [
     'calendar'        => ['Calendar', 'activities/calendar.php'],
     'activities'      => ['Activities', 'activities/index.php'],
     'announcements'   => ['Announcements', 'announcements/index.php'],
+    'highlights'      => ['Highlights', 'highlights/index.php'],
     'inventory'       => [$isStudent ? 'Costumes & equipment' : 'Inventory', 'inventory/index.php'],
     'reports'         => ['Reports', 'reports/index.php'],
     'my-activities'   => ['My activities', 'participation/my-activities.php'],
@@ -103,7 +105,7 @@ $initials = $user
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
 
-<div class="app">
+<div class="app<?= $user ? '' : ' app-public' ?>">
 <?php if ($user): ?>
     <div class="nav-backdrop" data-nav-close></div>
 
@@ -134,6 +136,7 @@ $initials = $user
                 <?= nav_link('activities', 'activities/index.php', 'Activities', $navSection) ?>
                 <?= nav_link('calendar', 'activities/calendar.php', 'Calendar', $navSection) ?>
                 <?= nav_link('announcements', 'announcements/index.php', 'Announcements', $navSection) ?>
+                <?= nav_link('highlights', 'highlights/index.php', 'Highlights', $navSection) ?>
                 <?php if ($isStudent): ?>
                     <?= nav_link('inventory', 'inventory/index.php', 'Costumes & equipment', $navSection) ?>
                 <?php endif; ?>
@@ -223,6 +226,14 @@ $initials = $user
                     </a>
                 </div>
             </details>
+        </div>
+    </header>
+<?php else: ?>
+    <?php // Signed out (the public Highlights pages): the wordmark and Sign in only. ?>
+    <header class="topbar topbar-public">
+        <a class="topbar-brand" href="<?= url('highlights/index.php') ?>"><?= e(APP_NAME) ?></a>
+        <div class="topbar-actions">
+            <a class="btn btn-outline" href="<?= url('login.php') ?>">Sign in</a>
         </div>
     </header>
 <?php endif; ?>

@@ -505,6 +505,10 @@ $pages = [
     ['path' => 'reset-password.php',              'allow' => ['admin', 'staff', 'coordinator', 'student'],
      'optional' => true],
 
+    // Highlight reports: public cover grid
+    ['path' => 'highlights/index.php',            'allow' => ['admin', 'staff', 'coordinator', 'student'],
+     'guest' => 'allow'],
+
     // Highlight reports: upload page
     ['path' => 'highlights/manage.php',           'allow' => ['admin', 'staff', 'coordinator'],
      'guest' => 'login'],

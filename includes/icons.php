@@ -26,6 +26,8 @@ function icon(string $name, string $class = 'icon'): string
         'requirements'  => '<path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5Z"/><path d="M14 3.5v5h5"/><path d="m9 14.5 2 2 4-4"/>',
         // Clothes hanger: costumes and equipment
         'equipment'     => '<path d="M12 8.5V8a2 2 0 1 0-2-2"/><path d="M12 8.5 3.5 15a1 1 0 0 0 .6 1.8h15.8a1 1 0 0 0 .6-1.8Z"/>',
+        // An open magazine: the posted highlight reports
+        'highlights'    => '<path d="M12 6.5C10.2 5.1 7.5 4.5 3.5 4.5v14c4 0 6.7.6 8.5 2 1.8-1.4 4.5-2 8.5-2v-14c-4 0-6.7.6-8.5 2Z"/><path d="M12 6.5v14"/>',
         'inventory'     => '<path d="m3.5 7.5 8.5-4 8.5 4v9l-8.5 4-8.5-4Z"/><path d="m3.5 7.5 8.5 4 8.5-4M12 11.5v9"/>',
         // Tray with a tick: things waiting on a decision
         'review'        => '<path d="M3.5 13.5 6 5h12l2.5 8.5v5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2Z"/><path d="M3.5 13.5H8l1.5 2.5h5l1.5-2.5h4.5"/><path d="m9.5 9 2 2 3-3"/>',
