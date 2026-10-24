@@ -66,6 +66,8 @@ CREATE TABLE users (
     birth_date      DATE         NULL,
     contact_number  VARCHAR(30)  NULL,
     photo_path      VARCHAR(255) NULL,
+    id_front_path   VARCHAR(255) NULL,              -- school ID photo, front (borrowing)
+    id_back_path    VARCHAR(255) NULL,              -- school ID photo, back
 
     -- Academic placement (students only; NULL for office personnel)
     course_id       INT UNSIGNED     NULL,
@@ -376,6 +378,7 @@ CREATE TABLE inventory_items (
     condition_note  VARCHAR(255) NULL,
     photo_path      VARCHAR(255) NULL,
     storage_location VARCHAR(150) NULL,
+    student_requestable TINYINT(1) NOT NULL DEFAULT 1,  -- 0 = office-only, hidden from students
 
     status          ENUM('available','reserved','borrowed','damaged',
                          'under_maintenance','unavailable')
@@ -408,11 +411,15 @@ CREATE TABLE reservations (
     reviewed_at     DATETIME     NULL,
     review_remarks  VARCHAR(500) NULL,
 
+    -- Student equipment requests (a coordinator may propose a shorter window)
+    student_request TINYINT(1)   NOT NULL DEFAULT 0,    -- 1 = filed by a student
+    proposed_until  DATETIME     NULL,                  -- coordinator's counter-offer
+
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                         ON UPDATE CURRENT_TIMESTAMP,
 
-    CONSTRAINT fk_resv_activity  FOREIGN KEY (activity_id)  REFERENCES activities(activity_id)
+    CONSTRAINT fk_resv_activity FOREIGN KEY (activity_id)  REFERENCES activities(activity_id)
                                      ON DELETE SET NULL,
     CONSTRAINT fk_resv_requester FOREIGN KEY (requested_by) REFERENCES users(user_id),
     CONSTRAINT fk_resv_reviewer  FOREIGN KEY (reviewed_by)  REFERENCES users(user_id)
