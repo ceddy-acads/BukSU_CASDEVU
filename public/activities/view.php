@@ -96,30 +96,9 @@ if ($isStudent) {
 $canManage   = can_manage_activity($activityId);
 $canRegister = $isStudent && !$isActiveReg && $eligibility['ok'];
 
-$pageTitle = $activity['title'];
-require __DIR__ . '/../../includes/layout/header.php';
+// The fact strip is rendered once: the full page and the quick look share it.
+ob_start();
 ?>
-
-<?php // The header photo changes with the domain; the banner itself is the same on every page. ?>
-<div class="page-head photo-band"<?= photo_band_style(category_photo((string) $activity['category'])) ?>>
-    <div>
-        <a class="crumb" href="<?= url('activities/index.php') ?>">&larr; Back to activities</a>
-        <?= status_badge($activity['status'], 'activity') ?>
-        <h1><?= e($activity['title']) ?></h1>
-        <p><?= e($activity['category']) ?></p>
-    </div>
-    <?php if ($canManage || $canRegister): ?>
-        <div class="btn-row">
-            <?php if ($canRegister): ?>
-                <a class="btn btn-gold" href="#participation">Register</a>
-            <?php endif; ?>
-            <?php if ($canManage): ?>
-                <a class="btn btn-outline" href="<?= url('activities/manage.php?id=' . $activityId) ?>">Edit activity</a>
-            <?php endif; ?>
-        </div>
-    <?php endif; ?>
-</div>
-
 <?php
 // The four facts people look for first, above everything else.
 $startTs  = strtotime((string) $activity['start_at']);
@@ -158,7 +137,7 @@ $sameDay  = $endTs !== null && date('Y-m-d', $startTs) === date('Y-m-d', $endTs)
                 <?php if ($myRegistration): ?>
                     <?= status_badge($myRegistration['status'], 'registration') ?>
                 <?php elseif ($canRegister): ?>
-                    <a href="#participation">Not registered: register below</a>
+                    <a href="<?= url('activities/view.php?id=' . $activityId . '#participation') ?>">Not registered: register below</a>
                 <?php else: ?>
                     <span class="muted">Not registered</span>
                 <?php endif; ?>
@@ -173,6 +152,57 @@ $sameDay  = $endTs !== null && date('Y-m-d', $startTs) === date('Y-m-d', $endTs)
         </div>
     <?php endif; ?>
 </dl>
+<?php
+$factStrip = (string) ob_get_clean();
+
+// ?quick=1: the dashboard's popup (data-modal-src) pulls #activity-quick-look
+// out of this page. The link itself still opens the full page.
+$isQuickLook = get('quick') === '1';
+
+$pageTitle = $activity['title'];
+require __DIR__ . '/../../includes/layout/header.php';
+
+if ($isQuickLook): ?>
+    <div id="activity-quick-look" class="quick-look">
+        <p class="quick-look-meta"><?= status_badge($activity['status'], 'activity') ?> <span><?= e($activity['category']) ?></span></p>
+        <?= $factStrip ?>
+        <?php if ($activity['description']): ?>
+            <p class="preline"><?= e(mb_strimwidth((string) $activity['description'], 0, 420, '…')) ?></p>
+        <?php else: ?>
+            <p class="muted">No description has been provided.</p>
+        <?php endif; ?>
+        <div class="btn-row">
+            <?php if ($canRegister): ?>
+                <a class="btn btn-primary" href="<?= url('activities/view.php?id=' . $activityId . '#participation') ?>">Register</a>
+            <?php endif; ?>
+            <a class="btn btn-outline" href="<?= url('activities/view.php?id=' . $activityId) ?>">Open full page</a>
+        </div>
+    </div>
+    <?php require __DIR__ . '/../../includes/layout/footer.php'; ?>
+    <?php return; ?>
+<?php endif; ?>
+
+<?php // The header photo changes with the domain; the banner itself is the same on every page. ?>
+<div class="page-head photo-band"<?= photo_band_style(category_photo((string) $activity['category'])) ?>>
+    <div>
+        <a class="crumb" href="<?= url('activities/index.php') ?>">&larr; Back to activities</a>
+        <?= status_badge($activity['status'], 'activity') ?>
+        <h1><?= e($activity['title']) ?></h1>
+        <p><?= e($activity['category']) ?></p>
+    </div>
+    <?php if ($canManage || $canRegister): ?>
+        <div class="btn-row">
+            <?php if ($canRegister): ?>
+                <a class="btn btn-gold" href="#participation">Register</a>
+            <?php endif; ?>
+            <?php if ($canManage): ?>
+                <a class="btn btn-outline" href="<?= url('activities/manage.php?id=' . $activityId) ?>">Edit activity</a>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+</div>
+
+<?= $factStrip ?>
 
 <div class="split split-aside-first">
     <div>

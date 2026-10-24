@@ -304,6 +304,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                     <div class="catalog-foot">
                         <a class="btn btn-outline btn-sm"
                            href="<?= url('inventory/manage.php?id=' . (int) $item['item_id']) ?>"
+                           data-modal data-modal-title="Edit <?= e($item['name']) ?>" data-modal-wrap="#item-form-wrap"
                            aria-label="Edit <?= e($item['name']) ?>">Edit</a>
                     </div>
                 <?php endif; ?>

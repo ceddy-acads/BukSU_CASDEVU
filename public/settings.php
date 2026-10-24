@@ -33,7 +33,14 @@ if (is_post()) {
         save_user_preferences($userId, [$key => post($key) === '1' ? '1' : '0']);
 
         audit_log('update', 'user', $userId, 'Changed own notification settings');
-        flash('success', 'Notification settings saved.');
+        $message = 'Email ' . (post($key) === '1' ? 'turned on.' : 'turned off.');
+        if (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'fetch') {
+            // A switch flipped with JavaScript: app.js shows the message, no reload.
+            header('Content-Type: application/json');
+            echo json_encode(['message' => $message]);
+            return;
+        }
+        flash('success', $message);
         redirect('settings.php');
     }
 
@@ -44,7 +51,15 @@ if (is_post()) {
         ]);
 
         audit_log('update', 'user', $userId, 'Changed own activity list setting');
-        flash('success', 'Activity list setting saved.');
+        $message = post('hide_past_activities') === '1'
+            ? 'Ended activities are now hidden.'
+            : 'Ended activities are now shown.';
+        if (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'fetch') {
+            header('Content-Type: application/json');
+            echo json_encode(['message' => $message]);
+            return;
+        }
+        flash('success', $message);
         redirect('settings.php');
     }
 

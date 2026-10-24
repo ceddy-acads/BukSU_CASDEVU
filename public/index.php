@@ -155,7 +155,9 @@ require __DIR__ . '/../includes/layout/header.php';
                             <span class="day"><?= e(date('j', $start)) ?></span>
                         </span>
                         <div class="agenda-body">
-                            <a href="<?= url('activities/view.php?id=' . (int) $activity['activity_id']) ?>">
+                            <a href="<?= url('activities/view.php?id=' . (int) $activity['activity_id']) ?>"
+                               data-modal data-modal-title="<?= e($activity['title']) ?>" data-modal-wrap="#activity-quick-look"
+                               data-modal-src="<?= url('activities/view.php?id=' . (int) $activity['activity_id'] . '&quick=1') ?>">
                                 <?= e($activity['title']) ?>
                             </a>
                             <p class="meta">

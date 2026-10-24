@@ -13,7 +13,10 @@
  */
 declare(strict_types=1);
 
-$flashes = take_flashes();
+// A page fetched in the background (the shared popup loading a form, or
+// following a save's redirect) leaves the messages for the page that is
+// actually shown next.
+$flashes = ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'fetch' ? [] : take_flashes();
 ?>
 <?php if ($flashes !== []): ?>
     <div class="toasts<?= !empty($toastsInline) ? ' toasts-inline' : '' ?>" data-toasts
@@ -36,3 +39,12 @@ $flashes = take_flashes();
         <?php endforeach; ?>
     </div>
 <?php endif; ?>
+<?php // Raised from script (CASDevU.toast in app.js) for saves that do not reload the page. ?>
+<template id="toast-template">
+    <div class="toast" role="status" data-toast>
+        <p></p>
+        <button type="button" class="toast-close" data-toast-close aria-label="Dismiss notification">
+            <?= icon('close') ?>
+        </button>
+    </div>
+</template>

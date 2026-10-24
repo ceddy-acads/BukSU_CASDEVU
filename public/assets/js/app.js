@@ -597,17 +597,40 @@ window.CASDevU = window.CASDevU || {};
     });
 })();
 
-/* Settings switches: flipping one saves it at once, so the Save button is
-   only needed without JavaScript (as with the profile photo below). */
+/* Settings switches: flipping one saves it in the background and says so in
+   a toast; the page does not reload. A failed save flips the switch back.
+   Saves from one form run in order, so quick double flips end where the
+   switch ends. Without JavaScript the Save button posts as before. */
 (function () {
     'use strict';
+    if (!window.fetch || !window.FormData) { return; }
     document.querySelectorAll('form[data-autosave]').forEach(function (form) {
         var submit = form.querySelector('[data-autosave-submit]');
         var state = form.querySelector('.set-switch-state');
+        var queue = Promise.resolve();
         if (submit) { submit.hidden = true; }
+
+        function show(input) { if (state) { state.textContent = input.checked ? 'On' : 'Off'; } }
+
         form.addEventListener('change', function (event) {
-            if (state) { state.textContent = event.target.checked ? 'On' : 'Off'; }
-            if (form.requestSubmit) { form.requestSubmit(); } else { form.submit(); }
+            var input = event.target;
+            show(input);
+            queue = queue.then(function () {
+                // getAttribute: the form's own <input name="action"> shadows form.action.
+                return fetch(form.getAttribute('action'), {
+                    method: 'POST', body: new FormData(form),
+                    credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' }
+                }).then(function (response) {
+                    if (!response.ok) { throw new Error('HTTP ' + response.status); }
+                    return response.json();
+                }).then(function (result) {
+                    window.CASDevU.toast('success', result.message);
+                }).catch(function () {
+                    input.checked = !input.checked;
+                    show(input);
+                    window.CASDevU.toast('error', 'That setting was not saved. Check your connection and try again.');
+                });
+            });
         });
     });
 })();
@@ -760,7 +783,7 @@ window.CASDevU = window.CASDevU || {};
 (function () {
     'use strict';
     var TOAST_MS = 6000;
-    document.querySelectorAll('[data-toast]').forEach(function (toast) {
+    function wire(toast) {
         var done = false;
         function dismiss() {
             if (done) { return; }
@@ -815,7 +838,28 @@ window.CASDevU = window.CASDevU || {};
                 }
             });
         }
-    });
+    }
+    document.querySelectorAll('[data-toast]').forEach(wire);
+
+    // A toast raised from script, for a save that does not reload the page.
+    // The text goes in a moment after the element, so screen readers hear it.
+    window.CASDevU.toast = function (type, message) {
+        var template = document.getElementById('toast-template');
+        if (!template) { return; }
+        var wrap = document.querySelector('[data-toasts]');
+        if (!wrap) {
+            wrap = document.createElement('div');
+            wrap.className = 'toasts';
+            wrap.setAttribute('data-toasts', '');
+            document.body.appendChild(wrap);
+        }
+        var toast = template.content.firstElementChild.cloneNode(true);
+        toast.classList.add('toast-' + type);
+        if (type === 'error') { toast.setAttribute('role', 'alert'); }
+        wrap.appendChild(toast);
+        window.setTimeout(function () { toast.querySelector('p').textContent = message; }, 50);
+        wire(toast);
+    };
 })();
 
 /* Print buttons: [data-print] prints the page, replacing inline onclick
@@ -831,8 +875,10 @@ window.CASDevU = window.CASDevU || {};
 /* Shared popup: links with [data-modal] open the shared <dialog> and load
    their form page into it, instead of navigating. The link carries
    data-modal-title for the heading and data-modal-wrap for the fragment id
-   to pull out of the fetched page. Without JavaScript (or without <dialog>
-   support) the link opens the page as before. A successful save follows the
+   to pull out of the fetched page; data-modal-src, when present, is fetched
+   instead of href (a short version, while href stays the full page).
+   Without JavaScript (or without <dialog> support) the link opens the page
+   as before. A successful save follows the
    page's own redirect; validation errors re-render inside the popup, using
    the page's own old-input. Photo uploads work: the submit travels as
    FormData, exactly like a normal post. A form without its own action posts
@@ -894,14 +940,15 @@ window.CASDevU = window.CASDevU || {};
         wrapSelector = link.getAttribute('data-modal-wrap') || '';
         heading.textContent = link.getAttribute('data-modal-title') || 'Details';
         if (!dialog.open) { dialog.showModal(); }
-        load(link.href);
+        load(link.getAttribute('data-modal-src') || link.href);
     });
 
     body.addEventListener('submit', function (event) {
         var form = event.target;
         if (!form || form.tagName !== 'FORM') { return; }
         event.preventDefault();
-        var target = form.action;
+        // getAttribute: a form with <input name="action"> (the item form) shadows form.action.
+        var target = form.getAttribute('action');
         fetch(target, {
             method: 'POST', body: new FormData(form),
             credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' }
