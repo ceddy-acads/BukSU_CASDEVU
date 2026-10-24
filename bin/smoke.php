@@ -741,9 +741,9 @@ if ($ids['highlight'] > 0 && stripos('highlights/file.php', $options['only']) !=
     $url  = $options['base'] . '/highlights/file.php?activity_id=' . $ids['highlight'];
     $size = (int) db_value($pdo, 'SELECT file_size FROM highlight_reports WHERE activity_id = ?', [$ids['highlight']]);
     $cases = [
-        ['bytes=0-99',      206, '/^Content-Range:\s*bytes 0-99\/' . $size . '?$/im', 100],
-        ['bytes=999999999-', 416, '/^Content-Range:\s*bytes \*\/' . $size . '?$/im', null],
-        [null,              200, '/^Accept-Ranges:\s*bytes?$/im', $size],
+        ['bytes=0-99',      206, '/^Content-Range:\s*bytes 0-99\/' . $size . '\r?$/im', 100],
+        ['bytes=999999999-', 416, '/^Content-Range:\s*bytes \*\/' . $size . '\r?$/im', null],
+        [null,              200, '/^Accept-Ranges:\s*bytes\r?$/im', $size],
     ];
     foreach ($cases as [$range, $status, $headerPattern, $length]) {
         $result = http_request($url, $guestJar, null, $options['timeout'], $range === null ? [] : ['Range: ' . $range]);
