@@ -41,8 +41,10 @@ $lanes = [
     'documents'     => ['Documents', 'Students uploaded these and are waiting for your decision.'],
     'registrations' => ['Registrations', 'Students asked to join these activities.'],
 ];
+$lanes['reservations'] = ['Reservations', is_office_staff()
+    ? 'Coordinators asked to reserve costumes or equipment.'
+    : 'Students asked to borrow equipment for your activities.'];
 if (is_office_staff()) {
-    $lanes['reservations'] = ['Reservations', 'Coordinators asked to reserve costumes or equipment.'];
     $lanes['accounts']     = ['Accounts', 'These students cannot sign in until an account is activated.'];
 }
 
@@ -95,7 +97,7 @@ require __DIR__ . '/../includes/layout/header.php';
 <?php if ($counts['total'] === 0): ?>
     <div class="empty">
         <strong>You are all caught up</strong>
-        No documents, registrations<?= is_office_staff() ? ', reservations, or accounts' : '' ?> are waiting for review.
+        No documents, registrations<?= is_office_staff() ? ', reservations, or accounts' : ', or equipment requests' ?> are waiting for review.
         <div class="btn-row">
             <a class="btn btn-outline" href="<?= url('activities/index.php') ?>">Go to activities</a>
         </div>

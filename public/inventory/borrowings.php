@@ -60,7 +60,7 @@ if (is_post()) {
 
             $linkedReservationId = (int) $reservationIn;
             $reservation = fetch_one(
-                'SELECT reservation_id, status FROM reservations WHERE reservation_id = ?',
+                'SELECT reservation_id, status, needed_until FROM reservations WHERE reservation_id = ?',
                 [$linkedReservationId]
             );
 
@@ -85,6 +85,13 @@ if (is_post()) {
                     . 'Release it without a reservation, or choose the correct item.');
                 redirect('inventory/borrowings.php');
             }
+        }
+
+        // Office may change the return date at handover; keep a trace of it.
+        if ($linkedReservationId !== null && strtotime($expectedBack) !== strtotime((string) $reservation['needed_until'])) {
+            audit_log('update', 'reservation', $linkedReservationId,
+                'Return date changed at handover from ' . format_datetime($reservation['needed_until'])
+                . ' to ' . format_datetime($expectedBack));
         }
 
         query(
@@ -266,6 +273,15 @@ require __DIR__ . '/../../includes/layout/header.php';
         <div class="alert alert-info">
             Releasing against the reservation by <?= e(full_name($prefill)) ?>
             for <?= e(format_datetime($prefill['needed_from'])) ?>.
+        </div>
+    <?php endif; ?>
+
+    <?php if ($prefill && (int) $prefill['student_request'] === 1 && can_view_id_photos((int) $prefill['requested_by'])): ?>
+        <div class="alert alert-info">
+            <strong>Check the student's ID</strong>
+            before handing over:
+            <a href="<?= url('id-photo.php?user=' . (int) $prefill['requested_by'] . '&side=front') ?>" target="_blank" rel="noopener">front</a>,
+            <a href="<?= url('id-photo.php?user=' . (int) $prefill['requested_by'] . '&side=back') ?>" target="_blank" rel="noopener">back</a>.
         </div>
     <?php endif; ?>
 
