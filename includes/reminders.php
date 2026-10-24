@@ -216,7 +216,7 @@ function send_return_reminders(bool $dryRun = false): array
         notify((int) $row['borrower_id'], 'reservation', 'Equipment due back soon', $text . ' ' . $marker, $link);
         $sent++;
 
-        if (MAIL_NOTIFICATIONS_ENABLED && email_alerts_enabled((int) $row['borrower_id'])
+        if (MAIL_NOTIFICATIONS_ENABLED && user_preference_on((int) $row['borrower_id'], 'email_reminders', true)
             && send_mail(
                 (string) $row['email'], 'Equipment due back soon',
                 'Hi ' . $row['first_name'] . ',' . PHP_EOL . PHP_EOL . $text . PHP_EOL . PHP_EOL

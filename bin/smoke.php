@@ -672,9 +672,12 @@ foreach ($pages as $page) {
 // A student who is not the owner must not get Andrea's ID photo (404 whether
 // or not one is on file, so this passes trivially until a photo is uploaded).
 section('ID photo privacy');
-$otherJar = sign_in($options['base'], 'student', 'bryan.reyes@student.buksu.edu.ph:demo1234', $options['timeout']);
+$otherStudent = 'bryan.reyes@student.buksu.edu.ph:demo1234';
+// Check the account first: sign_in() reports a failure itself.
+$otherJar = db_value($pdo, 'SELECT 1 FROM users WHERE email = ?', [account_email($otherStudent)])
+    ? sign_in($options['base'], 'student', $otherStudent, $options['timeout']) : null;
 if ($otherJar === null) {
-    echo "  [skip]  second student could not sign in
+    echo "  [skip]  second student account not available
 ";
 } else {
     $checks++;
