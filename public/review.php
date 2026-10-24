@@ -43,7 +43,7 @@ $lanes = [
 ];
 if (is_office_staff()) {
     $lanes['reservations'] = ['Reservations', 'Coordinators asked to reserve costumes or equipment.'];
-    $lanes['accounts']     = ['Accounts', 'These students cannot sign in until an account is activated.'];
+    $lanes['accounts']     = ['Accounts', 'These people cannot sign in until their account is activated.'];
 }
 
 // Open on whatever the URL asked for, else the first lane that has work.
@@ -248,21 +248,21 @@ require __DIR__ . '/../includes/layout/header.php';
             <?php if ($accounts === []): ?>
                 <div class="empty">
                     <strong>No accounts waiting</strong>
-                    New sign-ups appear here as soon as students register.
+                    New sign-ups appear here as soon as someone signs up.
                 </div>
             <?php else: ?>
                 <div class="table-wrap">
                     <table class="data table-stack" data-sortable>
                         <thead>
-                            <tr><th data-sort="text">Student</th><th data-sort="text">Email</th><th data-sort="number">Registered</th>
+                            <tr><th data-sort="text">Name</th><th data-sort="text">Email</th><th data-sort="number">Registered</th>
                                 <th class="actions"><span class="sr-only">Action</span></th></tr>
                         </thead>
                         <tbody>
                         <?php foreach ($accounts as $row): ?>
                             <tr>
-                                <td data-label="Student">
+                                <td data-label="Name">
                                     <strong><?= e($row['last_name'] . ', ' . $row['first_name']) ?></strong>
-                                    <div class="hint"><?= e($row['student_number'] ?? '') ?></div>
+                                    <div class="hint"><?= e(($row['student_number'] ?? '') !== '' ? $row['student_number'] : 'Guest') ?></div>
                                 </td>
                                 <td data-label="Email"><?= e($row['email']) ?></td>
                                 <td data-label="Registered" data-sort-value="<?= (int) strtotime((string) $row['created_at']) ?>"><?= e(waiting_label($row['created_at'])) ?></td>

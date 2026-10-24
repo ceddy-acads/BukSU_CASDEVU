@@ -13,6 +13,7 @@ require_once __DIR__ . '/../includes/bootstrap.php';
 require_login();
 
 $user       = current_user();
+$isStudent  = current_role() === 'student';
 // Offered courses, plus the student's own even if it has since been retired,
 // so saving the profile never clears it.
 $courses    = fetch_all(
@@ -59,6 +60,11 @@ if (is_post()) {
         $courseId      = post('course_id');
         $yearLevelId   = post('year_level_id');
         $section       = post('section');
+
+        // Only students hold an academic placement.
+        if (!$isStudent) {
+            $courseId = $yearLevelId = $section = '';
+        }
 
         if ($firstName === '' || $lastName === '') {
             $errors[] = 'First name and last name are required.';
@@ -129,7 +135,6 @@ if (is_post() && $errors !== []) {
 }
 $mode = in_array($mode, ['details', 'password'], true) ? $mode : 'view';
 
-$isStudent = current_role() === 'student';
 $initials  = strtoupper(mb_substr((string) $user['first_name'], 0, 1) . mb_substr((string) $user['last_name'], 0, 1));
 $photoUrl  = user_photo_url($user);
 
@@ -276,6 +281,9 @@ require __DIR__ . '/../includes/layout/header.php';
                         <div><dt>Section</dt><dd><?= $show($user['section']) ?></dd></div>
                     <?php else: ?>
                         <div><dt>Role</dt><dd><?= e(ucfirst((string) $user['role_name'])) ?></dd></div>
+                        <?php if (is_guest()): ?>
+                            <div class="profile-wide"><dt>Connection to the unit</dt><dd><?= $show($user['connection_note']) ?></dd></div>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </dl>
             <?php endif; ?>

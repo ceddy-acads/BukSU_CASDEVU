@@ -19,6 +19,7 @@ $user      = current_user();
 $userId    = (int) $user['user_id'];
 $isStudent = current_role() === 'student';
 $isAdmin   = has_role('admin');
+$isGuest   = is_guest();
 $errors    = [];
 
 if (is_post()) {
@@ -27,6 +28,9 @@ if (is_post()) {
 
     // ------------------------------------------------ What reaches me by email
     if ($action === 'notifications') {
+        if ($isGuest) {
+            abort_page(403, 'Guest accounts do not receive email notifications.');
+        }
         // Students are the only people the system emails reminders to;
         // reviewers are the only people it emails about work waiting on them.
         $key = $isStudent ? 'email_reminders' : 'email_review_alerts';
@@ -126,7 +130,7 @@ require __DIR__ . '/../includes/layout/header.php';
 <div class="page-head">
     <div>
         <h1>Settings</h1>
-        <p>What reaches you by email, how your activity list opens<?= $isAdmin ? ', and the details the office prints on its messages' : '' ?>.</p>
+        <p><?= $isGuest ? 'How your activity list opens' : 'What reaches you by email, how your activity list opens' ?><?= $isAdmin ? ', and the details the office prints on its messages' : '' ?>.</p>
     </div>
 </div>
 
@@ -134,7 +138,7 @@ require __DIR__ . '/../includes/layout/header.php';
 <div class="settings-layout">
 
 <nav class="settings-nav" aria-label="Settings sections">
-    <a href="#notifications">Notifications</a>
+    <?php if (!$isGuest): ?><a href="#notifications">Notifications</a><?php endif; ?>
     <a href="#activity-list">Activity list</a>
     <?php if ($isAdmin): ?><a href="#office">Office</a><?php endif; ?>
     <a href="#account">Account</a>
@@ -143,6 +147,7 @@ require __DIR__ . '/../includes/layout/header.php';
 <div class="settings-cards">
 
 <?php // ---------------------------------------------------- Notifications ?>
+<?php if (!$isGuest): ?>
 <section class="set-card" id="notifications" aria-labelledby="notifications-title">
     <div class="set-card-head"><h2 id="notifications-title">Notifications</h2></div>
     <div class="set-card-body">
@@ -164,6 +169,7 @@ require __DIR__ . '/../includes/layout/header.php';
         </form>
     </div>
 </section>
+<?php endif; ?>
 
 <?php // --------------------------------------------------- Activity list ?>
 <section class="set-card" id="activity-list" aria-labelledby="activity-list-title">
