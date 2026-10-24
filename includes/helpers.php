@@ -483,3 +483,17 @@ function user_photo_url(array $user): ?string
     return url('profile-photo.php?id=' . (int) $user['user_id']
         . '&v=' . substr(md5((string) $user['photo_path']), 0, 10));
 }
+
+/**
+ * A one-time password for the office to relay. Unambiguous characters only,
+ * so it reads clearly over the phone or on paper.
+ */
+function temporary_password(): string
+{
+    $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+    $temp     = '';
+    for ($i = 0; $i < 12; $i++) {
+        $temp .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+    }
+    return $temp;
+}

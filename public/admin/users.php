@@ -12,6 +12,9 @@ require_role(['staff', 'admin']);
 
 $isAdmin = has_role('admin');
 
+$addErrors = [];
+$form      = ['first_name' => '', 'last_name' => '', 'email' => '', 'contact_number' => '', 'connection_note' => ''];
+
 // --------------------------------------------------------------- Actions
 if (is_post()) {
     csrf_verify();
@@ -19,6 +22,62 @@ if (is_post()) {
     $action       = post('action');
     $targetUserId = (int) post('user_id');
 
+    // Creating an account has no target user, so it is handled first.
+    if ($action === 'add_guest') {
+        if (!$isAdmin) {
+            abort_page(403, 'Only an administrator may create an account.');
+        }
+        $form = [
+            'first_name'      => post('first_name'),
+            'last_name'       => post('last_name'),
+            'email'           => strtolower(post('email')),
+            'contact_number'  => post('contact_number'),
+            'connection_note' => post('connection_note'),
+        ];
+        if ($form['first_name'] === '' || $form['last_name'] === '') {
+            $addErrors[] = 'First name and last name are required.';
+        }
+        if (!filter_var($form['email'], FILTER_VALIDATE_EMAIL)) {
+            $addErrors[] = 'A valid email address is required.';
+        }
+        if ($form['contact_number'] === '') {
+            $addErrors[] = 'Contact number is required.';
+        }
+        if ($form['connection_note'] === '') {
+            $addErrors[] = 'Tell the office how the guest is connected to the unit\'s activities.';
+        } elseif (mb_strlen($form['connection_note']) > 500) {
+            $addErrors[] = 'The connection to the unit must be 500 characters or fewer.';
+        }
+        if ($addErrors === [] && fetch_value('SELECT 1 FROM users WHERE email = ? LIMIT 1', [$form['email']])) {
+            $addErrors[] = 'An account with this email address already exists.';
+        }
+        if ($addErrors === []) {
+            $temp = temporary_password();
+            query(
+                'INSERT INTO users
+                     (role_id, email, password_hash, first_name, last_name,
+                      contact_number, connection_note, status)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                [
+                    fetch_value("SELECT role_id FROM roles WHERE name = 'guest'"),
+                    $form['email'],
+                    password_hash($temp, PASSWORD_DEFAULT),
+                    $form['first_name'],
+                    $form['last_name'],
+                    $form['contact_number'],
+                    $form['connection_note'],
+                    'active',
+                ]
+            );
+            audit_log('create', 'user', (int) db()->lastInsertId(),
+                      'Administrator created guest account: ' . $form['email']);
+            flash('success', 'Guest account created for ' . $form['first_name'] . ' ' . $form['last_name']
+                . '. Temporary password: ' . $temp . ' — copy it now, it will not be shown again.', $temp);
+            redirect('admin/users.php');
+        }
+    }
+
+    if ($action !== 'add_guest') {
     $target = fetch_one(
         'SELECT u.user_id, u.first_name, u.last_name, u.status, r.name AS role_name
            FROM users u JOIN roles r ON r.role_id = u.role_id
@@ -67,8 +126,10 @@ if (is_post()) {
         case 'activate':
             query("UPDATE users SET status = 'active' WHERE user_id = ?", [$targetUserId]);
             audit_log('approve', 'user', $targetUserId, 'Activated account');
+            $isGuestTarget = $target['role_name'] === 'guest';
             notify($targetUserId, 'system', 'Your account is now active',
-                   'You can now sign in and register for activities.', url('login.php'));
+                   $isGuestTarget ? 'You can now sign in and follow the unit\'s schedule.'
+                                  : 'You can now sign in and register for activities.', url('login.php'));
             // A pending student cannot open the in-app notice until they can
             // sign in, so this one is always emailed as well (to mail.log
             // while email is not set up).
@@ -78,8 +139,11 @@ if (is_post()) {
                     (string) $activated['email'],
                     'Your ' . APP_NAME . ' account is active',
                     'Hi ' . $activated['first_name'] . ',' . PHP_EOL . PHP_EOL
-                    . 'The office has activated your ' . APP_NAME . ' account. You can now sign in '
-                    . 'and register for culture, arts, and sports activities:' . PHP_EOL . PHP_EOL
+                    . 'The office has activated your ' . APP_NAME . ' account. '
+                    . ($isGuestTarget
+                        ? 'You can now sign in and follow the unit\'s schedule:'
+                        : 'You can now sign in and register for culture, arts, and sports activities:')
+                    . PHP_EOL . PHP_EOL
                     . '  ' . absolute_url(url('login.php')) . PHP_EOL . PHP_EOL
                     . OFFICE_NAME . PHP_EOL . UNIVERSITY
                 );
@@ -139,6 +203,10 @@ if (is_post()) {
                 flash('error', 'That role does not exist.');
                 redirect('admin/users.php');
             }
+            if ($target['role_name'] === 'guest' || $newRole === 'guest') {
+                flash('error', 'Guest accounts keep their role. If someone signed up on the wrong path, decline the account and ask them to sign up again.');
+                break;
+            }
             if ($newRole === $target['role_name']) {
                 flash('success', full_name($target) . ' is already ' . ucfirst((string) $newRole) . '. Nothing changed.');
                 break;
@@ -154,14 +222,8 @@ if (is_post()) {
                 http_response_code(403);
                 abort_page(403, 'Only an administrator may reset a password.');
             }
-            // A one-time temporary password, shown once to the administrator
-            // who relays it to the person. Unambiguous characters only, so it
-            // reads clearly over the phone or on paper.
-            $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
-            $temp     = '';
-            for ($i = 0; $i < 12; $i++) {
-                $temp .= $alphabet[random_int(0, strlen($alphabet) - 1)];
-            }
+            // Shown once to the administrator, who relays it to the person.
+            $temp = temporary_password();
             query('UPDATE users SET password_hash = ? WHERE user_id = ?',
                   [password_hash($temp, PASSWORD_DEFAULT), $targetUserId]);
             audit_log('update', 'user', $targetUserId, 'Administrator reset the password');
@@ -183,6 +245,7 @@ if (is_post()) {
         'sort'   => get('sort'),
         'dir'    => get('dir'),
     ])));
+    }
 }
 
 // --------------------------------------------------------------- Filters
@@ -249,7 +312,53 @@ require __DIR__ . '/../../includes/layout/header.php';
         <h1>User accounts</h1>
         <p data-live-region="summary"><?= $total ?> account<?= $total === 1 ? '' : 's' ?><?= $isFiltered ? ' match these filters' : '' ?>. Approve new sign-ups and manage who can sign in.</p>
     </div>
+    <?php if ($isAdmin): ?>
+        <a class="btn btn-outline" href="<?= url('admin/users.php?add=guest') ?>">Add a guest</a>
+    <?php endif; ?>
 </div>
+
+<?php if ($isAdmin && (get('add') === 'guest' || $addErrors !== [])): ?>
+<div class="card">
+    <h2>Add a guest</h2>
+    <?php if ($addErrors !== []): ?>
+        <div class="alert alert-error" role="alert">
+            <?php foreach ($addErrors as $error): ?>
+                <div><?= e($error) ?></div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+    <form method="post" novalidate>
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="add_guest">
+        <div class="form-grid form-grid-2">
+            <div class="form-row">
+                <label for="first_name">First name <span class="req">*</span></label>
+                <input type="text" id="first_name" name="first_name" value="<?= e($form['first_name']) ?>" required>
+            </div>
+            <div class="form-row">
+                <label for="last_name">Last name <span class="req">*</span></label>
+                <input type="text" id="last_name" name="last_name" value="<?= e($form['last_name']) ?>" required>
+            </div>
+            <div class="form-row">
+                <label for="email">Email address <span class="req">*</span></label>
+                <input type="email" id="email" name="email" value="<?= e($form['email']) ?>" required>
+            </div>
+            <div class="form-row">
+                <label for="contact_number">Contact number <span class="req">*</span></label>
+                <input type="tel" id="contact_number" name="contact_number" value="<?= e($form['contact_number']) ?>" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <label for="connection_note">How are you connected to the unit's activities? <span class="req">*</span></label>
+            <textarea id="connection_note" name="connection_note" rows="4" maxlength="500" required><?= e($form['connection_note']) ?></textarea>
+        </div>
+        <div class="btn-row">
+            <button type="submit" class="btn btn-primary" data-loading="Creating…">Create guest account</button>
+            <a class="btn btn-outline" href="<?= url('admin/users.php') ?>">Cancel</a>
+        </div>
+    </form>
+</div>
+<?php endif; ?>
 
 <div data-live-region="notice">
 <?php // Accounts awaiting approval now open in the notification pop-up: includes/attention.php. ?>
@@ -323,7 +432,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <thead>
                     <tr>
                         <?= sort_th('Name', 'name', $sortKey, $sortDir, 'admin/users.php', $sortFilters) ?>
-                        <th>Student</th><th>Role</th><th>Status</th><th class="actions">Actions</th>
+                        <th>Details</th><th>Role</th><th>Status</th><th class="actions">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -334,8 +443,11 @@ require __DIR__ . '/../../includes/layout/header.php';
                             <?php // A long address may break after the @ or before a dot, never mid-word. ?>
                             <div class="hint user-email"><?= str_replace(['@', '.'], ['@<wbr>', '<wbr>.'], e($row['email'])) ?></div>
                         </td>
-                        <td data-label="Student">
-                            <?php if ($row['student_number'] || $row['course_code']): ?>
+                        <td data-label="Details">
+                            <?php if ($row['role_name'] === 'guest'): ?>
+                                Guest
+                                <div class="hint preline"><?= e((string) $row['connection_note']) ?></div>
+                            <?php elseif ($row['student_number'] || $row['course_code']): ?>
                                 <?= $row['student_number'] ? '<span class="nowrap">' . e($row['student_number']) . '</span>' : '<span class="muted">No student number</span>' ?>
                                 <div class="hint">
                                     <?= e(implode(', ', array_filter([$row['course_code'], $row['year_level_label']]))) ?>
@@ -345,7 +457,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                             <?php endif; ?>
                         </td>
                         <td data-label="Role">
-                            <?php if ($isAdmin && (int) $row['user_id'] !== current_user_id()): ?>
+                            <?php if ($isAdmin && (int) $row['user_id'] !== current_user_id() && $row['role_name'] !== 'guest'): ?>
                                 <?php // Choose, then Change: a role is a permission grant, so it never
                                       // applies just because the dropdown moved (an arrow key on a
                                       // closed select fires 'change' in some browsers). app.js asks
@@ -359,6 +471,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                                     <select name="role_id" class="input-auto input-sm"
                                             aria-label="Role for <?= e(full_name($row)) ?>">
                                         <?php foreach ($roles as $role): ?>
+                                            <?php if ($role['name'] === 'guest') { continue; } ?>
                                             <option value="<?= (int) $role['role_id'] ?>"
                                                 <?= (int) $row['role_id'] === (int) $role['role_id'] ? 'selected' : '' ?>>
                                                 <?= e(ucfirst($role['name'])) ?>
