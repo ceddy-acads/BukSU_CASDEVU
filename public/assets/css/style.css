@@ -406,6 +406,10 @@ img    { max-width: 100%; height: auto; }
     .profile-id { margin-bottom: var(--s5); }
 }
 @media (max-width: 359px) { .profile-fields { grid-template-columns: minmax(0, 1fr); } }
+.id-photos { margin-top: var(--s4); }
+.id-photos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: var(--s4); margin: var(--s4) 0; }
+.id-photos-label { margin: 0 0 var(--s2); font-size: var(--fs-sm); }
+.id-photos-preview { display: block; max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: var(--r-sm); }
 .profile-note { margin: var(--s5) 0 0; font-size: var(--fs-sm); color: var(--ink-soft); }
 .profile-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--s2); margin-top: var(--s5); }
 .profile-panel .profile-actions { margin-top: var(--s2); }

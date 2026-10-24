@@ -19,6 +19,7 @@ if (PHP_SAPI !== 'cli') {
 require_once __DIR__ . '/../includes/bootstrap.php';
 
 $failures = 0;
+$tempFiles = [];
 
 function check(string $name, bool $ok, string $why = ''): void
 {
@@ -161,9 +162,30 @@ try {
     check('cancel_open_student_requests returns 2', cancel_open_student_requests($aid, 15, 'x') === 2);
     check('fulfilled left alone', fetch_value('SELECT status FROM reservations WHERE reservation_id = ?', [$f]) === 'fulfilled');
     check('pending and approved now cancelled', fetch_value("SELECT COUNT(*) FROM reservations WHERE reservation_id IN (?, ?) AND status = 'cancelled'", [$p, $a]) == 2);
+
+    // --- replacing an ID photo removes the old file ---
+    $idDir = UPLOAD_PATH . '/id-photos';
+    is_dir($idDir) || mkdir($idDir, 0775, true);
+    $tempFiles = [$idDir . '/check-old.jpg', $idDir . '/check-new.jpg'];
+    file_put_contents($tempFiles[0], 'old');
+    file_put_contents($tempFiles[1], 'new');
+    query('UPDATE users SET id_front_path = ? WHERE user_id = ?', ['id-photos/check-old.jpg', $aid]);
+    replace_id_photo($aid, 'front', 'id-photos/check-new.jpg');
+    check('replace_id_photo removes the old file', !is_file($tempFiles[0]));
+    check('replace_id_photo keeps the new file', is_file($tempFiles[1]));
+    check('replace_id_photo saves the new path', fetch_value('SELECT id_front_path FROM users WHERE user_id = ?', [$aid]) === 'id-photos/check-new.jpg');
+    try {
+        replace_id_photo($aid, 'side', 'id-photos/check-new.jpg');
+        check('replace_id_photo rejects a bad side', false, 'no exception');
+    } catch (InvalidArgumentException $e) {
+        check('replace_id_photo rejects a bad side', true);
+    }
 } catch (Throwable $e) {
     check('script ran', false, $e->getMessage());
 } finally {
+    foreach ($tempFiles as $file) {
+        is_file($file) && unlink($file);
+    }
     if (db()->inTransaction()) {
         db()->rollBack();
     }

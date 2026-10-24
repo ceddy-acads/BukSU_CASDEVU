@@ -164,3 +164,17 @@ function delete_id_photos(int $studentId): void
     delete_upload($row['id_back_path']);
     query('UPDATE users SET id_front_path = NULL, id_back_path = NULL WHERE user_id = ?', [$studentId]);
 }
+
+/** Save a new ID photo path for one side, then delete the file it replaces. */
+function replace_id_photo(int $studentId, string $side, string $newRelativePath): void
+{
+    if ($side !== 'front' && $side !== 'back') {
+        throw new InvalidArgumentException('Unknown ID side.');
+    }
+    $column = 'id_' . $side . '_path';   // whitelisted above
+    $old    = fetch_value("SELECT $column FROM users WHERE user_id = ?", [$studentId]);
+    query("UPDATE users SET $column = ? WHERE user_id = ?", [$newRelativePath, $studentId]);
+    if (is_string($old) && $old !== $newRelativePath) {
+        delete_upload($old);
+    }
+}
