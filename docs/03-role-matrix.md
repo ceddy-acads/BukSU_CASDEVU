@@ -19,6 +19,15 @@ Legend: **✔** full · **◐** limited (see note) · **✘** none
 | Delete activity | ✘ | ✘ | ✘ | ✔ |
 | Assign coordinators | ✘ | ✘ | ✔ | ✔ |
 
+## Highlights
+
+| Action | Student | Coordinator | Staff | Admin |
+|--------|:-------:|:-----------:|:-----:|:-----:|
+| Upload / replace / delete a highlight report | ✘ | ◐ assigned only | ✔ | ✔ |
+| Read highlight reports | ✔ | ✔ | ✔ | ✔ |
+
+Read highlight reports also works signed out (public page); a Guest account cannot upload.
+
 ## Participation
 
 | Action | Student | Coordinator | Staff | Admin |

@@ -505,6 +505,12 @@ $pages = [
     ['path' => 'reset-password.php',              'allow' => ['admin', 'staff', 'coordinator', 'student'],
      'optional' => true],
 
+    // Highlight reports: upload page
+    ['path' => 'highlights/manage.php',           'allow' => ['admin', 'staff', 'coordinator'],
+     'guest' => 'login'],
+    ['path' => 'highlights/manage.php',           'allow' => ['admin', 'staff', 'coordinator'],
+     'params' => ['activity_id' => 'assigned'], 'optional' => true],
+
     // Highlight reports: public PDF
     ['path' => 'highlights/file.php',             'allow' => ['admin', 'staff', 'coordinator', 'student'],
      'params' => ['activity_id' => 'highlight'], 'optional' => true, 'binary' => true, 'guest' => 'allow'],
