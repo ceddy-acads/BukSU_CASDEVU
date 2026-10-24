@@ -216,6 +216,10 @@ $ids['coord_participant'] = (int) (db_value($pdo,
       WHERE u.email = ? LIMIT 1',
     [account_email($options['coordinator'])]) ?? $studentUserId);
 
+$ids['photo_user'] = (int) (db_value($pdo,
+    'SELECT user_id FROM users WHERE photo_path IS NOT NULL AND email <> ? ORDER BY user_id LIMIT 1',
+    [account_email($options['guest'])]) ?? $studentUserId);
+
 echo 'Dataset  ' . db_value($pdo, 'SELECT COUNT(*) FROM activities') . ' activities, '
     . db_value($pdo, 'SELECT COUNT(*) FROM inventory_items') . ' items, '
     . db_value($pdo, 'SELECT COUNT(*) FROM registrations') . " registrations\n";
@@ -427,6 +431,9 @@ $pages = [
      'tolerate' => [302]],   // opens the bell panel on the dashboard instead
     ['path' => 'profile-photo.php',               'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest'],
      'params' => ['id' => 'own_user'], 'optional' => true, 'binary' => true],
+    // another person's photo: a guest gets the same 404 as a missing one
+    ['path' => 'profile-photo.php',               'allow' => ['admin', 'staff', 'coordinator', 'student'],
+     'params' => ['id' => 'photo_user'], 'optional' => true, 'binary' => true],
 
     ['path' => 'review.php',                      'allow' => ['admin', 'staff', 'coordinator']],
 

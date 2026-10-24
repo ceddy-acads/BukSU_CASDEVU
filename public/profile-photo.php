@@ -5,7 +5,8 @@
  * Photos live outside the web root like every other upload, so they are
  * streamed through here to signed-in users only. The URL carries a version
  * (see user_photo_url()), so a changed photo is fetched fresh while an
- * unchanged one can be cached.
+ * unchanged one can be cached. A guest gets only their own photo; anyone
+ * else's answers 404, like a missing one.
  */
 
 declare(strict_types=1);
@@ -14,6 +15,10 @@ require_once __DIR__ . '/../includes/bootstrap.php';
 require_login();
 
 $userId = get_id('id');
+if (is_guest() && $userId !== current_user_id()) {
+    http_response_code(404);
+    exit;
+}
 $path   = $userId !== null
     ? fetch_value('SELECT photo_path FROM users WHERE user_id = ?', [$userId])
     : null;

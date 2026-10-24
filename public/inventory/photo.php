@@ -9,7 +9,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../../includes/bootstrap.php';
 
-require_login();
+require_role(['student', 'coordinator', 'staff', 'admin']);
 
 $itemId = get_id('id');
 $path   = $itemId !== null
