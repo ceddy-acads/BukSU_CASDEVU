@@ -266,6 +266,8 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <div class="catalog-body">
                     <?php if (!$isBrowser): ?>
                         <span class="catalog-status"><?= status_badge($item['status'], 'inventory') ?></span>
+                    <?php elseif (!(int) $item['student_requestable']): ?>
+                        <span class="catalog-status"><span class="badge badge-muted">Office use only</span></span>
                     <?php endif; ?>
                     <p class="meta">
                         <?= e($item['category']) ?>
