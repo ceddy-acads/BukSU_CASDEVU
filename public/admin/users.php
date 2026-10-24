@@ -90,6 +90,8 @@ if (is_post()) {
         case 'deactivate':
             query("UPDATE users SET status = 'inactive' WHERE user_id = ?", [$targetUserId]);
             audit_log('update', 'user', $targetUserId, 'Deactivated account');
+            cancel_open_student_requests($targetUserId, null, 'Your account was deactivated.');
+            delete_id_photos($targetUserId);
             flash('success', full_name($target) . ' has been deactivated.');
             break;
 
@@ -104,6 +106,7 @@ if (is_post()) {
             }
             query("UPDATE users SET status = 'inactive' WHERE user_id = ?", [$targetUserId]);
             audit_log('update', 'user', $targetUserId, 'Declined sign-up');
+            delete_id_photos($targetUserId);
             $declined = fetch_one('SELECT email, first_name FROM users WHERE user_id = ?', [$targetUserId]);
             if ($declined !== null) {
                 send_mail(

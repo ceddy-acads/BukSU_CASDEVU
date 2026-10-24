@@ -163,6 +163,21 @@ try {
     check('fulfilled left alone', fetch_value('SELECT status FROM reservations WHERE reservation_id = ?', [$f]) === 'fulfilled');
     check('pending and approved now cancelled', fetch_value("SELECT COUNT(*) FROM reservations WHERE reservation_id IN (?, ?) AND status = 'cancelled'", [$p, $a]) == 2);
 
+    // --- withdrawing a registration cancels the student's open requests ---
+    query("UPDATE reservations SET status = 'cancelled' WHERE requested_by = ?", [$aid]);
+    $rw = $mk(15, 'pending');
+    $regId = (int) fetch_value('SELECT registration_id FROM registrations WHERE activity_id = 15 AND user_id = ?', [$aid]);
+    query("UPDATE registrations SET status = 'pending' WHERE registration_id = ?", [$regId]);
+    $notesBefore = (int) fetch_value('SELECT COUNT(*) FROM notifications WHERE user_id = ?', [$aid]);
+    act_as($andrea['email']);
+    withdraw_registration($regId);
+    check('withdraw sets registration withdrawn', fetch_value('SELECT status FROM registrations WHERE registration_id = ?', [$regId]) === 'withdrawn');
+    check('withdraw cancels the pending request', fetch_value('SELECT status FROM reservations WHERE reservation_id = ?', [$rw]) === 'cancelled');
+    check('withdraw notifies with the withdrawn reason', (int) fetch_value(
+        'SELECT COUNT(*) FROM notifications WHERE user_id = ? AND message = ?',
+        [$aid, 'Your registration was withdrawn, so your equipment request was cancelled.']) >= 1
+        && (int) fetch_value('SELECT COUNT(*) FROM notifications WHERE user_id = ?', [$aid]) === $notesBefore + 1);
+
     // --- replacing an ID photo removes the old file ---
     $idDir = UPLOAD_PATH . '/id-photos';
     is_dir($idDir) || mkdir($idDir, 0775, true);

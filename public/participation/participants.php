@@ -129,6 +129,8 @@ if (is_post()) {
                 $activity['title'] . ': ' . $reason,
                 url('participation/my-activities.php')
             );
+            cancel_open_student_requests((int) $registration['user_id'], $activityId,
+                'Your registration was not approved, so your equipment request was cancelled.');
             flash('success', $studentName . ' has been rejected and notified.');
             break;
 
