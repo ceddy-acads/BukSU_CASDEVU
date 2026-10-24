@@ -7,6 +7,7 @@ storage/uploads/**
 !storage/uploads/
 !storage/uploads/requirements/
 !storage/uploads/inventory/
+!storage/uploads/highlights/
 !storage/uploads/**/.gitkeep
 
 # Tooling caches

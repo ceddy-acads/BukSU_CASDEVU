@@ -495,6 +495,26 @@ CREATE TABLE audit_logs (
     INDEX idx_audit_when   (created_at)
 ) ENGINE=InnoDB;
 
+-- One PDF highlight report per activity; uploading again replaces it.
+CREATE TABLE highlight_reports (
+    report_id       INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    activity_id     INT UNSIGNED NOT NULL,
+    title           VARCHAR(200) NOT NULL,
+    file_path       VARCHAR(255) NOT NULL,          -- relative to UPLOAD_PATH
+    original_name   VARCHAR(255) NOT NULL,
+    file_size       INT UNSIGNED NOT NULL,
+    uploaded_by     INT UNSIGNED NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                        ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uq_highlight_activity (activity_id),
+    CONSTRAINT fk_highlight_activity FOREIGN KEY (activity_id) REFERENCES activities(activity_id)
+                                         ON DELETE CASCADE,
+    CONSTRAINT fk_highlight_user FOREIGN KEY (uploaded_by) REFERENCES users(user_id)
+                                     ON DELETE SET NULL
+) ENGINE=InnoDB;
+
 -- Key/value settings so the office can change deadlines-reminder lead time,
 -- office name on printed reports, etc., without editing PHP.
 
@@ -670,7 +690,8 @@ INSERT INTO settings (setting_key, setting_value, description) VALUES
     ('university_name',        'Bukidnon State University',           'Printed on reports'),
     ('reminder_lead_days',     '3',    'Days before a deadline to send reminders'),
     ('max_upload_size_mb',     '5',    'Maximum requirement file size'),
-    ('allowed_upload_types',   'pdf,jpg,jpeg,png', 'Accepted requirement file extensions');
+    ('allowed_upload_types',   'pdf,jpg,jpeg,png', 'Accepted requirement file extensions'),
+    ('highlight_max_upload_mb', '40', 'Maximum highlight report PDF size');
 
 -- Default administrator. Password is 'admin123' - CHANGE ON FIRST LOGIN.
 INSERT INTO users (role_id, email, password_hash, first_name, last_name, status)
