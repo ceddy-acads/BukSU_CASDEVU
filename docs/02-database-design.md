@@ -122,6 +122,17 @@ The "missing requirements" list is the **absence** of a row here — see view
 by summing open borrowings (`v_item_availability`). A stored counter would
 eventually drift out of sync with reality; a derived one cannot.
 
+### Module 7 — Invitations from outside groups
+
+| Table | Purpose | Key design note |
+|-------|---------|-----------------|
+| `invitations` | One row per invitation sent through the public form | Sender (organization, contact, email, phone), event (title, `start_at`, `end_at`, place, details), optional letter (`letter_*`, stored through `store_upload()`), decision (`status`, `remarks`, `reviewed_by`, `reviewed_at`, `email_status`), and throttle data (`ip_address`, `created_at`). Approved invitations show on the calendar; they are not activities |
+
+Existing installs add it with `database/update-outside-invitations.sql`
+(additive, safe to re-run). `email_status` records whether the decision email
+was `sent`, only `logged`, or `failed`, and `contacted` once the office reached
+the sender by hand.
+
 ### Module 9 — Administration
 
 | Table | Purpose | Key design note |

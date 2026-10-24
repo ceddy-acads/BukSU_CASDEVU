@@ -71,6 +71,15 @@ Office of the Registrar) without resetting anything. Courses not on that list
 are retired: hidden from sign-up but kept for students already linked to them.
 A fresh `schema.sql` install already has the list.
 
+**2e. Already have a database? Add invitations from outside groups**
+
+```bash
+C:\xampp\mysql\bin\mysql.exe -u root casms < database/update-outside-invitations.sql
+```
+
+Adds the `invitations` table behind the public page `invitations/submit.php`.
+Safe to run twice.
+
 **3. Start Apache and MySQL in the XAMPP Control Panel**
 
 **4. Open the system**
@@ -176,7 +185,8 @@ BukSU CASDEVU/
 │   ├── schema.sql           Clean installer: 22 tables, 3 views, seed data
 │   ├── demo-data.sql        Optional realistic dataset for a walkthrough
 │   ├── update-courses.sql   Brings an existing database to BukSU's programs
-│   └── update-notification-dismiss.sql  Adds notifications.dismissed_at
+│   ├── update-notification-dismiss.sql  Adds notifications.dismissed_at
+│   └── update-outside-invitations.sql  Adds the invitations table
 ├── docs/                    Requirements, DB design, role matrix, build plan,
 │                            test-accounts.pdf
 ├── bin/
@@ -579,6 +589,15 @@ statements that the system fails them:
 11. **Paginated tables are not sortable.** Users, the audit log and the staff
    inventory list are split into pages on the server; sorting in the browser
    would only reorder the visible page, so those keep their server order
+12. **The invitation form is public.** `invitations/submit.php` needs no
+   account, so it is reachable from outside only if IT exposes the server.
+   Submissions are limited to 5 per hour per address and per email, counted
+   from the connecting address. Behind a reverse proxy that address is the
+   proxy's, so everyone shares one limit until the caller of
+   `invitation_submissions_limited()` reads the forwarded header
+13. **Invitation decisions are emailed only once SMTP is set up.** Until then
+   they are written to `storage/logs/mail.log`, and the review queue lists
+   them under "Email not sent: contact by hand" for the office to follow up
 
 ---
 

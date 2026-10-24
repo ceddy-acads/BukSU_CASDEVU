@@ -188,6 +188,11 @@ $ids = [
         "SELECT activity_id FROM activities WHERE status IN ('upcoming', 'ongoing') ORDER BY activity_id LIMIT 1")
         ?? db_value($pdo, 'SELECT activity_id FROM activities ORDER BY activity_id LIMIT 1')),
     'item'     => (int) db_value($pdo, 'SELECT item_id FROM inventory_items ORDER BY item_id LIMIT 1'),
+    'invitation' => (int) db_value($pdo,
+        "SELECT invitation_id FROM invitations WHERE status IN ('approved', 'cancelled') ORDER BY invitation_id LIMIT 1"),
+    'invitation_letter' => (int) db_value($pdo,
+        "SELECT invitation_id FROM invitations WHERE status IN ('approved', 'cancelled')
+            AND letter_path IS NOT NULL ORDER BY invitation_id LIMIT 1"),
 ];
 $ids['assigned'] = (int) (db_value($pdo,
     'SELECT ac.activity_id FROM activity_coordinators ac
@@ -429,6 +434,12 @@ $pages = [
 
     ['path' => 'review.php',                      'allow' => ['admin', 'staff', 'coordinator']],
 
+    ['path' => 'invitations/submit.php',          'allow' => ['admin', 'staff', 'coordinator', 'student']],
+    ['path' => 'invitations/view.php',            'allow' => ['admin', 'staff', 'coordinator'],
+     'params' => ['id' => 'invitation'], 'optional' => true],
+    ['path' => 'invitations/letter.php',          'allow' => ['admin', 'staff', 'coordinator'],
+     'params' => ['id' => 'invitation_letter'], 'optional' => true, 'binary' => true],
+
     ['path' => 'activities/index.php',            'allow' => ['admin', 'staff', 'coordinator', 'student']],
     ['path' => 'activities/view.php',             'allow' => ['admin', 'staff', 'coordinator', 'student'],
      'params' => ['id' => 'activity'], 'optional' => true],
@@ -562,6 +573,32 @@ function body_error(string $body): ?string
 // =====================================================================
 // Sign in, one session per role
 // =====================================================================
+
+// The public invitation form must work, and the detail page must refuse, with no session.
+// Runs even under --only: two requests, and the form is the one page strangers reach.
+section('Signed out');
+$anonJar = tempnam(sys_get_temp_dir(), 'casdevu-smoke-');
+
+$checks++;
+$form = http_request($options['base'] . '/invitations/submit.php', $anonJar, null, $options['timeout']);
+if ($form['status'] !== 200) {
+    fail('invitations/submit.php signed out: HTTP ' . $form['status'] . ' (expected 200)');
+} elseif (($marker = body_error($form['body'])) !== null) {
+    fail('invitations/submit.php signed out: page contains "' . $marker . '"');
+} elseif (!str_contains($form['body'], 'name="csrf_token"')) {
+    fail('invitations/submit.php signed out: the form has no csrf_token field');
+} else {
+    ok('invitations/submit.php opens without signing in');
+}
+
+$checks++;
+$detail = http_request($options['base'] . '/invitations/view.php?id=1', $anonJar, null, $options['timeout']);
+if ($detail['status'] === 302 && str_contains($detail['location'], 'login.php')) {
+    ok('invitations/view.php?id=1 sends a signed-out visitor to sign-in');
+} else {
+    fail('invitations/view.php?id=1 signed out: HTTP ' . $detail['status'] . ' (expected 302 to login.php)');
+}
+@unlink($anonJar);
 
 section('Signing in');
 $jars = [];
