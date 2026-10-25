@@ -991,6 +991,9 @@ p.hint { margin: var(--s1) 0 0; }
 .filter-bar .form-row { margin: 0; flex: 1 1 180px; }
 .filter-bar .form-row.filter-actions,
 .filter-bar .filter-actions { flex: 0 0 auto; display: flex; gap: var(--s2); }
+/* A From/To pair wraps as one item, so "To" never lands alone on a row. */
+.filter-bar .filter-dates { flex: 1 1 340px; display: flex; gap: var(--s3); min-width: 0; }
+.filter-bar .filter-dates .form-row { flex: 1 1 0; min-width: 0; }
 
 /* One-control filter: the select keeps a sensible width instead of spanning the page. */
 .filter-bar-compact .form-row { flex: 0 1 320px; }

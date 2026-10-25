@@ -192,13 +192,15 @@ require __DIR__ . '/../../includes/layout/header.php';
             <?php endforeach; ?>
         </select>
     </div>
-    <div class="form-row">
-        <label for="from">From</label>
-        <input type="date" id="from" name="from" value="<?= e($fromDate) ?>">
-    </div>
-    <div class="form-row">
-        <label for="to">To</label>
-        <input type="date" id="to" name="to" value="<?= e($toDate) ?>">
+    <div class="filter-dates">
+        <div class="form-row">
+            <label for="from">From</label>
+            <input type="date" id="from" name="from" value="<?= e($fromDate) ?>">
+        </div>
+        <div class="form-row">
+            <label for="to">To</label>
+            <input type="date" id="to" name="to" value="<?= e($toDate) ?>">
+        </div>
     </div>
     <div class="form-row filter-actions">
         <button type="submit" class="btn btn-primary">Filter</button>

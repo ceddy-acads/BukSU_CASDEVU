@@ -215,6 +215,11 @@ $counts = fetch_one(
 $yearLevels       = fetch_all('SELECT year_level_id, label FROM year_levels ORDER BY sort_order');
 $requirementCount = (int) fetch_value('SELECT COUNT(*) FROM activity_requirements WHERE activity_id = ?', [$activityId]);
 
+// Attendance opens on the activity's start day: marking someone present
+// weeks early is almost always a mistake (UX audit F20).
+$activityStartDay   = strtotime(date('Y-m-d', strtotime((string) $activity['start_at'])));
+$attendanceOpen     = time() >= $activityStartDay;
+
 $pageTitle = 'Participants: ' . $activity['title'];
 require __DIR__ . '/../../includes/layout/header.php';
 ?>
@@ -379,7 +384,10 @@ require __DIR__ . '/../../includes/layout/header.php';
                             <?php endif; ?>
                         </td>
                         <td data-label="Present">
-                            <?php if ($participant['status'] === 'approved'): ?>
+                            <?php if ($participant['status'] === 'approved' && !$attendanceOpen && !$participant['attended']): ?>
+                                <span class="muted">From <?= e(date('j M', $activityStartDay)) ?></span>
+                            <?php elseif ($participant['status'] === 'approved'): ?>
+                                <?php // Shown early only to undo a mark made before the start day. ?>
                                 <form method="post" class="inline-form">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="action" value="attendance">
