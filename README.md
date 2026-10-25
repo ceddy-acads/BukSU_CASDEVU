@@ -150,9 +150,11 @@ It accepts `--dry-run` to report what would be sent without sending, and
 
 ## Configuration
 
-All settings live in `includes/config.php`. Anything secret (the SMTP
-password) goes in `includes/config.local.php` instead, which is git-ignored and
-loaded automatically when present; a value defined there wins over the default.
+All settings live in `includes/config.php`. Anything secret or server-specific
+(the database login, the SMTP password, the hostname) goes in
+`includes/config.local.php` instead, which is git-ignored and loaded first when
+present; a value defined there wins over the default. Copy
+`includes/config.local.example.php` to start one.
 The defaults suit a local XAMPP install; the ones worth knowing about:
 
 Three of them — the office name, the university name and the upload limit — are
@@ -165,6 +167,9 @@ needed to rename the office or raise the file ceiling.
 | `APP_NAME` / `APP_TAGLINE` / `OFFICE_NAME` | `CASDevU` / `Culture, Arts, and Sports Development Unit` | The name shown on every page, email and printed report |
 | `APP_ENV` | `production` | `development` shows error detail on screen. Either way the detail is written to `storage/logs/php-error.log` and the user sees a reference code |
 | `BASE_URL` | auto-detected | URL path to `public/`. Override only if detection fails |
+| `DB_HOST` / `DB_NAME` / `DB_USER` / `DB_PASS` | `127.0.0.1` / `casms` / `root` / empty | The database login. On a live server give the app its own account in `config.local.php` |
+| `APP_HOSTNAME` | `localhost` | The site's real name, used in email links and the HTTPS redirect |
+| `FORCE_HTTPS` | `false` | `true` sends plain-HTTP requests to `https://APP_HOSTNAME` and turns on HSTS. Needs a TLS certificate |
 | `MAIL_TRANSPORT` | `smtp` when SMTP credentials exist, else `log` | `smtp` sends for real; `log` writes messages to `storage/logs/mail.log`; `mail` hands them to PHP's `mail()` |
 | `SMTP_HOST` / `SMTP_PORT` | `smtp.gmail.com` / `587` | Mail server; 587 uses STARTTLS, 465 uses SSL |
 | `SMTP_USERNAME` / `SMTP_PASSWORD` | empty | The sending account. Set these in `config.local.php`, never in `config.php` |
@@ -205,6 +210,39 @@ TLS certificate using PHP's `openssl.cafile`.
 Links inside emails are built from the address the site was opened with. On a
 single XAMPP machine that is `localhost`, so a reset link only opens on that
 same computer; deploy under a real hostname for links that work anywhere.
+
+---
+
+## Deploying to a live server
+
+XAMPP's defaults are for one development machine. Before real users sign in:
+
+1. **Point the web server at `public/`.** Make `public/` the document root
+   (an Apache virtual host or the host's "web root" setting). Served from the
+   project folder instead, `.git/`, `database/`, `docs/` and `bin/` can be
+   downloaded by anyone. Only `includes/` and `storage/` carry their own
+   `Deny from all`.
+2. **Create `includes/config.local.php`** from `config.local.example.php`:
+   a database account of its own (not `root` with an empty password),
+   `APP_HOSTNAME`, the SMTP account, and `MYSQL_BIN_PATH` if not on XAMPP.
+3. **Load the database.** A new server: `database/schema.sql` only. Do not
+   load `demo-data.sql`; it creates accounts with the published password
+   `demo1234`. An existing database: run the update scripts in step 2c–2h.
+   `update-highlight-reports.sql` must run before the new code is live.
+4. **Change the seeded administrator's password** (`admin@buksu.edu.ph` /
+   `admin123`) on first sign-in.
+5. **Turn on HTTPS.** Install a certificate, then set `FORCE_HTTPS` to `true`.
+   Behind a proxy that ends TLS, leave it off until the app reads
+   `X-Forwarded-Proto` (the redirect would loop).
+6. **Harden `php.ini`:** `display_errors=Off`, `display_startup_errors=Off`,
+   `expose_php=Off`, `session.use_strict_mode=1`, and `upload_max_filesize` /
+   `post_max_size` at least as large as the highlight report limit.
+7. **Schedule the jobs.** Reminders once a day (`bin/send-reminders.php`,
+   setup step 6). Backups: **Backup** keeps its copies in `storage/backups` on
+   the same disk, so copy them off the server on a schedule.
+8. **Check it.** `php bin/check-setup.php`, then
+   `php bin/smoke.php --base=https://your-host`. Smoke signs in with the demo
+   accounts, so on a server without demo data run it against a staging copy.
 
 ---
 

@@ -22,3 +22,23 @@ define('SMTP_PASSWORD', 'abcd efgh ijkl mnop');   // the App Password, not your 
 
 // Optional: the name recipients see.
 // define('MAIL_FROM_NAME', 'BukSU Culture, Arts, and Sports Development Unit');
+
+// ---- On a live server, also set these (the defaults suit XAMPP only) ----
+
+// The site's real name, used in email links and the HTTPS redirect.
+// define('APP_HOSTNAME', 'casdevu.buksu.edu.ph');
+
+// A database account of its own, never root with an empty password.
+// define('DB_HOST', '127.0.0.1');
+// define('DB_NAME', 'casms');
+// define('DB_USER', 'casdevu');
+// define('DB_PASS', 'a long random password');
+
+// Once the server has a TLS certificate: send every visitor to HTTPS.
+// define('FORCE_HTTPS', true);
+
+// Where mysqldump and mysql live, for Backup (Linux: usually /usr/bin).
+// define('MYSQL_BIN_PATH', '/usr/bin');
+
+// 'development' prints error detail on screen. Never on a live server.
+// define('APP_ENV', 'development');
