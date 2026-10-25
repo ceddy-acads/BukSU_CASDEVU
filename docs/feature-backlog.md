@@ -6,23 +6,23 @@ After a design is approved, it gets a build plan and then the build.
 
 | # | Client's words | Status | Design |
 |---|---|---|---|
-| 1 | Fill up form | **Approved design.** Not built | [Student equipment borrowing](superpowers/specs/2026-10-24-student-equipment-borrowing-design.md) |
-| 2 | Invitation for sport | **Approved design.** Not built | [Invitations from outside groups](superpowers/specs/2026-10-24-outside-invitations-design.md) |
+| 1 | Fill up form | **Built and merged** (PR #1, 25 Oct 2026) | [Student equipment borrowing](superpowers/specs/2026-10-24-student-equipment-borrowing-design.md) |
+| 2 | Invitation for sport | **Built and merged** (PR #5, 25 Oct 2026) | [Invitations from outside groups](superpowers/specs/2026-10-24-outside-invitations-design.md) |
 | 3 | Coaches | Not brainstormed | — |
-| 4 | Outside people can access | **Approved design.** Not built | [Guest accounts](superpowers/specs/2026-10-24-guest-accounts-design.md) |
+| 4 | Outside people can access | **Built and merged** (PR #4, 25 Oct 2026) | [Guest accounts](superpowers/specs/2026-10-24-guest-accounts-design.md) |
 | 5 | Attendance if there is an event ("basin pwede ma implement", if it can be done) | Not brainstormed | — |
-| 6 | Newsletter (narrative report): the office just uploads the report | **Approved design.** Not built | [Highlight reports (flipbook)](superpowers/specs/2026-10-24-highlight-reports-design.md) |
+| 6 | Newsletter (narrative report): the office just uploads the report | **Built and merged** (PR #3, 25 Oct 2026) | [Highlight reports (flipbook)](superpowers/specs/2026-10-24-highlight-reports-design.md) |
 | 7 | Remove the staff role (raised 24 Oct 2026 by the client's representative) | Not brainstormed | — |
-| 8 | Fix: profile photos are visible to any signed-in user (found 24 Oct 2026) | **Built** on `feature/student-borrowing`: a photo is served to its owner and the office only; everyone else gets 404 | See below |
+| 8 | Fix: profile photos are visible to any signed-in user (found 24 Oct 2026) | **Built and merged** with PR #1: a photo is served to its owner and the office only; everyone else gets 404 | See below |
 
 ### Item 8: profile photo privacy fix
 
 `public/profile-photo.php` serves any user's photo to any signed-in user, by
 id. A student can fetch other students' photos by trying ids one by one.
 
-- **Rule:** a user may fetch their own photo. The office and coordinators may
-  fetch the photos of people they are allowed to see (a coordinator: only
-  participants of their assigned activities).
+- **Rule (as built):** a user may fetch their own photo, and the office
+  (staff and admins) may fetch anyone's. Everyone else, coordinators
+  included, gets 404.
 - **Check first:** which pages show other people's photos (the user list, the
   participants list, the header avatar), so the rule does not break them.
 - **Guests:** they get their own photo only. The Guest design (item 4)
