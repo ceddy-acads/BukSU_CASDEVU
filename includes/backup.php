@@ -20,10 +20,10 @@ function backup_directory(): string
     return BACKUP_PATH;
 }
 
-/** Full path to mysqldump / mysql, quoted for the shell. */
+/** Full path to mysqldump / mysql; the .exe suffix exists only on Windows. */
 function mysql_tool(string $tool): string
 {
-    return MYSQL_BIN_PATH . '/' . $tool . '.exe';
+    return MYSQL_BIN_PATH . '/' . $tool . (PHP_OS_FAMILY === 'Windows' ? '.exe' : '');
 }
 
 function mysqldump_available(): bool
@@ -98,8 +98,8 @@ function list_backups(): array
 function create_backup(): array
 {
     if (!mysqldump_available()) {
-        return ['ok' => false, 'error' => 'mysqldump was not found at ' . MYSQL_BIN_PATH
-            . '. Set MYSQL_BIN_PATH in includes/config.php.'];
+        return ['ok' => false, 'error' => 'The database backup tool (mysqldump) was not found. '
+            . 'Set MYSQL_BIN_PATH in the server\'s local configuration.'];
     }
 
     try {
@@ -155,7 +155,8 @@ function create_backup(): array
 function restore_backup(string $filename): array
 {
     if (!mysql_client_available()) {
-        return ['ok' => false, 'error' => 'The mysql client was not found at ' . MYSQL_BIN_PATH . '.'];
+        return ['ok' => false, 'error' => 'The database restore tool (mysql) was not found. '
+            . 'Set MYSQL_BIN_PATH in the server\'s local configuration.'];
     }
 
     $path = backup_path_for($filename);

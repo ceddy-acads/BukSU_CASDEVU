@@ -132,9 +132,9 @@ require __DIR__ . '/../../includes/layout/header.php';
 <?php if (!$toolsOk): ?>
     <div class="alert alert-error">
         <strong>Database tools not found.</strong>
-        <code>mysqldump.exe</code> and <code>mysql.exe</code> were expected in
-        <code><?= e(MYSQL_BIN_PATH) ?></code>. Update <code>MYSQL_BIN_PATH</code>
-        in <code>includes/config.php</code> to match your XAMPP installation.
+        Backup needs <code>mysqldump</code> and <code>mysql</code> on this server.
+        Set <code>MYSQL_BIN_PATH</code> in the server's local configuration to
+        the folder that holds them (see the README's Configuration section).
     </div>
 <?php endif; ?>
 
