@@ -559,6 +559,7 @@ function body_error(string $body): ?string
         'Notice: ',
         'Deprecated: ',
         'Parse error',
+        'impeccable-live-start', // design-tool helper left in a layout after a live session
     ] as $marker) {
         if (str_contains($body, $marker)) {
             return $marker;
