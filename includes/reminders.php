@@ -177,7 +177,7 @@ function send_due_reminders(bool $dryRun = false): array
 }
 
 /**
- * Remind students whose borrowed equipment falls due within 24 hours. Once per
+ * Remind students whose borrowed equipment falls due tomorrow (calendar date). Once per
  * loan; the "[loan:<id>:due_soon]" marker in the notification is the record.
  *
  * @return array{due: int, sent: int, skipped: int, emailed: int}
@@ -193,7 +193,7 @@ function send_return_reminders(bool $dryRun = false): array
            JOIN roles ro          ON ro.role_id = u.role_id
           WHERE b.returned_at IS NULL
             AND ro.name = 'student'
-            AND b.expected_return_at BETWEEN NOW() AND NOW() + INTERVAL 24 HOUR
+            AND DATE(b.expected_return_at) = CURDATE() + INTERVAL 1 DAY
           ORDER BY b.expected_return_at"
     );
     $sent = $skipped = $emailed = 0;

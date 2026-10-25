@@ -26,7 +26,9 @@ if (is_post()) {
         $reservationIn = post('reservation_id');
 
         $item     = fetch_one('SELECT * FROM inventory_items WHERE item_id = ?', [$itemId]);
-        $borrower = fetch_one('SELECT user_id, first_name, last_name FROM users WHERE user_id = ?', [$borrowerId]);
+        $borrower = fetch_one('SELECT u.user_id, u.first_name, u.last_name, r.name AS role_name
+                                FROM users u JOIN roles r ON r.role_id = u.role_id WHERE u.user_id = ?', [$borrowerId]);
+        $borrowerIsOffice = $borrower !== null && in_array($borrower['role_name'], ['staff', 'admin'], true);
 
         if ($item === null || $borrower === null) {
             flash('error', 'Please choose both an item and a borrower.');
@@ -87,13 +89,6 @@ if (is_post()) {
             }
         }
 
-        // Office may change the return date at handover; keep a trace of it.
-        if ($linkedReservationId !== null && strtotime($expectedBack) !== strtotime((string) $reservation['needed_until'])) {
-            audit_log('update', 'reservation', $linkedReservationId,
-                'Return date changed at handover from ' . format_datetime($reservation['needed_until'])
-                . ' to ' . format_datetime($expectedBack));
-        }
-
         query(
             'INSERT INTO borrowings
                  (reservation_id, item_id, borrower_id, quantity, released_by, released_at, expected_return_at)
@@ -104,6 +99,14 @@ if (is_post()) {
             ]
         );
         $borrowingId = (int) db()->lastInsertId();
+
+        // Office may change the return date at handover; keep a trace of it.
+        $expectedTs = strtotime($expectedBack);
+        if ($linkedReservationId !== null && $expectedTs !== false && $expectedTs !== strtotime((string) $reservation['needed_until'])) {
+            audit_log('update', 'reservation', $linkedReservationId,
+                'Return date changed at handover from ' . format_datetime($reservation['needed_until'])
+                . ' to ' . format_datetime($expectedBack));
+        }
 
         refresh_item_status($itemId);
 
@@ -128,7 +131,7 @@ if (is_post()) {
         notify(
             $borrowerId, 'reservation', 'Item released to you',
             $quantity . ' x ' . $item['name'] . ', due back ' . format_datetime($expectedBack),
-            url('inventory/borrowings.php')
+            url($borrowerIsOffice ? 'inventory/borrowings.php' : 'inventory/reservations.php')
         );
 
         flash('success', $quantity . ' x ' . $item['name'] . ' released to ' . full_name($borrower) . '.');

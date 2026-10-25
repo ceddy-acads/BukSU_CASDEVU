@@ -104,7 +104,7 @@ if (is_post()) {
                           . ' to ' . format_datetime($returnAt));
             }
             if ((int) $reservation['student_request'] === 1) {
-                $note = 'Approved. Please return the items by ' . format_datetime($returnAt) . '.'
+                $note = 'Approved. Collect the items from the office, and return them by ' . format_datetime($returnAt) . '.'
                       . ($changed ? ' (the return date was changed from the one you proposed, '
                           . format_datetime($reservation['proposed_until'] ?? $reservation['needed_until']) . ')' : '');
             } else {
@@ -145,11 +145,29 @@ if (is_post()) {
             break;
 
         case 'cancel':
-            query("UPDATE reservations SET status = 'cancelled' WHERE reservation_id = ?", [$reservationId]);
+            $done = query(
+                "UPDATE reservations SET status = 'cancelled'
+                  WHERE reservation_id = ?
+                    AND (status = 'pending'
+                         OR (status = 'approved' AND NOT EXISTS
+                             (SELECT 1 FROM borrowings b WHERE b.reservation_id = reservations.reservation_id)))",
+                [$reservationId]
+            );
+            if ($done->rowCount() !== 1) {
+                flash('error', 'This request can no longer be cancelled.');
+                break;
+            }
             foreach ($lines as $line) {
                 refresh_item_status((int) $line['item_id']);
             }
             audit_log('update', 'reservation', $reservationId, 'Cancelled reservation');
+            if ((int) $reservation['requested_by'] !== current_user_id()) {
+                notify(
+                    (int) $reservation['requested_by'], 'reservation',
+                    'Reservation cancelled', 'Your equipment request was cancelled by the office.',
+                    url('inventory/reservations.php')
+                );
+            }
             flash('success', 'Reservation cancelled.');
             break;
 

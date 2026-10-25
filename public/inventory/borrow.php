@@ -76,6 +76,9 @@ if ($canRequest && is_post()) {
     } elseif ($untilTs <= $fromTs) {
         $errors[] = '"Will return by" must be after "Needed from".';
     }
+    if (mb_strlen($purpose) > 500) {
+        $errors[] = 'Purpose must be 500 characters or fewer.';
+    }
     if ($lines === []) {
         $errors[] = 'Select at least one item and a quantity.';
     }
@@ -130,7 +133,7 @@ if ($canRequest && is_post()) {
 // Step 2 shows once the dates are usable (GET) or after a failed POST.
 $fromTs   = $neededFrom === '' ? false : strtotime($neededFrom);
 $untilTs  = $neededUntil === '' ? false : strtotime($neededUntil);
-$showStep2 = $canRequest && $activityId !== null && $fromTs !== false && $untilTs !== false && $untilTs > $fromTs;
+$showStep2 = $canRequest && get('change') === '' && $activityId !== null && $fromTs !== false && $untilTs !== false && $untilTs > $fromTs;
 $datesError = $canRequest && !is_post() && $neededFrom !== '' && $neededUntil !== '' && !$showStep2
     ? ($activityId === null ? 'Choose one of your activities.' : '"Will return by" must be after "Needed from".')
     : '';
@@ -186,6 +189,7 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 <?php else: ?>
 
+<?php if (!$showStep2): ?>
 <form method="get" novalidate>
     <section class="card">
         <div class="card-head"><h2>When and what for</h2></div>
@@ -218,21 +222,41 @@ require __DIR__ . '/../../includes/layout/header.php';
 
         <div class="form-row">
             <label for="purpose">Purpose <span class="optional">(optional)</span></label>
-            <textarea id="purpose" name="purpose"
+            <textarea id="purpose" name="purpose" maxlength="500"
                       placeholder="What the items will be used for"><?= e($purpose) ?></textarea>
         </div>
 
-        <?php if (!$showStep2): ?>
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Choose items</button>
-            </div>
-        <?php else: ?>
-            <div class="form-actions">
-                <button type="submit" class="btn btn-outline">Update dates</button>
-            </div>
-        <?php endif; ?>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Choose items</button>
+        </div>
     </section>
 </form>
+<?php else: ?>
+<?php
+$activityTitle = '';
+foreach ($activities as $a) {
+    if ((int) $a['activity_id'] === $activityId) {
+        $activityTitle = (string) $a['title'];
+    }
+}
+$changeQuery = http_build_query([
+    'activity_id' => $activityId, 'needed_from' => $neededFrom,
+    'needed_until' => $neededUntil, 'purpose' => $purpose, 'change' => 1,
+]);
+?>
+<section class="card">
+    <div class="card-head">
+        <h2>When and what for</h2>
+        <a class="btn btn-outline btn-sm" href="<?= url('inventory/borrow.php?' . $changeQuery) ?>">Change dates</a>
+    </div>
+    <dl class="detail-list">
+        <dt>Activity</dt><dd><?= e($activityTitle) ?></dd>
+        <dt>Needed from</dt><dd><?= e(format_datetime($fromTs !== false ? date('Y-m-d H:i:s', $fromTs) : '')) ?></dd>
+        <dt>Will return by</dt><dd><?= e(format_datetime($untilTs !== false ? date('Y-m-d H:i:s', $untilTs) : '')) ?></dd>
+        <?php if ($purpose !== ''): ?><dt>Purpose</dt><dd><?= e($purpose) ?></dd><?php endif; ?>
+    </dl>
+</section>
+<?php endif; ?>
 
 <?php if ($showStep2): ?>
     <?php if ($items === []): ?>
@@ -278,8 +302,8 @@ require __DIR__ . '/../../includes/layout/header.php';
                                     <span class="muted">None</span>
                                 <?php endif; ?>
                             </td>
-                            <td data-label="Free for those dates" class="num nowrap"><?= $free ?> <?= e($item['unit']) ?></td>
-                            <td data-label="Quantity needed">
+                            <td data-label="Free" class="num"><?= $free ?> <?= e($item['unit']) ?></td>
+                            <td data-label="Quantity">
                                 <input type="number" min="0" max="<?= $free ?>"
                                        name="quantity[<?= (int) $item['item_id'] ?>]"
                                        value="<?= e(is_scalar($qtyIn[$item['item_id']] ?? null) ? (string) $qtyIn[$item['item_id']] : '') ?>"
