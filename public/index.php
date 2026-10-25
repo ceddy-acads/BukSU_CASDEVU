@@ -56,7 +56,7 @@ if ($role === 'student') {
         ['label' => 'Missing requirements', 'value' => fetch_value(
             // Same set as the documents page (requirements/mine.php): completed
             // activities no longer ask for anything.
-            "SELECT COUNT(*) FROM v_missing_requirements m
+            "SELECT COUNT(*) FROM (" . missing_requirements_sql() . ") m
                JOIN activities a ON a.activity_id = m.activity_id
               WHERE m.user_id = ? AND a.status <> 'completed'", [$user['user_id']]),
             'class' => 'stat-danger', 'href' => 'participation/my-activities.php'],

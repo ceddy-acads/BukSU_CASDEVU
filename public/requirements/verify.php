@@ -136,7 +136,7 @@ $counts = fetch_one(
 // Students who have not submitted a mandatory requirement at all (FR-5.6).
 $outstanding = fetch_all(
     'SELECT student_name, student_number, requirement_name, deadline_at
-       FROM v_missing_requirements
+       FROM (' . missing_requirements_sql() . ') m
       WHERE activity_id = ?
       ORDER BY student_name, requirement_name',
     [$activityId]
