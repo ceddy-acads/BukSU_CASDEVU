@@ -459,7 +459,7 @@ $pages = [
 
     ['path' => 'review.php',                      'allow' => ['admin', 'staff', 'coordinator']],
 
-    ['path' => 'invitations/submit.php',          'allow' => ['admin', 'staff', 'coordinator', 'student']],
+    ['path' => 'invitations/submit.php',          'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest']],
     ['path' => 'invitations/view.php',            'allow' => ['admin', 'staff', 'coordinator'],
      'params' => ['id' => 'invitation'], 'optional' => true],
     ['path' => 'invitations/letter.php',          'allow' => ['admin', 'staff', 'coordinator'],
