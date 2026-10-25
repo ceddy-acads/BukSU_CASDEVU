@@ -82,6 +82,26 @@ Adds student equipment requests: the request columns on reservations, the
 requestable flag on items and the school ID photo columns on users. A fresh
 `schema.sql` install already has them. Safe to run twice.
 
+**2f. Already have a database? Add guest accounts**
+
+```bash
+C:\xampp\mysql\bin\mysql.exe -u root casms < database/update-guest-accounts.sql
+```
+
+Adds the Guest role and the `connection_note` column on users. Without it,
+User accounts and guest sign-up fail. A fresh `schema.sql` install already
+has them. Safe to run twice.
+
+**2g. Already have a database? Add highlight reports**
+
+```bash
+C:\xampp\mysql\bin\mysql.exe -u root casms < database/update-highlight-reports.sql
+```
+
+Adds the `highlight_reports` table and its upload limit setting. Run it
+before deploying the code: every activity page reads this table. A fresh
+`schema.sql` install already has it. Safe to run twice.
+
 **3. Start Apache and MySQL in the XAMPP Control Panel**
 
 **4. Open the system**
