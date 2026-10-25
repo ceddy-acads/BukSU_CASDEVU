@@ -14,10 +14,11 @@ declare(strict_types=1);
  *
  * @param  array<string, mixed> $file  One entry from $_FILES
  * @param  string               $subdirectory  e.g. 'requirements'
+ * @param  int|null             $maxBytes  size ceiling; null uses max_upload_bytes()
  * @return array{ok: bool, error?: string, path?: string, original?: string,
  *               mime?: string, size?: int}
  */
-function store_upload(array $file, string $subdirectory): array
+function store_upload(array $file, string $subdirectory, ?int $maxBytes = null): array
 {
     // ------------------------------------------------------- PHP-level errors
     $uploadError = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
@@ -43,7 +44,7 @@ function store_upload(array $file, string $subdirectory): array
 
     // ------------------------------------------------------------------ Size
     $size     = (int) ($file['size'] ?? 0);
-    $maxBytes = max_upload_bytes();
+    $maxBytes ??= max_upload_bytes();
     if ($size <= 0) {
         return ['ok' => false, 'error' => 'The file appears to be empty.'];
     }
@@ -248,4 +249,38 @@ function strip_jpeg_metadata(string $path): bool
     }
 
     return false;                        // no image data found
+}
+
+/**
+ * Validate and store one side of a school ID: JPG or PNG only, within the
+ * normal upload limit, with JPG metadata removed.
+ *
+ * @param  array<string, mixed> $file One entry from $_FILES
+ * @return array{ok: bool, error?: string, path?: string}
+ */
+function store_id_photo(array $file): array
+{
+    $stored = store_upload($file, 'id-photos');
+    if (!$stored['ok']) {
+        return ['ok' => false, 'error' => match ($stored['error']) {
+            'No file was selected.'                      => 'Choose a photo first.',
+            'Only PDF, JPG, and PNG files are accepted.' => 'Choose a JPG or PNG image.',
+            default                                      => $stored['error'],
+        }];
+    }
+
+    if (!in_array($stored['mime'], ['image/jpeg', 'image/png'], true)) {
+        delete_upload($stored['path']);
+        return ['ok' => false, 'error' => 'Choose a JPG or PNG image.'];
+    }
+
+    if ($stored['mime'] === 'image/jpeg') {
+        $absolute = upload_absolute_path($stored['path']);
+        if ($absolute === null || !strip_jpeg_metadata($absolute)) {
+            delete_upload($stored['path']);
+            return ['ok' => false, 'error' => 'That photo could not be read. Try another JPG or PNG.'];
+        }
+    }
+
+    return ['ok' => true, 'path' => $stored['path']];
 }

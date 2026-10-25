@@ -7,6 +7,7 @@ storage/uploads/**
 !storage/uploads/
 !storage/uploads/requirements/
 !storage/uploads/inventory/
+!storage/uploads/highlights/
 !storage/uploads/**/.gitkeep
 
 # Tooling caches
@@ -29,3 +30,6 @@ storage/backups/**
 
 # Mail log written by the 'log' mail transport
 storage/logs/
+
+# Brainstorm mockups and subagent workspaces
+.superpowers/

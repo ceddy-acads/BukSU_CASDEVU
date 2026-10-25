@@ -66,6 +66,8 @@ CREATE TABLE users (
     birth_date      DATE         NULL,
     contact_number  VARCHAR(30)  NULL,
     photo_path      VARCHAR(255) NULL,
+    id_front_path   VARCHAR(255) NULL,              -- school ID photo, front (borrowing)
+    id_back_path    VARCHAR(255) NULL,              -- school ID photo, back
 
     -- Academic placement (students only; NULL for office personnel)
     course_id       INT UNSIGNED     NULL,
@@ -378,6 +380,7 @@ CREATE TABLE inventory_items (
     condition_note  VARCHAR(255) NULL,
     photo_path      VARCHAR(255) NULL,
     storage_location VARCHAR(150) NULL,
+    student_requestable TINYINT(1) NOT NULL DEFAULT 1,  -- 0 = office use only: shown to students but not requestable
 
     status          ENUM('available','reserved','borrowed','damaged',
                          'under_maintenance','unavailable')
@@ -410,11 +413,15 @@ CREATE TABLE reservations (
     reviewed_at     DATETIME     NULL,
     review_remarks  VARCHAR(500) NULL,
 
+    -- Student equipment requests (a coordinator may propose a shorter window)
+    student_request TINYINT(1)   NOT NULL DEFAULT 0,    -- 1 = filed by a student
+    proposed_until  DATETIME     NULL,                  -- coordinator's counter-offer
+
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                         ON UPDATE CURRENT_TIMESTAMP,
 
-    CONSTRAINT fk_resv_activity  FOREIGN KEY (activity_id)  REFERENCES activities(activity_id)
+    CONSTRAINT fk_resv_activity FOREIGN KEY (activity_id)  REFERENCES activities(activity_id)
                                      ON DELETE SET NULL,
     CONSTRAINT fk_resv_requester FOREIGN KEY (requested_by) REFERENCES users(user_id),
     CONSTRAINT fk_resv_reviewer  FOREIGN KEY (reviewed_by)  REFERENCES users(user_id)
@@ -495,6 +502,26 @@ CREATE TABLE audit_logs (
                                  ON DELETE SET NULL,
     INDEX idx_audit_entity (entity_type, entity_id),
     INDEX idx_audit_when   (created_at)
+) ENGINE=InnoDB;
+
+-- One PDF highlight report per activity; uploading again replaces it.
+CREATE TABLE highlight_reports (
+    report_id       INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    activity_id     INT UNSIGNED NOT NULL,
+    title           VARCHAR(200) NOT NULL,
+    file_path       VARCHAR(255) NOT NULL,          -- relative to UPLOAD_PATH
+    original_name   VARCHAR(255) NOT NULL,
+    file_size       INT UNSIGNED NOT NULL,
+    uploaded_by     INT UNSIGNED NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                        ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uq_highlight_activity (activity_id),
+    CONSTRAINT fk_highlight_activity FOREIGN KEY (activity_id) REFERENCES activities(activity_id)
+                                         ON DELETE CASCADE,
+    CONSTRAINT fk_highlight_user FOREIGN KEY (uploaded_by) REFERENCES users(user_id)
+                                     ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- Key/value settings so the office can change deadlines-reminder lead time,
@@ -673,7 +700,8 @@ INSERT INTO settings (setting_key, setting_value, description) VALUES
     ('university_name',        'Bukidnon State University',           'Printed on reports'),
     ('reminder_lead_days',     '3',    'Days before a deadline to send reminders'),
     ('max_upload_size_mb',     '5',    'Maximum requirement file size'),
-    ('allowed_upload_types',   'pdf,jpg,jpeg,png', 'Accepted requirement file extensions');
+    ('allowed_upload_types',   'pdf,jpg,jpeg,png', 'Accepted requirement file extensions'),
+    ('highlight_max_upload_mb', '40', 'Maximum highlight report PDF size');
 
 -- Default administrator. Password is 'admin123' - CHANGE ON FIRST LOGIN.
 INSERT INTO users (role_id, email, password_hash, first_name, last_name, status)

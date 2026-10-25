@@ -190,8 +190,12 @@ if ($isQuickLook): ?>
         <h1><?= e($activity['title']) ?></h1>
         <p><?= e($activity['category']) ?></p>
     </div>
-    <?php if ($canManage || $canRegister): ?>
+    <?php $hasHighlights = published_highlight($activityId) !== null; ?>
+    <?php if ($canManage || $canRegister || $hasHighlights): ?>
         <div class="btn-row">
+            <?php if ($hasHighlights): ?>
+                <a class="btn btn-outline" href="<?= url('highlights/view.php?activity_id=' . $activityId) ?>">Read the highlights</a>
+            <?php endif; ?>
             <?php if ($canRegister): ?>
                 <a class="btn btn-gold" href="#participation">Register</a>
             <?php endif; ?>
@@ -376,6 +380,10 @@ if ($isQuickLook): ?>
                        href="<?= url('activities/eligibility.php?activity_id=' . $activityId) ?>">
                         Eligibility (<?= $eligibilityRuleCount ?>)
                     </a>
+                    <a class="btn btn-outline btn-sm"
+                       href="<?= url('highlights/manage.php?activity_id=' . $activityId) ?>">
+                        Highlight report
+                    </a>
                     <?php if (is_office_staff()): ?>
                         <a class="btn btn-outline btn-sm"
                            href="<?= url('activities/coordinators.php?activity_id=' . $activityId) ?>">
@@ -383,6 +391,49 @@ if ($isQuickLook): ?>
                         </a>
                     <?php endif; ?>
                 </div>
+            </section>
+
+            <?php
+            // Open loans only; returned ones live in the borrowings log.
+            $loans = fetch_all(
+                "SELECT b.quantity, b.expected_return_at, b.returned_at, i.name AS item_name,
+                        u.first_name, u.last_name
+                   FROM borrowings b
+                   JOIN reservations r    ON r.reservation_id = b.reservation_id
+                   JOIN inventory_items i ON i.item_id = b.item_id
+                   JOIN users u           ON u.user_id = b.borrower_id
+                  WHERE r.activity_id = ? AND r.student_request = 1 AND b.returned_at IS NULL
+                  ORDER BY b.expected_return_at",
+                [$activityId]
+            );
+            ?>
+            <section class="card">
+                <div class="card-head"><h2>Equipment out for this activity</h2></div>
+                <?php if ($loans === []): ?>
+                    <div class="empty">
+                        <p>No equipment is out. Student requests the office hands over appear here until they are returned.</p>
+                    </div>
+                <?php else: ?>
+                    <div class="table-wrap">
+                        <table class="data">
+                            <thead><tr><th>Item</th><th>Student</th><th>Due back</th></tr></thead>
+                            <tbody>
+                            <?php foreach ($loans as $loan): ?>
+                                <tr>
+                                    <td><?= e($loan['item_name']) ?><?= (int) $loan['quantity'] > 1 ? ' &times; ' . (int) $loan['quantity'] : '' ?></td>
+                                    <td><?= e($loan['first_name'] . ' ' . $loan['last_name']) ?></td>
+                                    <td>
+                                        <?= e(format_datetime($loan['expected_return_at'])) ?>
+                                        <?php if (is_overdue($loan)): ?>
+                                            <?= status_badge('overdue', 'loan') ?>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
             </section>
         <?php endif; ?>
 

@@ -597,6 +597,35 @@ window.CASDevU = window.CASDevU || {};
     });
 })();
 
+/* Settings section menu: marks the section being read, like a table of
+   contents. A section counts once its top passes under the top bar; at the
+   very bottom of the page the last one is marked, since it may never get
+   that high. */
+(function () {
+    'use strict';
+    var links = Array.prototype.slice.call(document.querySelectorAll('.settings-nav a[href^="#"]'));
+    if (links.length === 0) { return; }
+    var sections = links.map(function (link) { return document.getElementById(link.getAttribute('href').slice(1)); });
+    var ticking = false;
+    function update() {
+        ticking = false;
+        var current = 0;
+        sections.forEach(function (section, i) {
+            if (section && section.getBoundingClientRect().top <= 140) { current = i; }
+        });
+        if (window.scrollY > 0 && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
+            current = sections.length - 1;
+        }
+        links.forEach(function (link, i) {
+            if (i === current) { link.setAttribute('aria-current', 'true'); } else { link.removeAttribute('aria-current'); }
+        });
+    }
+    window.addEventListener('scroll', function () {
+        if (!ticking) { ticking = true; window.requestAnimationFrame(update); }
+    }, { passive: true });
+    update();
+})();
+
 /* Settings switches: flipping one saves it in the background and says so in
    a toast; the page does not reload. A failed save flips the switch back.
    Saves from one form run in order, so quick double flips end where the

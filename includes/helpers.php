@@ -425,6 +425,9 @@ function status_meta(string $status, string $domain = ''): array
             'cancelled' => ['muted',   'Cancelled'],
             'fulfilled' => ['muted',   'Fulfilled'],
         ],
+        'loan' => [
+            'overdue'   => ['danger',  'Overdue'],
+        ],
         'inventory' => [
             'available'         => ['success', 'Available'],
             'reserved'          => ['warning', 'Reserved'],

@@ -72,6 +72,16 @@ Office of the Registrar) without resetting anything. Courses not on that list
 are retired: hidden from sign-up but kept for students already linked to them.
 A fresh `schema.sql` install already has the list.
 
+**2e. Already have a database? Add student borrowing**
+
+```bash
+C:\xampp\mysql\bin\mysql.exe -u root casms < database/update-student-borrowing.sql
+```
+
+Adds student equipment requests: the request columns on reservations, the
+requestable flag on items and the school ID photo columns on users. A fresh
+`schema.sql` install already has them. Safe to run twice.
+
 **3. Start Apache and MySQL in the XAMPP Control Panel**
 
 **4. Open the system**
@@ -178,7 +188,8 @@ BukSU CASDEVU/
 │   ├── demo-data.sql        Optional realistic dataset for a walkthrough
 │   ├── update-courses.sql   Brings an existing database to BukSU's programs
 │   ├── update-guest-accounts.sql  Adds the guest role and users.connection_note
-│   └── update-notification-dismiss.sql  Adds notifications.dismissed_at
+│   ├── update-notification-dismiss.sql  Adds notifications.dismissed_at
+│   └── update-student-borrowing.sql  Adds student equipment requests and ID photos
 ├── docs/                    Requirements, DB design, role matrix, build plan,
 │                            test-accounts.pdf
 ├── bin/
@@ -575,13 +586,19 @@ statements that the system fails them:
    419, which Apache does not recognise and replaces with 500. The page itself
    reads correctly
 9. **No scheduled task is installed by default.** Deadline reminders only go
-   out when the runner is invoked — see setup step 6
+   out when the runner is invoked — see setup step 6. The same runner also
+   sends return reminders (the day before a student's equipment loan is due)
 10. **Default credentials ship in the repository.** `admin123` for the seeded
    administrator and `demo1234` for demo accounts. Change them before the
    system is used with real data
 11. **Paginated tables are not sortable.** Users, the audit log and the staff
    inventory list are split into pages on the server; sorting in the browser
    would only reorder the visible page, so those keep their server order
+12. **Highlight report size is capped by PHP.** The limit in Settings can never
+   exceed the smaller of `upload_max_filesize` and `post_max_size` in
+   `php.ini`. Raising it past that is a hosting requirement, not a setting.
+   Production also needs `display_errors=Off` and `display_startup_errors=Off`,
+   or an oversized upload prints PHP's own warning above the page
 
 ---
 

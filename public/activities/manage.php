@@ -67,6 +67,12 @@ if (is_post()) {
             delete_upload($file['file_path']);
         }
 
+        // The report row cascades; its file does not.
+        $report = highlight_for_activity($activityId);
+        if ($report !== null) {
+            delete_upload((string) $report['file_path']);
+        }
+
         $participantCount = (int) fetch_value(
             'SELECT COUNT(*) FROM registrations WHERE activity_id = ?', [$activityId]
         );
@@ -74,7 +80,8 @@ if (is_post()) {
         query('DELETE FROM activities WHERE activity_id = ?', [$activityId]);
         audit_log('delete', 'activity', $activityId,
                   'Deleted activity: ' . $activity['title']
-                  . ' (' . $participantCount . ' registration(s), ' . count($files) . ' file(s))');
+                  . ' (' . $participantCount . ' registration(s), ' . count($files) . ' file(s))'
+                  . ($report !== null ? ', highlight report' : ''));
 
         flash('success', '"' . $activity['title'] . '" was deleted, along with '
             . $participantCount . ' registration(s) and ' . count($files) . ' submitted file(s).');

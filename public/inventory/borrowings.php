@@ -26,7 +26,9 @@ if (is_post()) {
         $reservationIn = post('reservation_id');
 
         $item     = fetch_one('SELECT * FROM inventory_items WHERE item_id = ?', [$itemId]);
-        $borrower = fetch_one('SELECT user_id, first_name, last_name FROM users WHERE user_id = ?', [$borrowerId]);
+        $borrower = fetch_one('SELECT u.user_id, u.first_name, u.last_name, r.name AS role_name
+                                FROM users u JOIN roles r ON r.role_id = u.role_id WHERE u.user_id = ?', [$borrowerId]);
+        $borrowerIsOffice = $borrower !== null && in_array($borrower['role_name'], ['staff', 'admin'], true);
 
         if ($item === null || $borrower === null) {
             flash('error', 'Please choose both an item and a borrower.');
@@ -60,7 +62,7 @@ if (is_post()) {
 
             $linkedReservationId = (int) $reservationIn;
             $reservation = fetch_one(
-                'SELECT reservation_id, status FROM reservations WHERE reservation_id = ?',
+                'SELECT reservation_id, status, needed_until FROM reservations WHERE reservation_id = ?',
                 [$linkedReservationId]
             );
 
@@ -98,6 +100,14 @@ if (is_post()) {
         );
         $borrowingId = (int) db()->lastInsertId();
 
+        // Office may change the return date at handover; keep a trace of it.
+        $expectedTs = strtotime($expectedBack);
+        if ($linkedReservationId !== null && $expectedTs !== false && $expectedTs !== strtotime((string) $reservation['needed_until'])) {
+            audit_log('update', 'reservation', $linkedReservationId,
+                'Return date changed at handover from ' . format_datetime($reservation['needed_until'])
+                . ' to ' . format_datetime($expectedBack));
+        }
+
         refresh_item_status($itemId);
 
         // A reservation whose items are all out has been fulfilled.
@@ -121,7 +131,7 @@ if (is_post()) {
         notify(
             $borrowerId, 'reservation', 'Item released to you',
             $quantity . ' x ' . $item['name'] . ', due back ' . format_datetime($expectedBack),
-            url('inventory/borrowings.php')
+            url($borrowerIsOffice ? 'inventory/borrowings.php' : 'inventory/reservations.php')
         );
 
         flash('success', $quantity . ' x ' . $item['name'] . ' released to ' . full_name($borrower) . '.');
@@ -268,6 +278,15 @@ require __DIR__ . '/../../includes/layout/header.php';
         <div class="alert alert-info">
             Releasing against the reservation by <?= e(full_name($prefill)) ?>
             for <?= e(format_datetime($prefill['needed_from'])) ?>.
+        </div>
+    <?php endif; ?>
+
+    <?php if ($prefill && (int) $prefill['student_request'] === 1 && can_view_id_photos((int) $prefill['requested_by'])): ?>
+        <div class="alert alert-info">
+            <strong>Check the student's ID</strong>
+            before handing over:
+            <a href="<?= url('id-photo.php?user=' . (int) $prefill['requested_by'] . '&side=front') ?>" target="_blank" rel="noopener">front</a>,
+            <a href="<?= url('id-photo.php?user=' . (int) $prefill['requested_by'] . '&side=back') ?>" target="_blank" rel="noopener">back</a>.
         </div>
     <?php endif; ?>
 

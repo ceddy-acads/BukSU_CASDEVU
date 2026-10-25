@@ -33,6 +33,16 @@ function review_activity_scope(string $alias = 'a'): array
     ];
 }
 
+/** Office sees every pending reservation; a coordinator only student requests for their activities. */
+function review_reservation_scope(): array
+{
+    if (is_office_staff()) {
+        return ['', []];
+    }
+    [$scope, $params] = review_activity_scope('rv');
+    return [' AND rv.student_request = 1' . $scope, $params];
+}
+
 /**
  * Who decides on one activity: the coordinators assigned to it, or the office
  * when it has none. Used to tell reviewers that a registration or a document
@@ -91,8 +101,12 @@ function review_counts(): array
           WHERE r.status = 'pending' AND a.status NOT IN ('cancelled', 'completed')$scope",
         $params
     );
+    [$rvScope, $rvParams] = review_reservation_scope();
+    $counts['reservations'] = (int) fetch_value(
+        "SELECT COUNT(*) FROM reservations rv WHERE rv.status = 'pending'$rvScope",
+        $rvParams
+    );
     if (is_office_staff()) {
-        $counts['reservations'] = (int) fetch_value("SELECT COUNT(*) FROM reservations WHERE status = 'pending'");
         $counts['accounts']     = (int) fetch_value("SELECT COUNT(*) FROM users WHERE status = 'pending'");
     }
     $counts['total'] = $counts['documents'] + $counts['registrations'] + $counts['reservations'] + $counts['accounts'];
@@ -139,22 +153,25 @@ function review_pending_registrations(int $limit = 50): array
     );
 }
 
-/** Reservation requests waiting for the office, oldest first. Office only. */
+/** Reservation requests waiting for a decision, oldest first (see review_reservation_scope). */
 function review_pending_reservations(int $limit = 50): array
 {
-    if (!is_office_staff()) {
+    if (!can_review()) {
         return [];
     }
+    [$scope, $params] = review_reservation_scope();
     return fetch_all(
         "SELECT rv.reservation_id, rv.created_at, rv.needed_from, rv.needed_until, rv.purpose,
+                rv.student_request, rv.activity_id,
                 a.title AS activity_title,
                 u.first_name, u.last_name
            FROM reservations rv
            LEFT JOIN activities a ON a.activity_id = rv.activity_id
            JOIN users u           ON u.user_id     = rv.requested_by
-          WHERE rv.status = 'pending'
+          WHERE rv.status = 'pending'$scope
           ORDER BY rv.needed_from ASC
-          LIMIT " . max(1, $limit)
+          LIMIT " . max(1, $limit),
+        $params
     );
 }
 

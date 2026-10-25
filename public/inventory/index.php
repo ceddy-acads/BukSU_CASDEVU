@@ -129,6 +129,9 @@ require __DIR__ . '/../../includes/layout/header.php';
         <?php if (has_role('staff', 'admin', 'coordinator')): ?>
             <a class="btn <?= is_office_staff() ? 'btn-outline' : 'btn-gold' ?>" href="<?= url('inventory/reserve.php') ?>">Request a reservation</a>
         <?php endif; ?>
+        <?php if (has_role('student')): ?>
+            <a class="btn btn-gold" href="<?= url('inventory/borrow.php') ?>">Borrow equipment</a>
+        <?php endif; ?>
         <?php if (is_office_staff()): ?>
             <a class="btn btn-gold" href="<?= url('inventory/manage.php') ?>"
                data-modal data-modal-title="New item" data-modal-wrap="#item-form-wrap">New item</a>
@@ -266,6 +269,8 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <div class="catalog-body">
                     <?php if (!$isBrowser): ?>
                         <span class="catalog-status"><?= status_badge($item['status'], 'inventory') ?></span>
+                    <?php elseif (!(int) $item['student_requestable']): ?>
+                        <span class="catalog-status"><span class="badge badge-muted">Office use only</span></span>
                     <?php endif; ?>
                     <p class="meta">
                         <?= e($item['category']) ?>

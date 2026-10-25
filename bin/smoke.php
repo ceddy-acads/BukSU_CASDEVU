@@ -13,6 +13,8 @@
  *   - a page that a role should be able to open returning 403, or a page that
  *     should be forbidden returning 200 (docs/03-role-matrix.md)
  *   - the session dropping back to the sign-in page mid-run
+ *   - a public page that a signed-out visitor cannot open, or a page that
+ *     should send them to sign in, and the highlight PDF's Range answers
  *
  * It only issues GET requests, so it never creates, edits or deletes data.
  *
@@ -190,6 +192,17 @@ $ids = [
         ?? db_value($pdo, 'SELECT activity_id FROM activities ORDER BY activity_id LIMIT 1')),
     'item'     => (int) db_value($pdo, 'SELECT item_id FROM inventory_items ORDER BY item_id LIMIT 1'),
 ];
+try {
+    $ids['highlight'] = (int) db_value($pdo,
+        "SELECT h.activity_id FROM highlight_reports h JOIN activities a ON a.activity_id = h.activity_id
+          WHERE a.status IN ('upcoming','ongoing','completed','closed') ORDER BY h.activity_id LIMIT 1");
+} catch (PDOException $e) {
+    fwrite(STDERR, "
+The highlight_reports table is missing. Run: mysql -u root casms < database/update-highlight-reports.sql
+
+");
+    exit(1);
+}
 $ids['assigned'] = (int) (db_value($pdo,
     'SELECT ac.activity_id FROM activity_coordinators ac
        JOIN users u ON u.user_id = ac.user_id
@@ -324,9 +337,9 @@ foreach ($cssFiles as $cssFile) {
 /**
  * One request. Returns status, Location header, body and elapsed seconds.
  *
- * @return array{status: int, location: string, body: string, seconds: float, error: string}
+ * @return array{status: int, location: string, headers: string, body: string, seconds: float, error: string}
  */
-function http_request(string $url, string $jar, ?array $post = null, int $timeout = 20): array
+function http_request(string $url, string $jar, ?array $post = null, int $timeout = 20, array $headers = []): array
 {
     $handle = curl_init($url);
     curl_setopt_array($handle, [
@@ -338,6 +351,7 @@ function http_request(string $url, string $jar, ?array $post = null, int $timeou
         CURLOPT_TIMEOUT        => $timeout,
         CURLOPT_CONNECTTIMEOUT => 5,
         CURLOPT_USERAGENT      => 'CASDevU smoke test',
+        CURLOPT_HTTPHEADER     => $headers,
     ]);
     if ($post !== null) {
         curl_setopt($handle, CURLOPT_POST, true);
@@ -352,14 +366,14 @@ function http_request(string $url, string $jar, ?array $post = null, int $timeou
     $error    = curl_error($handle);
     curl_close($handle);
 
-    $headers  = is_string($raw) ? substr($raw, 0, $headerAt) : '';
+    $head     = is_string($raw) ? substr($raw, 0, $headerAt) : '';
     $body     = is_string($raw) ? substr($raw, $headerAt) : '';
     $location = '';
-    if (preg_match('/^Location:\s*(.+)$/im', $headers, $m)) {
+    if (preg_match('/^Location:\s*(.+)$/im', $head, $m)) {
         $location = trim($m[1]);
     }
 
-    return ['status' => $status, 'location' => $location, 'body' => $body, 'seconds' => $seconds, 'error' => $error];
+    return ['status' => $status, 'location' => $location, 'headers' => $head, 'body' => $body, 'seconds' => $seconds, 'error' => $error];
 }
 
 /** "email:password" → email. */
@@ -415,6 +429,7 @@ function sign_in(string $base, string $role, string $credentials, int $timeout):
 // The page list
 //
 // allow:   roles that should get a successful response
+// query:   fixed query string added to every request
 // params:  query values; values are keys of $ids, or 'own_user'
 // tolerate: extra statuses that count as a pass (302 = page redirects)
 // optional: 404 is acceptable (detail pages whose demo record may not exist)
@@ -466,11 +481,15 @@ $pages = [
 
     ['path' => 'inventory/index.php',             'allow' => ['admin', 'staff', 'coordinator', 'student']],
     ['path' => 'inventory/reserve.php',           'allow' => ['admin', 'staff', 'coordinator']],
-    ['path' => 'inventory/reservations.php',      'allow' => ['admin', 'staff', 'coordinator']],
+    ['path' => 'inventory/reservations.php',      'allow' => ['admin', 'staff', 'coordinator', 'student']],
+    ['path' => 'inventory/borrow.php',            'allow' => ['student']],
     ['path' => 'inventory/borrowings.php',        'allow' => ['admin', 'staff']],
     ['path' => 'inventory/manage.php',            'allow' => ['admin', 'staff']],
     ['path' => 'inventory/photo.php',             'allow' => ['admin', 'staff', 'coordinator', 'student'],
      'params' => ['id' => 'item'], 'optional' => true, 'binary' => true],
+
+    ['path' => 'id-photo.php',                    'allow' => ['student'], 'query' => 'side=front',
+     'params' => ['user' => 'own_user'], 'optional' => true, 'binary' => true],
 
     ['path' => 'announcements/index.php',         'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest']],
     ['path' => 'announcements/manage.php',        'allow' => ['admin', 'staff', 'coordinator']],
@@ -497,6 +516,24 @@ $pages = [
      'tolerate' => [302]],   // a signed-in visitor is sent to their profile
     ['path' => 'reset-password.php',              'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest'],
      'optional' => true],
+
+    // Highlight reports: public cover grid
+    ['path' => 'highlights/index.php',            'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest'],
+     'signed_out' => 'allow'],
+
+    // Highlight reports: upload page
+    ['path' => 'highlights/manage.php',           'allow' => ['admin', 'staff', 'coordinator'],
+     'signed_out' => 'login'],
+    ['path' => 'highlights/manage.php',           'allow' => ['admin', 'staff', 'coordinator'],
+     'params' => ['activity_id' => 'assigned'], 'optional' => true],
+
+    // Highlight reports: public PDF
+    ['path' => 'highlights/file.php',             'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest'],
+     'params' => ['activity_id' => 'highlight'], 'optional' => true, 'binary' => true, 'signed_out' => 'allow'],
+
+    // Highlight reports: public flipbook viewer
+    ['path' => 'highlights/view.php',             'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest'],
+     'params' => ['activity_id' => 'highlight'], 'optional' => true, 'signed_out' => 'allow'],
 ];
 
 if ($options['only'] !== '') {
@@ -602,7 +639,7 @@ foreach (array_keys($jars) as $role) {
 foreach ($pages as $page) {
     foreach ($jars as $role => $jar) {
         // Query values are resolved per role, because "own user id" differs.
-        $pairs = [];
+        $pairs = isset($page['query']) ? [$page['query']] : [];
         foreach ($page['params'] ?? [] as $name => $idKey) {
             $id = $idKey === 'own_user' ? ($ownUserIds[$role] ?? 0) : ($ids[$idKey] ?? 0);
             if ($id > 0) {
@@ -678,6 +715,118 @@ foreach ($pages as $page) {
         }
     }
 }
+
+// A student who is not the owner must not get Andrea's ID photo (404 whether
+// or not one is on file, so this passes trivially until a photo is uploaded).
+section('ID photo privacy');
+$otherStudent = 'bryan.reyes@student.buksu.edu.ph:demo1234';
+// Check the account first: sign_in() reports a failure itself.
+$otherJar = db_value($pdo, 'SELECT 1 FROM users WHERE email = ?', [account_email($otherStudent)])
+    ? sign_in($options['base'], 'student', $otherStudent, $options['timeout']) : null;
+if ($otherJar === null) {
+    echo "  [skip]  second student account not available
+";
+} else {
+    $checks++;
+    $r = http_request($options['base'] . '/id-photo.php?side=front&user=' . $studentUserId, $otherJar, null, $options['timeout']);
+    $r['status'] === 404
+        ? ok('id-photo.php as another student: 404')
+        : fail('id-photo.php as another student: HTTP ' . $r['status'] . ' (expected 404)');
+
+    // Profile photos are served to their owner and the office only.
+    $photoOwner = db_value($pdo, 'SELECT user_id FROM users WHERE photo_path IS NOT NULL AND email <> ? LIMIT 1',
+        [account_email($otherStudent)]);
+    if ($photoOwner === null) {
+        echo "  [skip]  no other user has a profile photo\n";
+    } else {
+        $checks++;
+        $r = http_request($options['base'] . '/profile-photo.php?id=' . (int) $photoOwner, $otherJar, null, $options['timeout']);
+        $r['status'] === 404
+            ? ok("profile-photo.php for someone else's photo, as a student: 404")
+            : fail("profile-photo.php for someone else's photo, as a student: HTTP " . $r['status'] . ' (expected 404)');
+    }
+}
+
+// =====================================================================
+// Signed out
+//
+// signed_out 'allow': a visitor with no session gets the page (404 only when optional
+// and its record is not installed).
+// signed_out 'login': a visitor is sent to the sign-in page.
+// =====================================================================
+
+section('Signed out');
+$guestJar = tempnam(sys_get_temp_dir(), 'smoke-guest');
+foreach ($pages as $page) {
+    if (!isset($page['signed_out'])) {
+        continue;
+    }
+    $pairs = [];
+    foreach ($page['params'] ?? [] as $name => $idKey) {
+        if (($ids[$idKey] ?? 0) > 0) {
+            $pairs[] = $name . '=' . $ids[$idKey];
+        }
+    }
+    $query  = $pairs === [] ? '' : '?' . implode('&', $pairs);
+    $label  = $page['path'] . $query . ' signed out';
+    $result = http_request($options['base'] . '/' . $page['path'] . $query, $guestJar, null, $options['timeout']);
+    $newLog = log_since($logFile, $logPosition);
+    $checks++;
+
+    $problem = null;
+    if ($result['error'] !== '') {
+        $problem = 'request failed: ' . $result['error'];
+    } elseif ($result['status'] >= 500) {
+        $problem = 'HTTP ' . $result['status'] . ' (server error)';
+    } elseif ($newLog !== []) {
+        $problem = 'wrote to the error log: ' . $newLog[0];
+    } elseif ($result['status'] !== 302 && empty($page['binary']) && ($marker = body_error($result['body'])) !== null) {
+        $problem = 'page contains "' . $marker . '"';
+    } elseif ($page['signed_out'] === 'login') {
+        if ($result['status'] !== 302 || !str_contains($result['location'], 'login.php')) {
+            $problem = 'HTTP ' . $result['status'] . ' (expected a redirect to sign-in)';
+        }
+    } elseif ($result['status'] === 404 && !empty($page['optional']) && count($pairs) < count($page['params'] ?? [])) {
+        // pass: no record installed (a public page whose record exists must answer 200)
+    } elseif ($result['status'] !== 200) {
+        $problem = 'HTTP ' . $result['status'] . ' (expected 200 without signing in)';
+    }
+
+    if ($problem === null) {
+        if ($options['verbose']) {
+            ok(sprintf('%-72s %4d', $label, $result['status']));
+        }
+    } else {
+        fail($label . ': ' . $problem);
+    }
+}
+
+if ($ids['highlight'] > 0 && stripos('highlights/file.php', $options['only']) !== false) {
+    section('Range requests');
+    $url  = $options['base'] . '/highlights/file.php?activity_id=' . $ids['highlight'];
+    $size = (int) db_value($pdo, 'SELECT file_size FROM highlight_reports WHERE activity_id = ?', [$ids['highlight']]);
+    $cases = [
+        ['bytes=0-99',      206, '/^Content-Range:\s*bytes 0-99\/' . $size . '\r?$/im', 100],
+        ['bytes=999999999-', 416, '/^Content-Range:\s*bytes \*\/' . $size . '\r?$/im', null],
+        [null,              200, '/^Accept-Ranges:\s*bytes\r?$/im', $size],
+    ];
+    foreach ($cases as [$range, $status, $headerPattern, $length]) {
+        $result = http_request($url, $guestJar, null, $options['timeout'], $range === null ? [] : ['Range: ' . $range]);
+        log_since($logFile, $logPosition);
+        $checks++;
+        $label = 'highlights/file.php ' . ($range ?? 'no Range header');
+        if ($result['status'] !== $status) {
+            fail($label . ': HTTP ' . $result['status'] . ' (expected ' . $status . ')');
+        } elseif (!preg_match($headerPattern, $result['headers'])) {
+            fail($label . ': expected header ' . $headerPattern);
+        } elseif ($length !== null && strlen($result['body']) !== $length) {
+            fail($label . ': body is ' . strlen($result['body']) . ' bytes (expected ' . $length . ')');
+        } else {
+            ok($label . ' answered ' . $status);
+        }
+    }
+}
+@unlink($guestJar);
 
 // =====================================================================
 // Summary

@@ -122,6 +122,12 @@ The "missing requirements" list is the **absence** of a row here — see view
 by summing open borrowings (`v_item_availability`). A stored counter would
 eventually drift out of sync with reality; a derived one cannot.
 
+### Module 7 — Highlight reports
+
+| Table | Purpose | Key design note |
+|-------|---------|-----------------|
+| `highlight_reports` | One PDF report per activity, shown on the public highlights page | `UNIQUE (activity_id)` makes "one report per activity" a database rule; uploading again replaces the row and file. Visibility follows the activity status and is never stored |
+
 ### Module 9 — Administration
 
 | Table | Purpose | Key design note |
