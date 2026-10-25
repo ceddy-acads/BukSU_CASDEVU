@@ -136,6 +136,11 @@ if (is_post()) {
 
         case 'attendance':
             $attended = post('attended') === '1' ? 1 : 0;
+            // Marking present waits for the start day; marking absent stays open so an early mark can be undone.
+            if ($attended === 1 && time() < strtotime(date('Y-m-d', strtotime((string) $activity['start_at'])))) {
+                flash('error', 'Attendance opens on ' . date('j M', strtotime((string) $activity['start_at'])) . ", the activity's start day.");
+                break;
+            }
             query('UPDATE registrations SET attended = ? WHERE registration_id = ?',
                   [$attended, $registrationId]);
             audit_log('update', 'registration', $registrationId,

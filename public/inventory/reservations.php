@@ -57,6 +57,11 @@ if (is_post()) {
                     flash('error', 'Enter a valid return date.');
                     break;
                 }
+                // The date picker works in whole minutes, so compare to the current minute.
+                if ($ts < strtotime(date('Y-m-d H:i'))) {
+                    flash('error', 'The return date cannot be in the past.');
+                    break;
+                }
                 $returnAt = date('Y-m-d H:i:s', $ts);
             }
             if (strtotime($returnAt) <= strtotime((string) $reservation['needed_from'])) {
