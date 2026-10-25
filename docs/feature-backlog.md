@@ -13,7 +13,7 @@ After a design is approved, it gets a build plan and then the build.
 | 5 | Attendance if there is an event ("basin pwede ma implement", if it can be done) | Not brainstormed | — |
 | 6 | Newsletter (narrative report): the office just uploads the report | **Approved design.** Not built | [Highlight reports (flipbook)](superpowers/specs/2026-10-24-highlight-reports-design.md) |
 | 7 | Remove the staff role (raised 24 Oct 2026 by the client's representative) | Not brainstormed | — |
-| 8 | Fix: profile photos are visible to any signed-in user (found 24 Oct 2026) | To fix. Small, no design needed | See below |
+| 8 | Fix: profile photos are visible to any signed-in user (found 24 Oct 2026) | **Built** on `feature/student-borrowing`: a photo is served to its owner and the office only; everyone else gets 404 | See below |
 
 ### Item 8: profile photo privacy fix
 

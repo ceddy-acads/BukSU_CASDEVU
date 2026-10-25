@@ -685,6 +685,19 @@ if ($otherJar === null) {
     $r['status'] === 404
         ? ok('id-photo.php as another student: 404')
         : fail('id-photo.php as another student: HTTP ' . $r['status'] . ' (expected 404)');
+
+    // Profile photos are served to their owner and the office only.
+    $photoOwner = db_value($pdo, 'SELECT user_id FROM users WHERE photo_path IS NOT NULL AND email <> ? LIMIT 1',
+        [account_email($otherStudent)]);
+    if ($photoOwner === null) {
+        echo "  [skip]  no other user has a profile photo\n";
+    } else {
+        $checks++;
+        $r = http_request($options['base'] . '/profile-photo.php?id=' . (int) $photoOwner, $otherJar, null, $options['timeout']);
+        $r['status'] === 404
+            ? ok("profile-photo.php for someone else's photo, as a student: 404")
+            : fail("profile-photo.php for someone else's photo, as a student: HTTP " . $r['status'] . ' (expected 404)');
+    }
 }
 
 // =====================================================================

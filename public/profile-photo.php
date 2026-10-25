@@ -14,6 +14,13 @@ require_once __DIR__ . '/../includes/bootstrap.php';
 require_login();
 
 $userId = get_id('id');
+
+// Only the owner and the office; anyone else gets the same 404 as a missing photo.
+if ($userId !== current_user_id() && !is_office_staff()) {
+    http_response_code(404);
+    exit;
+}
+
 $path   = $userId !== null
     ? fetch_value('SELECT photo_path FROM users WHERE user_id = ?', [$userId])
     : null;
