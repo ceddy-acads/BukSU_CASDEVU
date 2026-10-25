@@ -207,9 +207,9 @@ $portalWide = true;
 require __DIR__ . '/../includes/layout/portal-header.php';
 ?>
 
-<nav class="tabs" aria-label="Who is signing up">
-    <a class="tab" href="<?= url('register.php') ?>"<?= $as === 'student' ? ' aria-current="page"' : '' ?>>I'm a BukSU student</a>
-    <a class="tab" href="<?= url('register.php?as=guest') ?>"<?= $as === 'guest' ? ' aria-current="page"' : '' ?>>I'm not a BukSU student</a>
+<nav class="tabs tabs-signup" aria-label="Who is signing up">
+    <a class="tab" href="<?= url('register.php') ?>"<?= $as === 'student' ? ' aria-current="page"' : '' ?>>BukSU student</a>
+    <a class="tab" href="<?= url('register.php?as=guest') ?>"<?= $as === 'guest' ? ' aria-current="page"' : '' ?>>Not a BukSU student</a>
 </nav>
 
 <?php if ($errors !== []): ?>

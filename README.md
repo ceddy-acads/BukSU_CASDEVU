@@ -42,10 +42,10 @@ C:\xampp\mysql\bin\mysql.exe -u root < database/schema.sql
 C:\xampp\mysql\bin\mysql.exe -u root casms < database/demo-data.sql
 ```
 
-Adds 37 accounts, 6 activities, 36 registrations, 20 inventory items,
+Adds 39 accounts, 6 activities, 36 registrations, 20 inventory items,
 6 venues, reservations, loans and announcements — enough to walk through
 every screen. The dataset is deliberately mixed: activities in every status,
-registrations pending/approved/rejected/completed, two accounts awaiting
+registrations pending/approved/rejected/completed, three accounts awaiting
 approval, one overdue loan, one damaged item and one under maintenance.
 
 All demo accounts use the password `demo1234`; the administrator seeded by

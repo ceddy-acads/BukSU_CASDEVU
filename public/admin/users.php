@@ -76,8 +76,14 @@ if (is_post()) {
             redirect('admin/users.php');
         }
     }
+}
 
-    if ($action !== 'add_guest') {
+if (is_post() && post('action') !== 'add_guest') {
+    csrf_verify();
+
+    $action       = post('action');
+    $targetUserId = (int) post('user_id');
+
     $target = fetch_one(
         'SELECT u.user_id, u.first_name, u.last_name, u.status, r.name AS role_name
            FROM users u JOIN roles r ON r.role_id = u.role_id
@@ -245,7 +251,6 @@ if (is_post()) {
         'sort'   => get('sort'),
         'dir'    => get('dir'),
     ])));
-    }
 }
 
 // --------------------------------------------------------------- Filters
@@ -349,7 +354,7 @@ require __DIR__ . '/../../includes/layout/header.php';
             </div>
         </div>
         <div class="form-row">
-            <label for="connection_note">How are you connected to the unit's activities? <span class="req">*</span></label>
+            <label for="connection_note">How is this person connected to the unit's activities? <span class="req">*</span></label>
             <textarea id="connection_note" name="connection_note" rows="4" maxlength="500" required><?= e($form['connection_note']) ?></textarea>
         </div>
         <div class="btn-row">

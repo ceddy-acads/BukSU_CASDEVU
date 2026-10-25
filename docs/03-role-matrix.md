@@ -62,7 +62,7 @@ registration, requirements, inventory, participant lists or reports.
 | Read announcements | ✔ | ✔ | ✔ | ✔ | ✔ |
 | Publish announcement | ✘ | ✘ | ◐ own activity | ✔ | ✔ |
 | Delete any announcement | ✘ | ✘ | ✘ | ✘ | ✔ |
-| Receive notifications | ✘ | ✔ | ✔ | ✔ | ✔ |
+| Receive notifications | ◐ account notices only | ✔ | ✔ | ✔ | ✔ |
 
 ## Records and Reports
 

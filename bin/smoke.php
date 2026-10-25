@@ -661,7 +661,7 @@ foreach ($pages as $page) {
 
         // The spec: no path, by link, from a Guest account to student data or the office's pages.
         if ($problem === null && $role === 'guest' && $result['status'] === 200 && empty($page['binary'])
-            && preg_match('#href="[^"]*/(review\.php|admin/|reports/|inventory/|requirements/|participation/|activities/(manage|coordinators|eligibility)\.php)#', $result['body'], $link)) {
+            && preg_match('#(?:href|action|data-modal-src)="[^"]*/(review\.php|admin/|reports/|inventory/|requirements/|participation/|activities/(manage|coordinators|eligibility)\.php)#', $result['body'], $link)) {
             $problem = 'links to ' . substr($link[0], 6) . ', which a guest may not open';
         }
 
