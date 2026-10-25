@@ -178,7 +178,7 @@ needed to rename the office or raise the file ceiling.
 | `LOGIN_LOCKOUT_MINUTES` | `15` | How long that lockout lasts |
 | `PASSWORD_RESET_TTL_MINUTES` | `60` | Lifetime of a reset link |
 | `MAX_UPLOAD_BYTES` | 5 MB | Default largest accepted requirement file or item photo; **Settings** overrides it |
-| `MYSQL_BIN_PATH` | `C:/xampp/mysql/bin` | Where `mysqldump.exe` and `mysql.exe` live, used by Backup |
+| `MYSQL_BIN_PATH` | `C:/xampp/mysql/bin` | Folder holding `mysqldump` and `mysql`, used by Backup (Linux: usually `/usr/bin`) |
 
 ### Email delivery
 
