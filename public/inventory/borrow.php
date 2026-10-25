@@ -134,7 +134,7 @@ if ($canRequest && is_post()) {
 $fromTs   = $neededFrom === '' ? false : strtotime($neededFrom);
 $untilTs  = $neededUntil === '' ? false : strtotime($neededUntil);
 $showStep2 = $canRequest && get('change') === '' && $activityId !== null && $fromTs !== false && $untilTs !== false && $untilTs > $fromTs;
-$datesError = $canRequest && !is_post() && $neededFrom !== '' && $neededUntil !== '' && !$showStep2
+$datesError = $canRequest && !is_post() && $neededFrom !== '' && $neededUntil !== '' && !$showStep2 && get('change') === ''
     ? ($activityId === null ? 'Choose one of your activities.' : '"Will return by" must be after "Needed from".')
     : '';
 
