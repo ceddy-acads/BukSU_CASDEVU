@@ -518,6 +518,10 @@ $pages = [
     // Highlight reports: public PDF
     ['path' => 'highlights/file.php',             'allow' => ['admin', 'staff', 'coordinator', 'student'],
      'params' => ['activity_id' => 'highlight'], 'optional' => true, 'binary' => true, 'guest' => 'allow'],
+
+    // Highlight reports: public flipbook viewer
+    ['path' => 'highlights/view.php',             'allow' => ['admin', 'staff', 'coordinator', 'student'],
+     'params' => ['activity_id' => 'highlight'], 'optional' => true, 'guest' => 'allow'],
 ];
 
 if ($options['only'] !== '') {
@@ -696,7 +700,8 @@ foreach ($pages as $page) {
 // =====================================================================
 // Signed out
 //
-// guest 'allow': a visitor with no session gets the page (404 when optional).
+// guest 'allow': a visitor with no session gets the page (404 only when optional
+// and its record is not installed).
 // guest 'login': a visitor is sent to the sign-in page.
 // =====================================================================
 
@@ -731,8 +736,8 @@ foreach ($pages as $page) {
         if ($result['status'] !== 302 || !str_contains($result['location'], 'login.php')) {
             $problem = 'HTTP ' . $result['status'] . ' (expected a redirect to sign-in)';
         }
-    } elseif ($result['status'] === 404 && !empty($page['optional'])) {
-        // pass: no record installed
+    } elseif ($result['status'] === 404 && !empty($page['optional']) && count($pairs) < count($page['params'] ?? [])) {
+        // pass: no record installed (a public page whose record exists must answer 200)
     } elseif ($result['status'] !== 200) {
         $problem = 'HTTP ' . $result['status'] . ' (expected 200 without signing in)';
     }

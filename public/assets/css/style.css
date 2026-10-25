@@ -2202,6 +2202,51 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 .hl-meta { font-size: var(--fs-sm); color: var(--ink-soft); line-height: 1.4; }
 .hl-link:hover .hl-title { text-decoration: underline; text-underline-offset: 3px; }
 
+/* The flipbook (highlights/view.php): the one place a navy field sits behind
+   the pages, so the white sheets read as paper on a table. StPageFlip shows
+   one page when the stage is narrower than two pages, two side by side
+   otherwise. The stage is capped so a spread fits the screen height
+   (--page-ratio is the PDF's width / height, set by highlights.js). Prev,
+   Next and the status line sit on the field under the pages. */
+.flipbook {
+    background: var(--navy);
+    color: var(--on-dark-soft);
+    border-radius: var(--r);
+    padding: var(--s3) var(--s3) var(--s2);
+    margin-bottom: var(--s5);
+}
+@media (min-width: 720px) { .flipbook { padding: var(--s8) var(--s8) var(--s4); } }
+.flip-stage {
+    margin-inline: auto;
+    max-width: max(240px, calc((100svh - 12rem) * var(--page-ratio, .707) * 2));
+}
+/* Before the pages arrive the stage holds a page's shape, so nothing jumps. */
+.flip-stage:empty { aspect-ratio: 1 / 1.414; max-width: 32rem; }
+@media (min-width: 720px) { .flip-stage:empty { aspect-ratio: 1.414 / 1; max-width: 60rem; } }
+.flip-page { background: var(--surface); overflow: hidden; }
+.flip-page img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* The spine: a soft fold shadow on the inner edge of each page in a spread. */
+.stf__wrapper.--landscape .flip-page.is-left::after,
+.stf__wrapper.--landscape .flip-page.is-right::after {
+    content: ""; position: absolute; top: 0; bottom: 0; width: 8%; pointer-events: none;
+}
+.stf__wrapper.--landscape .flip-page.is-left::after  { right: 0; background: linear-gradient(to left, rgba(8, 23, 48, .28), transparent); }
+.stf__wrapper.--landscape .flip-page.is-right::after { left: 0;  background: linear-gradient(to right, rgba(8, 23, 48, .28), transparent); }
+.flip-controls {
+    display: flex; align-items: center; justify-content: center; gap: var(--s4);
+    margin-top: var(--s3);
+}
+.flip-status { margin: 0; min-width: 10.5rem; text-align: center; font-weight: 600; color: var(--on-dark); }
+.flip-btn {
+    padding: 0; width: 44px; flex: none;
+    background: transparent; color: var(--on-dark);
+    border-color: var(--on-dark-muted);
+}
+.flip-btn:hover { background: var(--navy-700); color: var(--on-dark); }
+.flip-btn:focus-visible { outline-color: var(--gold); }
+.flip-btn .icon { width: 20px; height: 20px; }
+.flip-noscript { margin: 0 0 var(--s3); text-align: center; }
+
 /* ------------------------------------------------------------- 16. Motion */
 /* Feedback and orientation only: entrances for overlays and alerts, loading
    pulse, fills that grow, and hover lifts. One easing, short durations, and
