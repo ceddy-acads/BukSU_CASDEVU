@@ -1597,7 +1597,7 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 .fact-strip .fact-sub { display: block; font-weight: 400; font-size: var(--fs-sm); color: var(--ink-soft); }
 @media (min-width: 900px) { .fact-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 
-/* Requirement workflow: Required -> Submitted -> Under review -> Verified/Rejected.
+/* Requirement workflow: Requested -> Submitted -> Under review -> Verified/Rejected.
    Each step is a bar segment with its label; the current step is bold and
    navy, a rejection is red, and every state is also spoken in text. */
 .steps {

@@ -143,7 +143,7 @@ function registration_stage_label(string $status): string
 /**
  * Where one requirement stands for a student, and whose move it is.
  *
- * The workflow is Required -> Submitted -> Under review -> Verified or
+ * The workflow is Requested -> Submitted -> Under review -> Verified or
  * Rejected. What a student most needs to know is whether the next step is
  * theirs ('student') or the office's ('office'), so every state names an
  * owner and a next action. Late uploads are still accepted, so "past due"
@@ -173,7 +173,7 @@ function requirement_steps_html(string $stateKey): string
 {
     $decided = in_array($stateKey, ['verified', 'rejected'], true);
     $steps = [
-        ['Required',     in_array($stateKey, ['missing', 'past_due'], true) ? 'current' : 'done'],
+        ['Requested',    in_array($stateKey, ['missing', 'past_due'], true) ? 'current' : 'done'],
         ['Submitted',    in_array($stateKey, ['missing', 'past_due'], true) ? 'todo' : 'done'],
         ['Under review', $stateKey === 'pending' ? 'current' : ($decided ? 'done' : 'todo')],
         [$stateKey === 'rejected' ? 'Rejected' : 'Verified',

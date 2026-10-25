@@ -329,7 +329,9 @@ require __DIR__ . '/../../includes/layout/header.php';
             </div>
             <div class="form-row">
                 <label for="expected_return_at">Expected return <span class="req">*</span></label>
+                <?php // The item goes out now, so it cannot be due back before now. ?>
                 <input type="datetime-local" id="expected_return_at" name="expected_return_at" required
+                       min="<?= e(date('Y-m-d\TH:i')) ?>"
                        value="<?= $prefill ? e(date('Y-m-d\TH:i', strtotime((string) $prefill['needed_until']))) : '' ?>">
             </div>
         </div>
