@@ -20,7 +20,6 @@
 -- as the em dash.
 SET NAMES utf8mb4;
 
-USE casms;
 
 -- =====================================================================
 -- OFFICE PERSONNEL
