@@ -59,7 +59,7 @@ $offset = ($page - 1) * PER_PAGE;
 // LIMIT/OFFSET are integers computed above, never raw input.
 $activities = fetch_all(
     "SELECT a.activity_id, a.title, a.slug, a.description, a.start_at, a.end_at, a.status,
-            a.max_participants,
+            a.max_participants, a.registration_opens_at, a.registration_closes_at,
             c.name AS category, c.color_hex,
             v.name AS venue,
             (SELECT COUNT(*) FROM registrations r
@@ -191,6 +191,25 @@ require __DIR__ . '/../../includes/layout/header.php';
                         <p class="meta"><?= e(date('D, j M Y · g:i A', $start)) ?></p>
                         <?php if ($activity['venue']): ?>
                             <p class="meta"><?= e($activity['venue']) ?></p>
+                        <?php endif; ?>
+                        <?php
+                        // The registration window, by the same dates can_register() checks (UX audit F9).
+                        $regLine = null;
+                        if (in_array($activity['status'], ['upcoming', 'ongoing'], true)) {
+                            $opens  = $activity['registration_opens_at'] ? strtotime((string) $activity['registration_opens_at']) : null;
+                            $closes = $activity['registration_closes_at'] ? strtotime((string) $activity['registration_closes_at']) : null;
+                            // Non-breaking spaces: a narrow card wraps before the date, never inside it.
+                            $keepTogether = static fn(string $date): string => str_replace(' ', "\u{00A0}", $date);
+                            $regLine = match (true) {
+                                $opens !== null && time() < $opens   => 'Registration opens ' . $keepTogether(date('j M', $opens)),
+                                $closes !== null && time() > $closes => 'Registration closed',
+                                $closes !== null                     => 'Registration closes ' . $keepTogether(date('j M, g:i A', $closes)),
+                                default                              => 'Registration open',
+                            };
+                        }
+                        ?>
+                        <?php if ($regLine !== null): ?>
+                            <p class="meta activity-card-reg"><?= e($regLine) ?></p>
                         <?php endif; ?>
                         <div class="activity-card-status">
                             <?= status_badge($activity['status'], 'activity') ?>

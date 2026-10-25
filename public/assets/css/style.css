@@ -1236,6 +1236,8 @@ table.data tfoot td { font-weight: 700; background: var(--surface-2); border-top
 .activity-card h3 a:hover { text-decoration: underline; }
 .activity-card .meta { margin: var(--s1) 0 0; }
 .activity-card .meta strong { color: var(--ink); font-weight: 600; }
+/* When registration opens or closes: the line a student scans the list for. */
+.activity-card .activity-card-reg { color: var(--ink); font-weight: 600; }
 .activity-card .foot {
     padding: var(--s3) var(--s5); background: var(--surface-2);
     font-size: var(--fs-sm); color: var(--ink-soft);
