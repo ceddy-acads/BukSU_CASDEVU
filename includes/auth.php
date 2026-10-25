@@ -87,6 +87,9 @@ function current_user(): ?array
         return null;
     }
 
+    // A role changed by an admin takes effect on the next request, not the next sign-in.
+    $_SESSION['role'] = $user['role_name'];
+
     return $user;
 }
 
@@ -133,6 +136,19 @@ function recent_failed_logins(string $ipAddress): int
             AND ip_address = ?
             AND created_at > DATE_SUB(NOW(), INTERVAL ? MINUTE)",
         [$ipAddress, LOGIN_LOCKOUT_MINUTES]
+    );
+}
+
+/** Self-registrations from one address in the last hour, counted from audit_logs. */
+function recent_signups(string $ipAddress): int
+{
+    return (int) fetch_value(
+        "SELECT COUNT(*) FROM audit_logs
+          WHERE action = 'create' AND entity_type = 'user'
+            AND description LIKE '%self-registered:%'
+            AND ip_address = ?
+            AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)",
+        [$ipAddress]
     );
 }
 

@@ -37,7 +37,6 @@ if (is_post()) {
 
     if (post('website') !== '') {
         // A bot filled the hidden field. Look the same as success, store nothing.
-        audit_log('spam', 'invitation', null, 'Honeypot filled on the invitation form');
         $sent = true;
     } else {
         foreach ($limits as $field => [$label, $max, $required]) {

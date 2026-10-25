@@ -26,6 +26,9 @@ $signedUp = null;
 
 if (is_post() && $as === 'student') {
     csrf_verify();
+    if (recent_signups((string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown')) >= REGISTER_MAX_PER_HOUR) {
+        $errors[] = 'Too many accounts were created from this connection in the last hour. Try again later.';
+    }
 
     $studentNumber = post('student_number');
     $firstName     = post('first_name');
@@ -123,6 +126,9 @@ if (is_post() && $as === 'student') {
 
 if (is_post() && $as === 'guest') {
     csrf_verify();
+    if (recent_signups((string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown')) >= REGISTER_MAX_PER_HOUR) {
+        $errors[] = 'Too many accounts were created from this connection in the last hour. Try again later.';
+    }
 
     $firstName      = post('first_name');
     $middleName     = post('middle_name');

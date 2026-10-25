@@ -275,8 +275,9 @@ function absolute_url(string $path): string
         return $path;
     }
 
-    $scheme = !empty($_SERVER['HTTPS']) ? 'https' : 'http';
-    $host   = $_SERVER['HTTP_HOST'] ?? APP_HOSTNAME;
+    // Never the request's Host header: a forged one would put a reset token in a link to another site.
+    $scheme = FORCE_HTTPS || !empty($_SERVER['HTTPS']) ? 'https' : 'http';
+    $host   = APP_HOSTNAME;
 
     return $scheme . '://' . $host . '/' . ltrim($path, '/');
 }
