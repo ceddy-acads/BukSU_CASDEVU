@@ -953,7 +953,20 @@ input[type="time"], input[type="file"], select, textarea {
     input[type="datetime-local"], input[type="number"], input[type="search"], input[type="tel"],
     input[type="time"], input[type="file"], select, textarea { font-size: var(--fs-base); }
 }
-input[type="file"] { padding: var(--s2); background: var(--surface-2); }
+input[type="file"] { padding: var(--s2); background: var(--surface-2); color: var(--ink-soft); cursor: pointer; }
+/* The browser's own "Choose File" button, drawn like the app's buttons. The
+   native control stays, so keyboard, screen readers and "No file chosen"
+   behave exactly as before. */
+input[type="file"]::file-selector-button {
+    margin-right: var(--s3);
+    padding: var(--s2) var(--s4);
+    border: 1px solid var(--line-input); border-radius: var(--r-sm);
+    background: var(--surface); color: var(--navy);
+    font: inherit; font-size: var(--fs-sm); font-weight: 700;
+    cursor: pointer;
+    transition: background-color .15s, border-color .15s;
+}
+input[type="file"]::file-selector-button:hover { background: var(--navy-50); border-color: var(--navy); }
 input:hover, select:hover, textarea:hover { border-color: var(--ink-soft); }
 input:focus-visible, select:focus-visible, textarea:focus-visible,
 input:focus, select:focus, textarea:focus {
