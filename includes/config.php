@@ -8,12 +8,19 @@
 
 declare(strict_types=1);
 
+// Server-specific values (database login, SMTP account, hostname, HTTPS) live in
+// config.local.php, which is git-ignored. It loads first, so any constant it
+// defines wins over the defaults in this file. See config.local.example.php.
+if (is_file(__DIR__ . '/config.local.php')) {
+    require __DIR__ . '/config.local.php';
+}
+
 // ---------------------------------------------------------------- Environment
 // Ships as 'production' so a deployed copy never prints an error, a file path,
 // or a fragment of SQL to a visitor. Switch to 'development' while working on
 // the code to see the detail on screen; either way everything is written to
 // storage/logs/php-error.log.
-define('APP_ENV', 'production');           // 'development' | 'production'
+defined('APP_ENV') || define('APP_ENV', 'production');   // 'development' | 'production'
 define('APP_DEBUG', APP_ENV === 'development');
 
 // ---------------------------------------------------------------- Application
@@ -67,11 +74,11 @@ function detect_base_url(): string
 define('BASE_URL', detect_base_url());
 
 // ------------------------------------------------------------------- Database
-define('DB_HOST', '127.0.0.1');
-define('DB_PORT', '3306');
-define('DB_NAME', 'casms');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+defined('DB_HOST') || define('DB_HOST', '127.0.0.1');
+defined('DB_PORT') || define('DB_PORT', '3306');
+defined('DB_NAME') || define('DB_NAME', 'casms');
+defined('DB_USER') || define('DB_USER', 'root');
+defined('DB_PASS') || define('DB_PASS', '');
 define('DB_CHARSET', 'utf8mb4');
 
 // --------------------------------------------------------------- Filesystem
@@ -103,12 +110,8 @@ define('INVITATION_MAX_PER_HOUR', 5);   // per sender address and per email, pub
 // 'log'  — write messages to storage/logs/mail.log (no mail server needed)
 // 'mail' — hand messages to PHP's mail() on a server that has one
 //
-// Real credentials never live in this file. Copy config.local.example.php
-// to config.local.php (git-ignored) and fill in the SMTP account there;
-// any value it defines wins over the defaults below.
-if (is_file(__DIR__ . '/config.local.php')) {
-    require __DIR__ . '/config.local.php';
-}
+// Real credentials never live in this file: put the SMTP account in
+// config.local.php (loaded at the top of this file).
 
 defined('SMTP_HOST')       || define('SMTP_HOST',       'smtp.gmail.com');
 defined('SMTP_PORT')       || define('SMTP_PORT',       587);           // 587 = STARTTLS, 465 = SSL
@@ -142,9 +145,16 @@ define('PASSWORD_RESET_MAX_PER_HOUR', 5);      // per account, to stop mail floo
 
 // ------------------------------------------------------------------ Backups
 // mysqldump / mysql live beside each other in the XAMPP install.
-define('MYSQL_BIN_PATH', 'C:/xampp/mysql/bin');
+defined('MYSQL_BIN_PATH') || define('MYSQL_BIN_PATH', 'C:/xampp/mysql/bin');
 define('BACKUP_PATH',    STORAGE_PATH . '/backups');
 define('BACKUP_KEEP',    20);                  // newest N kept; older ones listed for deletion
+
+// ---------------------------------------------------------------- HTTPS
+// On a live server with a certificate, set FORCE_HTTPS to true in
+// config.local.php, with APP_HOSTNAME set to the site's real name: plain-HTTP
+// requests are then sent to https://APP_HOSTNAME and browsers are told to stay
+// on HTTPS (HSTS). Leave it false on XAMPP without a certificate.
+defined('FORCE_HTTPS')     || define('FORCE_HTTPS',     false);
 
 // ---------------------------------------------------------------- Pagination
 define('PER_PAGE', 25);                                // NFR-6
