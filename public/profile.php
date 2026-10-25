@@ -431,7 +431,8 @@ require __DIR__ . '/../includes/layout/header.php';
     </form>
 
     <?php if ($idFront || $idBack): ?>
-        <form method="post" action="<?= url('profile.php') ?>" class="profile-actions">
+        <form method="post" action="<?= url('profile.php') ?>" class="profile-actions"
+              onsubmit="return confirm('Remove both ID photos? You can upload them again later.');">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="id_photo_delete">
             <button type="submit" class="btn btn-outline">Remove ID photos</button>

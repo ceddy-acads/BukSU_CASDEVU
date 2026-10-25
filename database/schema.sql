@@ -378,7 +378,7 @@ CREATE TABLE inventory_items (
     condition_note  VARCHAR(255) NULL,
     photo_path      VARCHAR(255) NULL,
     storage_location VARCHAR(150) NULL,
-    student_requestable TINYINT(1) NOT NULL DEFAULT 1,  -- 0 = office-only, hidden from students
+    student_requestable TINYINT(1) NOT NULL DEFAULT 1,  -- 0 = office use only: shown to students but not requestable
 
     status          ENUM('available','reserved','borrowed','damaged',
                          'under_maintenance','unavailable')

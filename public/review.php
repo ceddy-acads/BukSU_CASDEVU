@@ -6,8 +6,8 @@
  * Read-only. Each row links to the existing screen where the decision is
  * made (verify.php, participants.php, reservations.php, users.php), so the
  * approval rules, notifications, and audit logging all stay where they are.
- * Coordinators see only their assigned activities; reservations and account
- * approvals are office-only (includes/review.php).
+ * Coordinators see only their assigned activities and the student equipment
+ * requests for them; account approvals are office-only (includes/review.php).
  */
 
 declare(strict_types=1);
@@ -42,7 +42,7 @@ $lanes = [
     'registrations' => ['Registrations', 'Students asked to join these activities.'],
 ];
 $lanes['reservations'] = ['Reservations', is_office_staff()
-    ? 'Coordinators asked to reserve costumes or equipment.'
+    ? 'Coordinators and students asked to reserve costumes or equipment.'
     : 'Students asked to borrow equipment for your activities.'];
 if (is_office_staff()) {
     $lanes['accounts']     = ['Accounts', 'These students cannot sign in until an account is activated.'];
@@ -211,7 +211,11 @@ require __DIR__ . '/../includes/layout/header.php';
             <?php if ($reservations === []): ?>
                 <div class="empty">
                     <strong>No reservation requests waiting</strong>
-                    New requests appear here as soon as coordinators send them.
+                    <?php if (is_office_staff()): ?>
+                    New requests appear here as soon as coordinators or students send them.
+                    <?php else: ?>
+                    Student equipment requests for your activities appear here as soon as they're sent.
+                    <?php endif; ?>
                 </div>
             <?php else: ?>
                 <div class="table-wrap">
