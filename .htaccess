@@ -1,12 +1,14 @@
 # Only public/ is meant for the web. When the host cannot point the document
 # root at public/ (free and shared hosting), this file sends visitors there
-# and refuses everything else in the project folder. includes/ and storage/
-# also carry their own Deny rules.
+# and refuses every other path in the project folder: an allow-list, so a
+# folder or file uploaded by mistake stays private too. includes/ and
+# storage/ also carry their own Deny rules.
+Options -Indexes
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteRule ^(\.git|\.superpowers|\.impeccable|database|docs|bin|audit)(/|$) - [F,L]
-    RewriteRule ^[^/]+\.(md|sql|png|json|lock)$ - [F,L]
     # Built from the request URI, so it works in any install folder.
     RewriteCond %{REQUEST_URI} ^(.*/)$
     RewriteRule ^$ %1public/ [R=302,L]
+    RewriteRule !^public(/|$) - [F,L]
 </IfModule>

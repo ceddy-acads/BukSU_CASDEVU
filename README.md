@@ -223,8 +223,10 @@ XAMPP's defaults are for one development machine. Before real users sign in:
    downloaded by anyone. Only `includes/` and `storage/` carry their own
    `Deny from all`. On a host that cannot change the document root (free or
    shared hosting), the root `.htaccess` sends `/` to `public/` and refuses
-   the other folders; it needs `mod_rewrite`, so check that `/README.md`
-   answers 403 after uploading.
+   every other path; it needs `mod_rewrite`, so check that `/README.md`
+   answers 403 after uploading. Upload a clean copy made with
+   `git archive HEAD .htaccess public includes storage`, never the working
+   folder: it holds git-ignored tool output and screenshots with student data.
 2. **Create `includes/config.local.php`** from `config.local.example.php`:
    a database account of its own (not `root` with an empty password),
    `APP_HOSTNAME`, the SMTP account, and `MYSQL_BIN_PATH` if not on XAMPP.
