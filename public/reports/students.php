@@ -30,7 +30,13 @@ if ($studentId !== null) {
         [$studentId]
     );
 
-    if ($student === null) {
+    $ownParticipant = is_office_staff() || fetch_value(
+        'SELECT 1 FROM registrations rc
+           JOIN activity_coordinators ac ON ac.activity_id = rc.activity_id
+          WHERE rc.user_id = ? AND ac.user_id = ? LIMIT 1',
+        [$studentId, current_user_id()]
+    ) !== null;
+    if ($student === null || !$ownParticipant) {
         http_response_code(404);
         abort_page(404, 'Student not found.');
     }
@@ -203,6 +209,13 @@ if ($yearIn !== '' && ctype_digit($yearIn)) {
 }
 if ($onlyActive) {
     $conditions[] = 'EXISTS (SELECT 1 FROM registrations reg WHERE reg.user_id = u.user_id)';
+}
+// A coordinator sees only students registered for an activity they run.
+if (!is_office_staff()) {
+    $conditions[] = 'EXISTS (SELECT 1 FROM registrations rc
+                      JOIN activity_coordinators ac ON ac.activity_id = rc.activity_id
+                     WHERE rc.user_id = u.user_id AND ac.user_id = ?)';
+    $params[]     = current_user_id();
 }
 
 $where = ' WHERE ' . implode(' AND ', $conditions);
