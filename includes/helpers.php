@@ -447,6 +447,13 @@ function status_meta(string $status, string $domain = ''): array
             'published' => ['success', 'Published'],
             'archived'  => ['muted',   'Archived'],
         ],
+        // "Posted", not "Approved": approval means received and put on the calendar.
+        'invitation' => [
+            'pending'   => ['warning', 'Pending review'],
+            'approved'  => ['success', 'Posted'],
+            'rejected'  => ['danger',  'Rejected'],
+            'cancelled' => ['muted',   'Cancelled'],
+        ],
     ];
 
     if (isset($map[$domain][$status])) {

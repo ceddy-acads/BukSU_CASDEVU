@@ -102,6 +102,15 @@ Adds the `highlight_reports` table and its upload limit setting. Run it
 before deploying the code: every activity page reads this table. A fresh
 `schema.sql` install already has it. Safe to run twice.
 
+**2h. Already have a database? Add invitations from outside groups**
+
+```bash
+C:\xampp\mysql\bin\mysql.exe -u root casms < database/update-outside-invitations.sql
+```
+
+Adds the `invitations` table behind the public page `invitations/submit.php`.
+Safe to run twice.
+
 **3. Start Apache and MySQL in the XAMPP Control Panel**
 
 **4. Open the system**
@@ -204,11 +213,13 @@ same computer; deploy under a real hostname for links that work anywhere.
 ```
 BukSU CASDEVU/
 ├── database/
-│   ├── schema.sql           Clean installer: 22 tables, 3 views, seed data
+│   ├── schema.sql           Clean installer: 25 tables, 3 views, seed data
 │   ├── demo-data.sql        Optional realistic dataset for a walkthrough
 │   ├── update-courses.sql   Brings an existing database to BukSU's programs
 │   ├── update-guest-accounts.sql  Adds the guest role and users.connection_note
+│   ├── update-highlight-reports.sql  Adds the highlight_reports table
 │   ├── update-notification-dismiss.sql  Adds notifications.dismissed_at
+│   ├── update-outside-invitations.sql  Adds the invitations table
 │   └── update-student-borrowing.sql  Adds student equipment requests and ID photos
 ├── docs/                    Requirements, DB design, role matrix, build plan,
 │                            test-accounts.pdf
@@ -619,6 +630,15 @@ statements that the system fails them:
    `php.ini`. Raising it past that is a hosting requirement, not a setting.
    Production also needs `display_errors=Off` and `display_startup_errors=Off`,
    or an oversized upload prints PHP's own warning above the page
+13. **The invitation form is public.** `invitations/submit.php` needs no
+   account, so it is reachable from outside only if IT exposes the server.
+   Submissions are limited to 5 per hour per address and per email, counted
+   from the connecting address. Behind a reverse proxy that address is the
+   proxy's, so everyone shares one limit until the caller of
+   `invitation_submissions_limited()` reads the forwarded header
+14. **Invitation decisions are emailed only once SMTP is set up.** Until then
+   they are written to `storage/logs/mail.log`, and the review queue lists
+   them under "Email not sent: contact by hand" for the office to follow up
 
 ---
 

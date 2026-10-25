@@ -1,7 +1,7 @@
 # CASMS — Database Design
 
 **DBMS:** MySQL / MariaDB (XAMPP), InnoDB, `utf8mb4_unicode_ci`
-**Script:** `database/schema.sql` — verified to execute cleanly; creates 22 tables, 3 views, and seed data.
+**Script:** `database/schema.sql` — verified to execute cleanly; creates 25 tables, 3 views, and seed data.
 
 ---
 
@@ -127,6 +127,17 @@ eventually drift out of sync with reality; a derived one cannot.
 | Table | Purpose | Key design note |
 |-------|---------|-----------------|
 | `highlight_reports` | One PDF report per activity, shown on the public highlights page | `UNIQUE (activity_id)` makes "one report per activity" a database rule; uploading again replaces the row and file. Visibility follows the activity status and is never stored |
+
+### Module 8 — Invitations from outside groups
+
+| Table | Purpose | Key design note |
+|-------|---------|-----------------|
+| `invitations` | One row per invitation sent through the public form | Sender (organization, contact, email, phone), event (title, `start_at`, `end_at`, place, details), optional letter (`letter_*`, stored through `store_upload()`), decision (`status`, `remarks`, `reviewed_by`, `reviewed_at`, `email_status`), and throttle data (`ip_address`, `created_at`). Approved invitations show on the calendar; they are not activities |
+
+Existing installs add it with `database/update-outside-invitations.sql`
+(additive, safe to re-run). `email_status` records whether the decision email
+was `sent`, only `logged`, or `failed`, and `contacted` once the office reached
+the sender by hand.
 
 ### Module 9 — Administration
 

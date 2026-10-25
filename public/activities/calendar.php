@@ -100,10 +100,42 @@ if ($activities === []) {
     );
 }
 
-// Spread each activity across every day it runs, so a three-day event shows
+// Activities and posted invitations share one list, each event carrying its
+// kind, link and status domain. Invitations are outsider-supplied and shown
+// only to those allowed to see them; a category filter is about activities,
+// so it leaves them out.
+$calendarEvents = [];
+foreach ($activities as $activity) {
+    $calendarEvents[] = $activity + [
+        'kind' => 'activity', 'domain' => 'activity',
+        'href' => url('activities/view.php?id=' . (int) $activity['activity_id']),
+    ];
+}
+$invitationCount = 0;
+if (can_view_invitations() && $categoryIn === '') {
+    $invitations = fetch_all(
+        "SELECT invitation_id, organization, title, start_at, end_at, place, status
+           FROM invitations
+          WHERE status IN ('approved', 'cancelled') AND start_at <= ? AND end_at >= ?
+          ORDER BY start_at, title",
+        [$lastDay . ' 23:59:59', $firstDay . ' 00:00:00']
+    );
+    foreach ($invitations as $invitation) {
+        $calendarEvents[] = [
+            'title' => $invitation['title'], 'start_at' => $invitation['start_at'], 'end_at' => $invitation['end_at'],
+            'status' => $invitation['status'], 'category' => 'Invitation from ' . $invitation['organization'],
+            'venue' => $invitation['place'], 'color_hex' => null, 'my_status' => null,
+            'kind' => 'invitation', 'domain' => 'invitation',
+            'href' => url('invitations/view.php?id=' . (int) $invitation['invitation_id']),
+        ];
+        $invitationCount++;
+    }
+}
+
+// Spread each event across every day it runs, so a three-day event shows
 // on all three days, labelled "Day 2 of 3" after the first.
 $byDay = [];
-foreach ($activities as $activity) {
+foreach ($calendarEvents as $activity) {
     $startDate = strtotime(date('Y-m-d', strtotime((string) $activity['start_at'])));
     $endDate   = strtotime(date('Y-m-d', strtotime((string) $activity['end_at'])));
     $spanDays  = (int) round(($endDate - $startDate) / 86400) + 1;
@@ -117,6 +149,10 @@ foreach ($activities as $activity) {
         ];
     }
 }
+foreach ($byDay as &$dayEvents) {
+    usort($dayEvents, static fn(array $a, array $b): int => strcmp((string) $a['start_at'], (string) $b['start_at']));
+}
+unset($dayEvents);
 
 // ------------------------------------------------------------------- Grid
 // Whole weeks from Sunday to Saturday, with the neighbouring months' days
@@ -164,6 +200,19 @@ function calendar_link(int $year, int $month, int $day = 0, ?string $category = 
     return url('activities/calendar.php?' . http_build_query($query));
 }
 
+/** '2 activities, 1 invitation'; a zero part is left out; 'no activities' when both are zero. */
+function calendar_counts(int $activities, int $invitations): string
+{
+    $parts = [];
+    if ($activities > 0) {
+        $parts[] = $activities . ' activit' . ($activities === 1 ? 'y' : 'ies');
+    }
+    if ($invitations > 0) {
+        $parts[] = $invitations . ' invitation' . ($invitations === 1 ? '' : 's');
+    }
+    return $parts === [] ? 'no activities' : implode(', ', $parts);
+}
+
 /** '8:00 AM – 5:00 PM', '8:00 AM', or 'Day 2 of 3' on a later day of a long activity. */
 function calendar_when(array $event): string
 {
@@ -178,6 +227,9 @@ function calendar_when(array $event): string
 /** The written status a chip or agenda row must carry, or '' for an ordinary activity. */
 function calendar_status_word(array $event): string
 {
+    if ($event['kind'] === 'invitation') {
+        return $event['status'] === 'cancelled' ? 'Cancelled invitation' : 'Invitation';
+    }
     return match ($event['status']) {
         'cancelled' => 'Cancelled',
         'draft'     => 'Draft',
@@ -191,16 +243,17 @@ function calendar_agenda_item(array $event): string
     $status = (string) $event['status'];
     $mine   = (string) ($event['my_status'] ?? '');
     $html   = '<li class="cal-item' . ($status === 'cancelled' ? ' is-cancelled' : '') . ($status === 'draft' ? ' is-draft' : '')
-            . '" style="--cat: ' . e($event['color_hex'] ?: 'var(--navy)') . '">'
+            . ($event['kind'] === 'invitation' ? ' is-invitation' : '')
+            . '" style="--cat: ' . e($event['color_hex'] ?: ($event['kind'] === 'invitation' ? 'var(--ink-soft)' : 'var(--navy)')) . '">'
             . '<span class="cal-item-time">' . e(calendar_when($event)) . '</span>'
             . '<div class="cal-item-body">'
-            . '<a class="cal-item-title" href="' . e(url('activities/view.php?id=' . (int) $event['activity_id'])) . '">'
+            . '<a class="cal-item-title" href="' . e($event['href']) . '">'
             . e($event['title']) . '</a>'
             . ($event['venue'] ? '<p class="cal-item-meta">' . e($event['venue']) . '</p>' : '')
             . '<p class="cal-item-tags"><span class="cal-cat"><span class="cal-dot" aria-hidden="true"></span>'
             . e($event['category']) . '</span>';
     if (!in_array($status, ['upcoming'], true)) {
-        $html .= status_badge($status, 'activity');
+        $html .= status_badge($status, $event['domain']);
     }
     if ($mine !== '' && $mine !== 'withdrawn') {
         $html .= '<span class="cal-mine">You: ' . e(status_meta($mine, 'registration')[1]) . '</span>';
@@ -215,7 +268,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 <div class="page-head photo-band"<?= photo_band_style('cheerdance') ?>>
     <div>
         <h1><?= e($monthLabel) ?></h1>
-        <p><?= count($activities) ?> activit<?= count($activities) === 1 ? 'y' : 'ies' ?> this month<?= $categoryIn !== '' ? ' in this category' : '' ?></p>
+        <p><?= e(calendar_counts(count($activities), $invitationCount)) ?> this month<?= $categoryIn !== '' ? ' in this category' : '' ?></p>
     </div>
     <nav class="cal-stepper" aria-label="Change month">
         <a class="cal-step" href="<?= e(calendar_link($prevYear, $prevMonth)) ?>"
@@ -273,7 +326,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                                 <div class="cal-day-head">
                                     <?php // Every day can be chosen; the agenda then opens on it. ?>
                                     <a class="cal-daynum" href="<?= e(calendar_link($year, $month, $dayNumber)) ?>"
-                                       aria-label="<?= e(date('l j F', $ts)) ?><?= $isToday ? ', today' : '' ?>, <?= count($events) === 0 ? 'no activities' : count($events) . ' activit' . (count($events) === 1 ? 'y' : 'ies') ?>"
+                                       aria-label="<?= e(date('l j F', $ts)) ?><?= $isToday ? ', today' : '' ?>, <?php $dayInvitations = count(array_filter($events, static fn(array $ev): bool => $ev['kind'] === 'invitation')); ?><?= e(calendar_counts(count($events) - $dayInvitations, $dayInvitations)) ?>"
                                        <?= $isSelected ? 'aria-current="date"' : '' ?>><?= $dayNumber ?></a>
                                     <?php if ($isToday): ?><span class="cal-today-word" aria-hidden="true">Today</span><?php endif; ?>
                                 </div>
@@ -282,15 +335,15 @@ require __DIR__ . '/../../includes/layout/header.php';
                                     <?php // Phone: up to three category dots stand in for the chips. ?>
                                     <span class="cal-dots" aria-hidden="true">
                                         <?php foreach (array_slice($events, 0, 3) as $event): ?>
-                                            <span class="cal-dot" style="--cat: <?= e($event['color_hex'] ?: 'var(--navy)') ?>"></span>
+                                            <span class="cal-dot" style="--cat: <?= e($event['color_hex'] ?: ($event['kind'] === 'invitation' ? 'var(--ink-soft)' : 'var(--navy)')) ?>"></span>
                                         <?php endforeach; ?>
                                     </span>
 
                                     <?php foreach (array_slice($events, 0, CALENDAR_CHIPS_PER_DAY) as $event): ?>
                                         <?php $word = calendar_status_word($event); ?>
-                                        <a class="cal-chip<?= $event['status'] === 'cancelled' ? ' is-cancelled' : '' ?><?= $event['status'] === 'draft' ? ' is-draft' : '' ?>"
-                                           style="--cat: <?= e($event['color_hex'] ?: 'var(--navy)') ?>"
-                                           href="<?= url('activities/view.php?id=' . (int) $event['activity_id']) ?>"
+                                        <a class="cal-chip<?= $event['status'] === 'cancelled' ? ' is-cancelled' : '' ?><?= $event['status'] === 'draft' ? ' is-draft' : '' ?><?= $event['kind'] === 'invitation' ? ' is-invitation' : '' ?>"
+                                           style="--cat: <?= e($event['color_hex'] ?: ($event['kind'] === 'invitation' ? 'var(--ink-soft)' : 'var(--navy)')) ?>"
+                                           href="<?= e($event['href']) ?>"
                                            aria-label="<?= e($word !== '' ? $word . ': ' : '') ?><?= e($event['title']) ?>, <?= e($event['category']) ?>, <?= e(date('j F', $ts)) ?>, <?= e(calendar_when($event)) ?><?= $event['venue'] ? ', ' . e($event['venue']) : '' ?>">
                                             <span class="cal-chip-meta"><?= e($word !== '' ? $word : calendar_when($event)) ?></span>
                                             <span class="cal-chip-title"><?= e($event['title']) ?></span>
@@ -326,10 +379,10 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <ul class="cal-items"><?php foreach ($focusEvents as $event) { echo calendar_agenda_item($event); } ?></ul>
             <?php endif; ?>
         <?php else: ?>
-            <h2 id="cal-panel-title" class="cal-panel-title"><?= e($monthName) ?> <span><?= count($activities) ?> activit<?= count($activities) === 1 ? 'y' : 'ies' ?></span></h2>
+            <h2 id="cal-panel-title" class="cal-panel-title"><?= e($monthName) ?> <span><?= e(calendar_counts(count($activities), $invitationCount)) ?></span></h2>
         <?php endif; ?>
 
-        <?php if ($activities === []): ?>
+        <?php if ($byDay === []): ?>
             <div class="cal-panel-empty">
                 <strong>No activities in <?= e($monthName) ?><?= $categoryIn !== '' ? ' in this category' : '' ?>.</strong>
                 <?php if ($nextActivity !== null): ?>
@@ -353,7 +406,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                     <ul class="cal-items"><?php foreach ($events as $event) { echo calendar_agenda_item($event); } ?></ul>
                 </section>
             <?php endforeach; ?>
-        <?php elseif ($focusDate !== null && $activities !== []): ?>
+        <?php elseif ($focusDate !== null && $byDay !== []): ?>
             <p class="cal-panel-note">Nothing else later in <?= e($monthName) ?>.</p>
         <?php endif; ?>
 

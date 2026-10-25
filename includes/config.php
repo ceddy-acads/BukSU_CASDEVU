@@ -96,6 +96,7 @@ define('SESSION_IDLE_TIMEOUT',  60 * 60);              // 1 hour of inactivity
 // Failed attempts are counted per IP address from the audit log.
 define('LOGIN_MAX_ATTEMPTS',    8);
 define('LOGIN_LOCKOUT_MINUTES', 15);
+define('INVITATION_MAX_PER_HOUR', 5);   // per sender address and per email, public invitation form
 
 // ------------------------------------------------------------------- Email
 // 'smtp' — send through an SMTP account such as Gmail (real delivery)

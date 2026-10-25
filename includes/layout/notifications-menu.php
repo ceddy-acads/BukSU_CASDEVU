@@ -70,7 +70,7 @@ $notificationsOpen   = get('notifications') === 'open';
         <?php else: ?>
             <ul class="notif-list">
                 <?php foreach ($recentNotifications as $notification): ?>
-                    <?php [$typeIcon, $typeLabel] = notification_type_meta((string) $notification['type']); ?>
+                    <?php [$typeIcon, $typeLabel] = notification_type_meta((string) $notification['type'], (string) ($notification['link_url'] ?? '')); ?>
                     <li class="notice notif-item<?= $notification['is_read'] ? '' : ' is-new' ?>">
                         <span class="notice-icon notice-<?= e((string) $notification['type']) ?>"><?= icon($typeIcon) ?></span>
                         <div class="notice-body">

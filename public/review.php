@@ -4,10 +4,12 @@
  * first, across activities.
  *
  * Read-only. Each row links to the existing screen where the decision is
- * made (verify.php, participants.php, reservations.php, users.php), so the
+ * made (verify.php, participants.php, reservations.php, users.php,
+ * invitations/view.php), so the
  * approval rules, notifications, and audit logging all stay where they are.
  * Coordinators see only their assigned activities and the student equipment
- * requests for them; account approvals are office-only (includes/review.php).
+ * requests for them; account approvals and outside invitations are
+ * office-only (includes/review.php).
  */
 
 declare(strict_types=1);
@@ -20,6 +22,8 @@ $documents     = review_pending_documents();
 $registrations = review_pending_registrations();
 $reservations  = review_pending_reservations();
 $accounts      = review_pending_accounts();
+$invitations   = review_pending_invitations();
+$unsentInvitations = review_unsent_invitations();
 
 /** "Waiting 3 days", "Waiting since today": how long an item has sat. */
 function waiting_label(?string $since): string
@@ -46,6 +50,7 @@ $lanes['reservations'] = ['Reservations', is_office_staff()
     : 'Students asked to borrow equipment for your activities.'];
 if (is_office_staff()) {
     $lanes['accounts']     = ['Accounts', 'These people cannot sign in until their account is activated.'];
+    $lanes['invitations']  = ['Invitations', 'Outside groups invited BukSU students to these programs.'];
 }
 
 // Open on whatever the URL asked for, else the first lane that has work.
@@ -97,7 +102,7 @@ require __DIR__ . '/../includes/layout/header.php';
 <?php if ($counts['total'] === 0): ?>
     <div class="empty">
         <strong>You are all caught up</strong>
-        No documents, registrations<?= is_office_staff() ? ', reservations, or accounts' : ', or equipment requests' ?> are waiting for review.
+        No documents, registrations<?= is_office_staff() ? ', reservations, accounts, or invitations' : ', or equipment requests' ?> are waiting for review.
         <div class="btn-row">
             <a class="btn btn-outline" href="<?= url('activities/index.php') ?>">Go to activities</a>
         </div>
@@ -276,6 +281,80 @@ require __DIR__ . '/../includes/layout/header.php';
                                     <a class="btn btn-primary btn-sm"
                                        href="<?= url('admin/users.php?status=pending') ?>"
                                        aria-label="Review the account of <?= e($row['first_name'] . ' ' . $row['last_name']) ?>">Review</a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+
+        <?php elseif ($lane === 'invitations'): ?>
+            <?php if ($invitations === [] && $unsentInvitations === []): ?>
+                <div class="empty">
+                    <strong>No invitations waiting</strong>
+                    Invitations from outside groups appear here as soon as they are sent from the public form.
+                </div>
+            <?php endif; ?>
+            <?php if ($invitations !== []): ?>
+                <div class="table-wrap">
+                    <table class="data table-stack" data-sortable>
+                        <thead>
+                            <tr><th data-sort="text">From</th><th data-sort="text">Program</th><th data-sort="number">When</th><th data-sort="number">Received</th>
+                                <th class="actions"><span class="sr-only">Action</span></th></tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($invitations as $row): ?>
+                            <tr>
+                                <td data-label="From">
+                                    <strong><?= e($row['organization']) ?></strong>
+                                    <div class="hint"><?= e($row['contact_name']) ?></div>
+                                </td>
+                                <td data-label="Program">
+                                    <?= e($row['title']) ?>
+                                    <?php if ($row['place']): ?><div class="hint"><?= e($row['place']) ?></div><?php endif; ?>
+                                    <?php if ($row['has_letter']): ?><div class="hint">Letter attached</div><?php endif; ?>
+                                </td>
+                                <td data-label="When" data-sort-value="<?= (int) strtotime((string) $row['start_at']) ?>"><?= e(invitation_when($row)) ?></td>
+                                <td data-label="Received" data-sort-value="<?= (int) strtotime((string) $row['created_at']) ?>"><?= e(waiting_label($row['created_at'])) ?></td>
+                                <td class="actions">
+                                    <a class="btn btn-primary btn-sm"
+                                       href="<?= url('invitations/view.php?id=' . (int) $row['invitation_id']) ?>"
+                                       aria-label="Review the invitation from <?= e($row['organization']) ?>">Review</a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+            <?php if ($unsentInvitations !== []): ?>
+                <div class="card-head">
+                    <h2>Email not sent: contact by hand</h2>
+                    <p class="hint">The sender has not been told the decision. Reach them, then mark them as contacted.</p>
+                </div>
+                <div class="table-wrap">
+                    <table class="data table-stack" data-sortable>
+                        <thead>
+                            <tr><th data-sort="text">From</th><th data-sort="text">Decision</th><th>Contact</th>
+                                <th class="actions"><span class="sr-only">Action</span></th></tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($unsentInvitations as $row): ?>
+                            <tr>
+                                <td data-label="From">
+                                    <strong><?= e($row['organization']) ?></strong>
+                                    <div class="hint"><?= e($row['contact_name']) ?></div>
+                                </td>
+                                <td data-label="Decision"><?= status_badge($row['status'], 'invitation') ?></td>
+                                <td data-label="Contact">
+                                    <a href="mailto:<?= e($row['email']) ?>"><?= e($row['email']) ?></a>
+                                    <?php if ($row['phone']): ?><div class="hint"><a href="tel:<?= e($row['phone']) ?>"><?= e($row['phone']) ?></a></div><?php endif; ?>
+                                </td>
+                                <td class="actions">
+                                    <a class="btn btn-outline btn-sm"
+                                       href="<?= url('invitations/view.php?id=' . (int) $row['invitation_id']) ?>"
+                                       aria-label="Open the invitation from <?= e($row['organization']) ?>">Open</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

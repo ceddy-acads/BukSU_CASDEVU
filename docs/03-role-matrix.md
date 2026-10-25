@@ -87,6 +87,20 @@ Read highlight reports also works signed out (public page); a Guest account cann
 | Generate inventory report | ✘ | ✘ | ✘ | ✔ | ✔ |
 | Export / print reports | ✘ | ✘ | ◐ assigned only | ✔ | ✔ |
 
+## Invitations from outside groups
+
+| Action | Guest | Student | Coordinator | Staff | Admin |
+|--------|:-----:|:-------:|:-----------:|:-----:|:-----:|
+| Submit an invitation (public form, no account needed) | ✔ | ✔ | ✔ | ✔ | ✔ |
+| View posted invitations on the calendar and in detail | ✘ | ✘ | ✔ | ✔ | ✔ |
+| View pending or rejected invitations | ✘ | ✘ | ✘ | ✔ | ✔ |
+| Approve / reject / discard / cancel | ✘ | ✘ | ✘ | ✔ | ✔ |
+
+The submission form is public: anyone, signed in or not, may send an
+invitation. Everything after that is an explicit allow-list in
+`includes/invitations.php`. A role that is not named there sees nothing, so a
+new role must be added to it deliberately.
+
 ## Administration
 
 | Action | Guest | Student | Coordinator | Staff | Admin |
