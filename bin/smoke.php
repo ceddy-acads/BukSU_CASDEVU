@@ -410,6 +410,7 @@ function sign_in(string $base, string $role, string $credentials, int $timeout):
 // The page list
 //
 // allow:   roles that should get a successful response
+// query:   fixed query string added to every request
 // params:  query values; values are keys of $ids, or 'own_user'
 // tolerate: extra statuses that count as a pass (302 = page redirects)
 // optional: 404 is acceptable (detail pages whose demo record may not exist)
@@ -458,11 +459,15 @@ $pages = [
 
     ['path' => 'inventory/index.php',             'allow' => ['admin', 'staff', 'coordinator', 'student']],
     ['path' => 'inventory/reserve.php',           'allow' => ['admin', 'staff', 'coordinator']],
-    ['path' => 'inventory/reservations.php',      'allow' => ['admin', 'staff', 'coordinator']],
+    ['path' => 'inventory/reservations.php',      'allow' => ['admin', 'staff', 'coordinator', 'student']],
+    ['path' => 'inventory/borrow.php',            'allow' => ['student']],
     ['path' => 'inventory/borrowings.php',        'allow' => ['admin', 'staff']],
     ['path' => 'inventory/manage.php',            'allow' => ['admin', 'staff']],
     ['path' => 'inventory/photo.php',             'allow' => ['admin', 'staff', 'coordinator', 'student'],
      'params' => ['id' => 'item'], 'optional' => true, 'binary' => true],
+
+    ['path' => 'id-photo.php',                    'allow' => ['student'], 'query' => 'side=front',
+     'params' => ['user' => 'own_user'], 'optional' => true, 'binary' => true],
 
     ['path' => 'announcements/index.php',         'allow' => ['admin', 'staff', 'coordinator', 'student']],
     ['path' => 'announcements/manage.php',        'allow' => ['admin', 'staff', 'coordinator']],
@@ -593,7 +598,7 @@ foreach (array_keys($jars) as $role) {
 foreach ($pages as $page) {
     foreach ($jars as $role => $jar) {
         // Query values are resolved per role, because "own user id" differs.
-        $pairs = [];
+        $pairs = isset($page['query']) ? [$page['query']] : [];
         foreach ($page['params'] ?? [] as $name => $idKey) {
             $id = $idKey === 'own_user' ? ($ownUserIds[$role] ?? 0) : ($ids[$idKey] ?? 0);
             if ($id > 0) {
@@ -661,6 +666,37 @@ foreach ($pages as $page) {
         } else {
             fail($label . ': ' . $problem);
         }
+    }
+}
+
+// A student who is not the owner must not get Andrea's ID photo (404 whether
+// or not one is on file, so this passes trivially until a photo is uploaded).
+section('ID photo privacy');
+$otherStudent = 'bryan.reyes@student.buksu.edu.ph:demo1234';
+// Check the account first: sign_in() reports a failure itself.
+$otherJar = db_value($pdo, 'SELECT 1 FROM users WHERE email = ?', [account_email($otherStudent)])
+    ? sign_in($options['base'], 'student', $otherStudent, $options['timeout']) : null;
+if ($otherJar === null) {
+    echo "  [skip]  second student account not available
+";
+} else {
+    $checks++;
+    $r = http_request($options['base'] . '/id-photo.php?side=front&user=' . $studentUserId, $otherJar, null, $options['timeout']);
+    $r['status'] === 404
+        ? ok('id-photo.php as another student: 404')
+        : fail('id-photo.php as another student: HTTP ' . $r['status'] . ' (expected 404)');
+
+    // Profile photos are served to their owner and the office only.
+    $photoOwner = db_value($pdo, 'SELECT user_id FROM users WHERE photo_path IS NOT NULL AND email <> ? LIMIT 1',
+        [account_email($otherStudent)]);
+    if ($photoOwner === null) {
+        echo "  [skip]  no other user has a profile photo\n";
+    } else {
+        $checks++;
+        $r = http_request($options['base'] . '/profile-photo.php?id=' . (int) $photoOwner, $otherJar, null, $options['timeout']);
+        $r['status'] === 404
+            ? ok("profile-photo.php for someone else's photo, as a student: 404")
+            : fail("profile-photo.php for someone else's photo, as a student: HTTP " . $r['status'] . ' (expected 404)');
     }
 }
 

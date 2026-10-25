@@ -48,6 +48,17 @@ function attention_items(): array
                 'action'  => 'Open the review queue',
             ];
         }
+        if (!is_office_staff() && $counts['reservations'] > 0) {   // the office has its own reservation item below
+            $items[] = [
+                'tone'    => 'warning',
+                'icon'    => 'inventory',
+                'title'   => 'Equipment requests',
+                'message' => $counts['reservations'] . ' student request' . ($counts['reservations'] === 1 ? ' is' : 's are')
+                             . ' waiting for your decision.',
+                'href'    => 'review.php?lane=reservations',
+                'action'  => 'Open the review queue',
+            ];
+        }
     }
 
     if (is_office_staff()) {

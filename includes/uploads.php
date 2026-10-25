@@ -249,3 +249,37 @@ function strip_jpeg_metadata(string $path): bool
 
     return false;                        // no image data found
 }
+
+/**
+ * Validate and store one side of a school ID: JPG or PNG only, within the
+ * normal upload limit, with JPG metadata removed.
+ *
+ * @param  array<string, mixed> $file One entry from $_FILES
+ * @return array{ok: bool, error?: string, path?: string}
+ */
+function store_id_photo(array $file): array
+{
+    $stored = store_upload($file, 'id-photos');
+    if (!$stored['ok']) {
+        return ['ok' => false, 'error' => match ($stored['error']) {
+            'No file was selected.'                      => 'Choose a photo first.',
+            'Only PDF, JPG, and PNG files are accepted.' => 'Choose a JPG or PNG image.',
+            default                                      => $stored['error'],
+        }];
+    }
+
+    if (!in_array($stored['mime'], ['image/jpeg', 'image/png'], true)) {
+        delete_upload($stored['path']);
+        return ['ok' => false, 'error' => 'Choose a JPG or PNG image.'];
+    }
+
+    if ($stored['mime'] === 'image/jpeg') {
+        $absolute = upload_absolute_path($stored['path']);
+        if ($absolute === null || !strip_jpeg_metadata($absolute)) {
+            delete_upload($stored['path']);
+            return ['ok' => false, 'error' => 'That photo could not be read. Try another JPG or PNG.'];
+        }
+    }
+
+    return ['ok' => true, 'path' => $stored['path']];
+}

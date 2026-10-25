@@ -43,6 +43,7 @@ $navSection = match (true) {
     $currentFile === 'calendar.php'                             => 'calendar',
     $currentDir === 'activities'                                => 'activities',
     $currentDir === 'announcements'                             => 'announcements',
+    $currentDir === 'inventory' && $isStudent && in_array($currentFile, ['reservations.php', 'borrow.php'], true) => 'borrow-requests',
     $currentDir === 'inventory'                                 => 'inventory',
     $currentDir === 'reports'                                   => 'reports',
     $currentDir === 'admin'                                     => pathinfo($currentFile, PATHINFO_FILENAME),
@@ -66,6 +67,7 @@ $sections = [
     'reports'         => ['Reports', 'reports/index.php'],
     'my-activities'   => ['My activities', 'participation/my-activities.php'],
     'my-requirements' => ['My requirements', 'requirements/mine.php'],
+    'borrow-requests' => ['My borrow requests', 'inventory/reservations.php'],
     'users'           => [has_role('admin') ? 'Users' : 'Accounts', 'admin/users.php'],
     'venues'          => ['Venues', 'admin/venues.php'],
     'reminders'       => ['Reminders', 'admin/reminders.php'],
@@ -136,6 +138,7 @@ $initials = $user
                 <?= nav_link('announcements', 'announcements/index.php', 'Announcements', $navSection) ?>
                 <?php if ($isStudent): ?>
                     <?= nav_link('inventory', 'inventory/index.php', 'Costumes & equipment', $navSection) ?>
+                    <?= nav_link('borrow-requests', 'inventory/reservations.php', 'My borrow requests', $navSection) ?>
                 <?php endif; ?>
             </div>
 

@@ -56,6 +56,7 @@ if (is_post()) {
     $condition  = post('condition_note');
     $location   = post('storage_location');
     $statusIn   = post('status', 'available');
+    $requestable = post('student_requestable') === '1' ? 1 : 0; // unticked box is absent from POST
 
     if ($name === '')      { $errors[] = 'Item name is required.'; }
     if ($itemCode === '')  { $errors[] = 'Item code is required.'; }
@@ -118,7 +119,7 @@ if (is_post()) {
                 'UPDATE inventory_items
                     SET inv_category_id = ?, item_code = ?, name = ?, description = ?, size = ?,
                         unit = ?, quantity_total = ?, condition_note = ?, storage_location = ?, status = ?,
-                        photo_path = ?
+                        photo_path = ?, student_requestable = ?
                   WHERE item_id = ?',
                 [
                     (int) $categoryIn, $itemCode, $name,
@@ -128,7 +129,7 @@ if (is_post()) {
                     (int) $quantityIn,
                     $condition !== '' ? $condition : null,
                     $location !== '' ? $location : null,
-                    $statusIn, $photoPath, $itemId,
+                    $statusIn, $photoPath, $requestable, $itemId,
                 ]
             );
             if ($photoPath !== $currentPhoto) {
@@ -143,8 +144,8 @@ if (is_post()) {
         query(
             'INSERT INTO inventory_items
                  (inv_category_id, item_code, name, description, size, unit,
-                  quantity_total, condition_note, storage_location, status, photo_path)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                  quantity_total, condition_note, storage_location, status, photo_path, student_requestable)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 (int) $categoryIn, $itemCode, $name,
                 $description !== '' ? $description : null,
@@ -153,7 +154,7 @@ if (is_post()) {
                 (int) $quantityIn,
                 $condition !== '' ? $condition : null,
                 $location !== '' ? $location : null,
-                $statusIn, $newPhoto,
+                $statusIn, $newPhoto, $requestable,
             ]
         );
         $newId = (int) db()->lastInsertId();
@@ -276,6 +277,14 @@ require __DIR__ . '/../../includes/layout/header.php';
                 Available, reserved, and borrowed are kept up to date automatically as items move.
                 Set damaged, under maintenance, or unavailable by hand.
             </div>
+        </div>
+
+        <div class="form-row">
+            <label class="check">
+                <input type="checkbox" name="student_requestable" value="1"
+                    <?= (is_post() ? post('student_requestable') === '1' : (int) ($item['student_requestable'] ?? 1) === 1) ? 'checked' : '' ?>>
+                Students may request this item
+            </label>
         </div>
 
         <div class="form-row">
