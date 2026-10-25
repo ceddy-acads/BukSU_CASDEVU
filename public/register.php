@@ -53,6 +53,8 @@ if (is_post() && $as === 'student') {
         $errors[] = 'Course and year level are required.';
     } elseif (!in_array($courseId, array_map(static fn(array $c): string => (string) $c['course_id'], $courses), true)) {
         $errors[] = 'Choose a course from the list.';
+    } elseif (!in_array($yearLevelId, array_map(static fn(array $y): string => (string) $y['year_level_id'], $yearLevels), true)) {
+        $errors[] = 'Choose a year level from the list.';
     }
     if (($passwordProblem = password_error($password)) !== null) {
         $errors[] = $passwordProblem;
@@ -60,6 +62,15 @@ if (is_post() && $as === 'student') {
     if ($password !== $passwordAgain) {
         $errors[] = 'The two passwords do not match.';
     }
+    $errors = array_merge($errors, length_errors([
+        'Student number' => [$studentNumber, 30],
+        'First name'     => [$firstName, 80],
+        'Middle name'    => [$middleName, 80],
+        'Last name'      => [$lastName, 80],
+        'Email address'  => [$email, 150],
+        'Contact number' => [$contactNumber, 30],
+        'Section'        => [$section, 20],
+    ]));
 
     // Uniqueness — the database also enforces this, but a clear message beats
     // a constraint violation. One message whichever is taken: it reads better
@@ -142,6 +153,13 @@ if (is_post() && $as === 'guest') {
     if ($password !== $passwordAgain) {
         $errors[] = 'The two passwords do not match.';
     }
+    $errors = array_merge($errors, length_errors([
+        'First name'     => [$firstName, 80],
+        'Middle name'    => [$middleName, 80],
+        'Last name'      => [$lastName, 80],
+        'Email address'  => [$email, 150],
+        'Contact number' => [$contactNumber, 30],
+    ]));
 
     if ($errors === [] && fetch_value('SELECT 1 FROM users WHERE email = ? LIMIT 1', [$email])) {
         $errors[] = 'An account with this email address already exists. '
@@ -235,27 +253,27 @@ require __DIR__ . '/../includes/layout/portal-header.php';
         <div class="form-grid form-grid-2">
             <div class="form-row">
                 <label for="first_name">First name <span class="req">*</span></label>
-                <input type="text" id="first_name" name="first_name"
+                <input type="text" id="first_name" name="first_name" maxlength="80"
                        value="<?= e(old('first_name')) ?>" autocomplete="given-name" required>
             </div>
             <div class="form-row">
                 <label for="last_name">Last name <span class="req">*</span></label>
-                <input type="text" id="last_name" name="last_name"
+                <input type="text" id="last_name" name="last_name" maxlength="80"
                        value="<?= e(old('last_name')) ?>" autocomplete="family-name" required>
             </div>
             <div class="form-row">
                 <label for="middle_name">Middle name <span class="optional">(optional)</span></label>
-                <input type="text" id="middle_name" name="middle_name"
+                <input type="text" id="middle_name" name="middle_name" maxlength="80"
                        value="<?= e(old('middle_name')) ?>" autocomplete="additional-name">
             </div>
             <div class="form-row">
                 <label for="email">Email address <span class="req">*</span></label>
-                <input type="email" id="email" name="email"
+                <input type="email" id="email" name="email" maxlength="150"
                        value="<?= e(old('email')) ?>" autocomplete="username" required>
             </div>
             <div class="form-row">
                 <label for="contact_number">Contact number <span class="req">*</span></label>
-                <input type="tel" id="contact_number" name="contact_number"
+                <input type="tel" id="contact_number" name="contact_number" maxlength="30"
                        value="<?= e(old('contact_number')) ?>" autocomplete="tel" required>
             </div>
         </div>
@@ -276,17 +294,17 @@ require __DIR__ . '/../includes/layout/portal-header.php';
         <div class="form-grid form-grid-2">
             <div class="form-row">
                 <label for="first_name">First name <span class="req">*</span></label>
-                <input type="text" id="first_name" name="first_name"
+                <input type="text" id="first_name" name="first_name" maxlength="80"
                        value="<?= e(old('first_name')) ?>" autocomplete="given-name" required>
             </div>
             <div class="form-row">
                 <label for="last_name">Last name <span class="req">*</span></label>
-                <input type="text" id="last_name" name="last_name"
+                <input type="text" id="last_name" name="last_name" maxlength="80"
                        value="<?= e(old('last_name')) ?>" autocomplete="family-name" required>
             </div>
             <div class="form-row">
                 <label for="middle_name">Middle name <span class="optional">(optional)</span></label>
-                <input type="text" id="middle_name" name="middle_name"
+                <input type="text" id="middle_name" name="middle_name" maxlength="80"
                        value="<?= e(old('middle_name')) ?>" autocomplete="additional-name">
             </div>
         </div>
@@ -297,17 +315,17 @@ require __DIR__ . '/../includes/layout/portal-header.php';
         <div class="form-grid form-grid-2">
             <div class="form-row">
                 <label for="student_number">Student number <span class="req">*</span></label>
-                <input type="text" id="student_number" name="student_number"
+                <input type="text" id="student_number" name="student_number" maxlength="30"
                        value="<?= e(old('student_number')) ?>" required>
             </div>
             <div class="form-row">
                 <label for="email">Email address <span class="req">*</span></label>
-                <input type="email" id="email" name="email"
+                <input type="email" id="email" name="email" maxlength="150"
                        value="<?= e(old('email')) ?>" autocomplete="username" required>
             </div>
             <div class="form-row">
                 <label for="contact_number">Contact number <span class="optional">(optional)</span></label>
-                <input type="tel" id="contact_number" name="contact_number"
+                <input type="tel" id="contact_number" name="contact_number" maxlength="30"
                        value="<?= e(old('contact_number')) ?>" autocomplete="tel">
             </div>
         </div>
@@ -337,7 +355,7 @@ require __DIR__ . '/../includes/layout/portal-header.php';
             </div>
             <div class="form-row">
                 <label for="section">Section <span class="optional">(optional)</span></label>
-                <input type="text" id="section" name="section" value="<?= e(old('section')) ?>">
+                <input type="text" id="section" name="section" maxlength="20" value="<?= e(old('section')) ?>">
             </div>
         </div>
     </div>

@@ -48,6 +48,12 @@ if (is_post()) {
         } elseif (mb_strlen($form['connection_note']) > 500) {
             $addErrors[] = 'The connection to the unit must be 500 characters or fewer.';
         }
+        $addErrors = array_merge($addErrors, length_errors([
+            'First name'     => [$form['first_name'], 80],
+            'Last name'      => [$form['last_name'], 80],
+            'Email address'  => [$form['email'], 150],
+            'Contact number' => [$form['contact_number'], 30],
+        ]));
         if ($addErrors === [] && fetch_value('SELECT 1 FROM users WHERE email = ? LIMIT 1', [$form['email']])) {
             $addErrors[] = 'An account with this email address already exists.';
         }
@@ -338,19 +344,19 @@ require __DIR__ . '/../../includes/layout/header.php';
         <div class="form-grid form-grid-2">
             <div class="form-row">
                 <label for="first_name">First name <span class="req">*</span></label>
-                <input type="text" id="first_name" name="first_name" value="<?= e($form['first_name']) ?>" required>
+                <input type="text" id="first_name" name="first_name" maxlength="80" value="<?= e($form['first_name']) ?>" required>
             </div>
             <div class="form-row">
                 <label for="last_name">Last name <span class="req">*</span></label>
-                <input type="text" id="last_name" name="last_name" value="<?= e($form['last_name']) ?>" required>
+                <input type="text" id="last_name" name="last_name" maxlength="80" value="<?= e($form['last_name']) ?>" required>
             </div>
             <div class="form-row">
                 <label for="email">Email address <span class="req">*</span></label>
-                <input type="email" id="email" name="email" value="<?= e($form['email']) ?>" required>
+                <input type="email" id="email" name="email" maxlength="150" value="<?= e($form['email']) ?>" required>
             </div>
             <div class="form-row">
                 <label for="contact_number">Contact number <span class="req">*</span></label>
-                <input type="tel" id="contact_number" name="contact_number" value="<?= e($form['contact_number']) ?>" required>
+                <input type="tel" id="contact_number" name="contact_number" maxlength="30" value="<?= e($form['contact_number']) ?>" required>
             </div>
         </div>
         <div class="form-row">

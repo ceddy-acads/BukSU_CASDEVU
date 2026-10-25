@@ -69,6 +69,13 @@ if (is_post()) {
         if ($firstName === '' || $lastName === '') {
             $errors[] = 'First name and last name are required.';
         }
+        $errors = array_merge($errors, length_errors([
+            'First name'     => [$firstName, 80],
+            'Middle name'    => [$middleName, 80],
+            'Last name'      => [$lastName, 80],
+            'Contact number' => [$contactNumber, 30],
+            'Section'        => [$section, 20],
+        ]));
 
         if ($errors === []) {
             query(
@@ -214,22 +221,22 @@ require __DIR__ . '/../includes/layout/header.php';
                     <div class="form-grid form-grid-2">
                         <div class="form-row">
                             <label for="first_name">First name <span class="req">*</span></label>
-                            <input type="text" id="first_name" name="first_name"
+                            <input type="text" id="first_name" name="first_name" maxlength="80"
                                    value="<?= e(post('first_name', (string) $user['first_name'])) ?>" required autocomplete="given-name">
                         </div>
                         <div class="form-row">
                             <label for="last_name">Last name <span class="req">*</span></label>
-                            <input type="text" id="last_name" name="last_name"
+                            <input type="text" id="last_name" name="last_name" maxlength="80"
                                    value="<?= e(post('last_name', (string) $user['last_name'])) ?>" required autocomplete="family-name">
                         </div>
                         <div class="form-row">
                             <label for="middle_name">Middle name <span class="optional">(optional)</span></label>
-                            <input type="text" id="middle_name" name="middle_name"
+                            <input type="text" id="middle_name" name="middle_name" maxlength="80"
                                    value="<?= e(post('middle_name', (string) $user['middle_name'])) ?>" autocomplete="additional-name">
                         </div>
                         <div class="form-row">
                             <label for="contact_number">Contact number <span class="optional">(optional)</span></label>
-                            <input type="tel" id="contact_number" name="contact_number"
+                            <input type="tel" id="contact_number" name="contact_number" maxlength="30"
                                    value="<?= e(post('contact_number', (string) $user['contact_number'])) ?>" autocomplete="tel">
                         </div>
                     </div>
@@ -258,7 +265,7 @@ require __DIR__ . '/../includes/layout/header.php';
                         </div>
                         <div class="form-row">
                             <label for="section">Section</label>
-                            <input type="text" id="section" name="section" value="<?= e(post('section', (string) $user['section'])) ?>">
+                            <input type="text" id="section" name="section" maxlength="20" value="<?= e(post('section', (string) $user['section'])) ?>">
                         </div>
                     <?php endif; ?>
 

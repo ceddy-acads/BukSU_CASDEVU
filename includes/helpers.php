@@ -206,6 +206,22 @@ function password_error(string $password): ?string
     return 'Your password needs ' . ($missing === [] ? $last : implode(', ', $missing) . ' and ' . $last) . '.';
 }
 
+/**
+ * One message per field longer than its column allows, keyed as
+ * label => [value, limit]. Without this check a non-strict MySQL quietly cuts
+ * the value and a strict one fails the insert.
+ */
+function length_errors(array $fields): array
+{
+    $errors = [];
+    foreach ($fields as $label => [$value, $limit]) {
+        if (mb_strlen($value) > $limit) {
+            $errors[] = $label . ' must be ' . $limit . ' characters or fewer.';
+        }
+    }
+    return $errors;
+}
+
 // =====================================================================
 // Reaching people
 // =====================================================================
