@@ -42,6 +42,17 @@ if (is_post()) {
             flash('error', 'An expected return date is required.');
             redirect('inventory/borrowings.php');
         }
+        $expectedTs = strtotime($expectedBack);
+        if ($expectedTs === false) {
+            flash('error', 'Enter a valid expected return date.');
+            redirect('inventory/borrowings.php');
+        }
+        // The date picker works in whole minutes, so compare to the current minute.
+        if ($expectedTs < strtotime(date('Y-m-d H:i'))) {
+            flash('error', 'The expected return cannot be in the past.');
+            redirect('inventory/borrowings.php');
+        }
+        $expectedBack = date('Y-m-d H:i:s', $expectedTs);
 
         // Cannot hand out more than is physically free.
         $free = quantity_available_now($itemId);
