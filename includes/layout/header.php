@@ -118,7 +118,7 @@ $initials = $user
                 <img class="brand-logo" src="<?= asset('img/buksu-logo-white.png') ?>" alt="" width="126" height="128">
                 <span class="brand-text">
                     <span class="brand-mark"><?= e(APP_NAME) ?></span>
-                    <span class="brand-sub"><?= e(UNIVERSITY) ?></span>
+                    <span class="brand-sub"><?= e(university_name()) ?></span>
                 </span>
             </a>
             <button type="button" class="icon-btn nav-close" data-nav-close aria-label="Close menu">

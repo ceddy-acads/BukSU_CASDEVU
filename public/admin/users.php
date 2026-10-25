@@ -157,7 +157,7 @@ if (is_post() && post('action') !== 'add_guest') {
                         : 'You can now sign in and register for culture, arts, and sports activities:')
                     . PHP_EOL . PHP_EOL
                     . '  ' . absolute_url(url('login.php')) . PHP_EOL . PHP_EOL
-                    . OFFICE_NAME . PHP_EOL . UNIVERSITY
+                    . office_name() . PHP_EOL . university_name()
                 );
             }
             flash('success', full_name($target) . ' can now sign in.');
@@ -191,7 +191,7 @@ if (is_post() && post('action') !== 'add_guest') {
                     'Hi ' . $declined['first_name'] . ',' . PHP_EOL . PHP_EOL
                     . 'The office could not approve your ' . APP_NAME . ' account. If you think this is a '
                     . 'mistake, please contact the office' . office_contact_hint() . '.' . PHP_EOL . PHP_EOL
-                    . OFFICE_NAME . PHP_EOL . UNIVERSITY
+                    . office_name() . PHP_EOL . university_name()
                 );
             }
             flash('success', 'Sign-up declined for ' . full_name($target) . '. It is no longer awaiting approval.');

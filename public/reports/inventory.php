@@ -97,7 +97,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 </div>
 
 <div class="report-meta">
-    <strong><?= e(UNIVERSITY) ?></strong> &middot; <?= e(OFFICE_NAME) ?><br>
+    <strong><?= e(university_name()) ?></strong> &middot; <?= e(office_name()) ?><br>
     Inventory report generated <?= e(format_datetime(date('Y-m-d H:i:s'))) ?>
     by <?= e(full_name(current_user())) ?>
 </div>
