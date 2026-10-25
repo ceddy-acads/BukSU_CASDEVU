@@ -325,8 +325,10 @@ function bar_chart(string $title, string $caption, array $rows, bool $withLegend
 /**
  * Registrations received per month, oldest month first, split into
  * accepted (approved or completed), waiting, and declined (rejected or
- * withdrawn). Every month in the window has a row, so a quiet month shows
- * as an empty bar rather than disappearing.
+ * withdrawn). The chart starts at the first month with a registration
+ * (empty months before it only pushed the data down, UX audit F16); from
+ * there every month has a row, so a quiet month shows as an empty bar
+ * rather than disappearing. No registrations at all gives no rows.
  */
 function registration_trend_rows(int $months = 6): array
 {
@@ -356,6 +358,9 @@ function registration_trend_rows(int $months = 6): array
             ['value' => (int) $row['waiting'],  'tone' => 'warning', 'name' => 'waiting for review'],
             ['value' => (int) $row['declined'], 'tone' => 'muted',   'name' => 'rejected or withdrawn'],
         ]];
+    }
+    while ($rows !== [] && array_sum(array_column($rows[0]['segments'], 'value')) === 0) {
+        array_shift($rows);
     }
     return $rows;
 }

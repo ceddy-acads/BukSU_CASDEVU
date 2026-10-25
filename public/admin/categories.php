@@ -165,7 +165,7 @@ require __DIR__ . '/../../includes/layout/header.php';
         <p>Activity categories drive the calendar colours and filters; inventory categories group the catalog.</p>
     </div>
     <div class="btn-row">
-        <a class="btn btn-outline" href="<?= url('admin/users.php') ?>">User accounts</a>
+        <a class="btn btn-outline" href="<?= url('admin/users.php') ?>">Accounts</a>
     </div>
 </div>
 

@@ -315,7 +315,7 @@ $users = fetch_all(
 
 $roles        = fetch_all('SELECT role_id, name FROM roles ORDER BY role_id');
 
-$pageTitle = 'User accounts';
+$pageTitle = 'Accounts';
 require __DIR__ . '/../../includes/layout/header.php';
 ?>
 
@@ -323,7 +323,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 
 <div class="page-head">
     <div>
-        <h1>User accounts</h1>
+        <h1>Accounts</h1>
         <p data-live-region="summary"><?= $total ?> account<?= $total === 1 ? '' : 's' ?><?= $isFiltered ? ' match these filters' : '' ?>. Approve new sign-ups and manage who can sign in.</p>
     </div>
     <?php if ($isAdmin): ?>

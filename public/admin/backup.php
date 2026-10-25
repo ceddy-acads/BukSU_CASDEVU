@@ -125,7 +125,7 @@ require __DIR__ . '/../../includes/layout/header.php';
            Take a backup before any large change to the data.</p>
     </div>
     <div class="btn-row">
-        <a class="btn btn-outline" href="<?= url('admin/audit.php') ?>">Audit trail</a>
+        <a class="btn btn-outline" href="<?= url('admin/audit.php') ?>">Audit log</a>
     </div>
 </div>
 

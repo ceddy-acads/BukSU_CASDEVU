@@ -122,17 +122,17 @@ function audit_action_badge(string $action): string
          . e(ucwords(str_replace('_', ' ', $action))) . '</span>';
 }
 
-$pageTitle = 'Audit trail';
+$pageTitle = 'Audit log';
 require __DIR__ . '/../../includes/layout/header.php';
 ?>
 
 <div class="page-head">
     <div>
-        <h1>Audit trail</h1>
+        <h1>Audit log</h1>
         <p><?= number_format($total) ?> matching entr<?= $total === 1 ? 'y' : 'ies' ?>, newest first<?= $pages > 1 ? '. Page ' . $page . ' of ' . $pages : '' ?>.</p>
     </div>
     <div class="btn-row">
-        <a class="btn btn-outline" href="<?= url('admin/users.php') ?>">User accounts</a>
+        <a class="btn btn-outline" href="<?= url('admin/users.php') ?>">Accounts</a>
     </div>
 </div>
 

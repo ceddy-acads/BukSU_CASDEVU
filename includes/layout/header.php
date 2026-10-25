@@ -70,7 +70,7 @@ $sections = [
     'my-activities'   => ['My activities', 'participation/my-activities.php'],
     'my-requirements' => ['My requirements', 'requirements/mine.php'],
     'borrow-requests' => ['My borrow requests', 'inventory/reservations.php'],
-    'users'           => [has_role('admin') ? 'Users' : 'Accounts', 'admin/users.php'],
+    'users'           => ['Accounts', 'admin/users.php'],
     'venues'          => ['Venues', 'admin/venues.php'],
     'reminders'       => ['Reminders', 'admin/reminders.php'],
     'categories'      => ['Categories', 'admin/categories.php'],
@@ -156,7 +156,7 @@ $initials = $user
             <?php if (has_role('staff', 'admin')): ?>
                 <div class="nav-group">
                     <p class="nav-group-title">Administration</p>
-                    <?= nav_link('users', 'admin/users.php', has_role('admin') ? 'Users' : 'Accounts', $navSection) ?>
+                    <?= nav_link('users', 'admin/users.php', 'Accounts', $navSection) ?>
                     <?= nav_link('venues', 'admin/venues.php', 'Venues', $navSection) ?>
                     <?= nav_link('reminders', 'admin/reminders.php', 'Reminders', $navSection) ?>
                     <?php if (has_role('admin')): ?>
