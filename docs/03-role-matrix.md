@@ -5,99 +5,105 @@ Authoritative source for authorization. Every controller must check these
 
 Legend: **✔** full · **◐** limited (see note) · **✘** none
 
+Guests are people outside the student body, such as parents and outside
+coaches. Activities and the calendar are schedule-only for them: no
+registration, requirements, inventory, participant lists or reports.
+
 ---
 
 ## Activities
 
-| Action | Student | Coordinator | Staff | Admin |
-|--------|:-------:|:-----------:|:-----:|:-----:|
-| View published activities | ✔ | ✔ | ✔ | ✔ |
-| View draft activities | ✘ | ◐ own | ✔ | ✔ |
-| Create activity | ✘ | ✘ | ✔ | ✔ |
-| Edit activity | ✘ | ◐ assigned only | ✔ | ✔ |
-| Change activity status | ✘ | ◐ assigned only | ✔ | ✔ |
-| Delete activity | ✘ | ✘ | ✘ | ✔ |
-| Assign coordinators | ✘ | ✘ | ✔ | ✔ |
+| Action | Guest | Student | Coordinator | Staff | Admin |
+|--------|:-----:|:-------:|:-----------:|:-----:|:-----:|
+| View published activities | ✔ | ✔ | ✔ | ✔ | ✔ |
+| View draft activities | ✘ | ✘ | ◐ own | ✔ | ✔ |
+| Create activity | ✘ | ✘ | ✘ | ✔ | ✔ |
+| Edit activity | ✘ | ✘ | ◐ assigned only | ✔ | ✔ |
+| Change activity status | ✘ | ✘ | ◐ assigned only | ✔ | ✔ |
+| Delete activity | ✘ | ✘ | ✘ | ✘ | ✔ |
+| Assign coordinators | ✘ | ✘ | ✘ | ✔ | ✔ |
 
 ## Highlights
 
 | Action | Student | Coordinator | Staff | Admin |
 |--------|:-------:|:-----------:|:-----:|:-----:|
-| Upload / replace / delete a highlight report | ✘ | ◐ assigned only | ✔ | ✔ |
-| Read highlight reports | ✔ | ✔ | ✔ | ✔ |
+| Upload / replace / delete a highlight report | ✘ | ✘ | ◐ assigned only | ✔ | ✔ |
+| Read highlight reports | ✔ | ✔ | ✔ | ✔ | ✔ |
 
 Read highlight reports also works signed out (public page); a Guest account cannot upload.
 
 ## Participation
 
-| Action | Student | Coordinator | Staff | Admin |
-|--------|:-------:|:-----------:|:-----:|:-----:|
-| Register for an activity | ✔ | ✘ | ✘ | ✘ |
-| Withdraw own registration | ◐ before approval | ✘ | ✘ | ✘ |
-| View own registration status | ✔ | — | — | — |
-| View participant list | ✘ | ◐ assigned only | ✔ | ✔ |
-| Approve / reject registration | ✘ | ◐ assigned only | ✔ | ✔ |
-| Mark attendance | ✘ | ◐ assigned only | ✔ | ✔ |
+| Action | Guest | Student | Coordinator | Staff | Admin |
+|--------|:-----:|:-------:|:-----------:|:-----:|:-----:|
+| Register for an activity | ✘ | ✔ | ✘ | ✘ | ✘ |
+| Withdraw own registration | ✘ | ◐ before approval | ✘ | ✘ | ✘ |
+| View own registration status | ✘ | ✔ | — | — | — |
+| View participant list | ✘ | ✘ | ◐ assigned only | ✔ | ✔ |
+| Approve / reject registration | ✘ | ✘ | ◐ assigned only | ✔ | ✔ |
+| Mark attendance | ✘ | ✘ | ◐ assigned only | ✔ | ✔ |
 
 ## Requirements
 
-| Action | Student | Coordinator | Staff | Admin |
-|--------|:-------:|:-----------:|:-----:|:-----:|
-| Define activity requirements | ✘ | ◐ assigned only | ✔ | ✔ |
-| Upload own requirement file | ✔ | ✘ | ✘ | ✘ |
-| View own submissions | ✔ | — | — | — |
-| View any student's submissions | ✘ | ◐ assigned only | ✔ | ✔ |
-| Verify / reject a submission | ✘ | ◐ assigned only | ✔ | ✔ |
+| Action | Guest | Student | Coordinator | Staff | Admin |
+|--------|:-----:|:-------:|:-----------:|:-----:|:-----:|
+| Define activity requirements | ✘ | ✘ | ◐ assigned only | ✔ | ✔ |
+| Upload own requirement file | ✘ | ✔ | ✘ | ✘ | ✘ |
+| View own submissions | ✘ | ✔ | — | — | — |
+| View any student's submissions | ✘ | ✘ | ◐ assigned only | ✔ | ✔ |
+| Verify / reject a submission | ✘ | ✘ | ◐ assigned only | ✔ | ✔ |
 
 ## Inventory
 
-| Action | Student | Coordinator | Staff | Admin |
-|--------|:-------:|:-----------:|:-----:|:-----:|
-| View catalog and availability | ✔ | ✔ | ✔ | ✔ |
-| Request a reservation | ◐ only for an activity where their registration is approved | ✔ | ✔ | ✔ |
-| Approve / reject reservation | ✘ | ◐ only student requests for assigned activities | ✔ | ✔ |
-| Record release (borrowing) | ✘ | ✘ | ✔ | ✔ |
-| Record return | ✘ | ✘ | ✔ | ✔ |
-| Add / edit / delete items | ✘ | ✘ | ✔ | ✔ |
-| View loans from student requests | ◐ own only | ◐ assigned activities only | ✔ | ✔ |
-| Mark an item office-only | ✘ | ✘ | ✔ | ✔ |
-| Upload / replace own ID photos | ✔ | ✘ | ✘ | ✘ |
-| View a student's ID photos | ◐ own only | ◐ only while that student's request for an assigned activity is pending | ◐ while the student has an approved request not yet collected, or a loan out | ◐ same as staff |
+| Action | Guest | Student | Coordinator | Staff | Admin |
+|--------|:-----:|:-------:|:-----------:|:-----:|:-----:|
+| View catalog and availability | ✘ | ✔ | ✔ | ✔ | ✔ |
+| Request a reservation | ✘ | ◐ only for an activity where their registration is approved | ✔ | ✔ | ✔ |
+| Approve / reject reservation | ✘ | ✘ | ◐ only student requests for assigned activities | ✔ | ✔ |
+| Record release (borrowing) | ✘ | ✘ | ✘ | ✔ | ✔ |
+| Record return | ✘ | ✘ | ✘ | ✔ | ✔ |
+| Add / edit / delete items | ✘ | ✘ | ✘ | ✔ | ✔ |
+| View loans from student requests | ✘ | ◐ own only | ◐ assigned activities only | ✔ | ✔ |
+| Mark an item office-only | ✘ | ✘ | ✘ | ✔ | ✔ |
+| Upload / replace own ID photos | ✘ | ✔ | ✘ | ✘ | ✘ |
+| View a student's ID photos | ✘ | ◐ own only | ◐ only while that student's request for an assigned activity is pending | ◐ while the student has an approved request not yet collected, or a loan out | ◐ same as staff |
 
 ## Announcements and Notifications
 
-| Action | Student | Coordinator | Staff | Admin |
-|--------|:-------:|:-----------:|:-----:|:-----:|
-| Read announcements | ✔ | ✔ | ✔ | ✔ |
-| Publish announcement | ✘ | ◐ own activity | ✔ | ✔ |
-| Delete any announcement | ✘ | ✘ | ✘ | ✔ |
-| Receive notifications | ✔ | ✔ | ✔ | ✔ |
+| Action | Guest | Student | Coordinator | Staff | Admin |
+|--------|:-----:|:-------:|:-----------:|:-----:|:-----:|
+| Read announcements | ✔ | ✔ | ✔ | ✔ | ✔ |
+| Publish announcement | ✘ | ✘ | ◐ own activity | ✔ | ✔ |
+| Delete any announcement | ✘ | ✘ | ✘ | ✘ | ✔ |
+| Receive notifications | ◐ account notices only | ✔ | ✔ | ✔ | ✔ |
 
 ## Records and Reports
 
-| Action | Student | Coordinator | Staff | Admin |
-|--------|:-------:|:-----------:|:-----:|:-----:|
-| View own participation history | ✔ | ✔ | ✔ | ✔ |
-| Browse all student records | ✘ | ◐ own participants | ✔ | ✔ |
-| Generate participation report | ✘ | ◐ assigned only | ✔ | ✔ |
-| Generate inventory report | ✘ | ✘ | ✔ | ✔ |
-| Export / print reports | ✘ | ◐ assigned only | ✔ | ✔ |
+| Action | Guest | Student | Coordinator | Staff | Admin |
+|--------|:-----:|:-------:|:-----------:|:-----:|:-----:|
+| View own participation history | ✘ | ✔ | ✔ | ✔ | ✔ |
+| Browse all student records | ✘ | ✘ | ◐ own participants | ✔ | ✔ |
+| Generate participation report | ✘ | ✘ | ◐ assigned only | ✔ | ✔ |
+| Generate inventory report | ✘ | ✘ | ✘ | ✔ | ✔ |
+| Export / print reports | ✘ | ✘ | ◐ assigned only | ✔ | ✔ |
 
 ## Administration
 
-| Action | Student | Coordinator | Staff | Admin |
-|--------|:-------:|:-----------:|:-----:|:-----:|
-| Edit own profile | ✔ | ✔ | ✔ | ✔ |
-| View another user's profile photo | ✘ | ✘ | ✔ | ✔ |
-| Choose own email and list settings | ✔ | ✔ | ✔ | ✔ |
-| Edit the office's name, university, upload limit | ✘ | ✘ | ✘ | ✔ |
-| Activate pending student accounts | ✘ | ✘ | ✔ | ✔ |
-| Create / edit / deactivate any user | ✘ | ✘ | ✘ | ✔ |
-| Change a user's role | ✘ | ✘ | ✘ | ✔ |
-| Reset a user's password | ✘ | ✘ | ✘ | ✔ |
-| Manage categories | ✘ | ✘ | ◐ activity only | ✔ |
-| View audit trail | ✘ | ✘ | ✘ | ✔ |
-| Backup / restore | ✘ | ✘ | ✘ | ✔ |
+| Action | Guest | Student | Coordinator | Staff | Admin |
+|--------|:-----:|:-------:|:-----------:|:-----:|:-----:|
+| Edit own profile | ✔ | ✔ | ✔ | ✔ | ✔ |
+| View another user's profile photo | ✘ | ✘ | ✘ | ✔ | ✔ |
+| Choose own email and list settings | ◐ list setting only | ✔ | ✔ | ✔ | ✔ |
+| Edit the office's name, university, upload limit | ✘ | ✘ | ✘ | ✘ | ✔ |
+| Activate pending student accounts | ✘ | ✘ | ✘ | ✔ | ✔ |
+| Activate pending Guest accounts | ✘ | ✘ | ✘ | ✔ | ✔ |
+| Create / edit / deactivate any user | ✘ | ✘ | ✘ | ✘ | ✔ |
+| Change a user's role | ✘ | ✘ | ✘ | ✘ | ✔ |
+| Change a role to or from Guest | ✘ | ✘ | ✘ | ✘ | ✘ |
+| Reset a user's password | ✘ | ✘ | ✘ | ✘ | ✔ |
+| Manage categories | ✘ | ✘ | ✘ | ◐ activity only | ✔ |
+| View audit trail | ✘ | ✘ | ✘ | ✘ | ✔ |
+| Backup / restore | ✘ | ✘ | ✘ | ✘ | ✔ |
 
 ---
 

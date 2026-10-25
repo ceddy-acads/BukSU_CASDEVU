@@ -2,13 +2,13 @@
 /**
  * CASMS — Inventory catalog and availability (FR-6.1, FR-6.2, FR-6.3)
  *
- * Readable by any signed-in user; only the office may edit.
+ * Readable by students, coordinators and the office; not by guests; only the office may edit.
  */
 
 declare(strict_types=1);
 require_once __DIR__ . '/../../includes/bootstrap.php';
 
-require_login();
+require_role(['student', 'coordinator', 'staff', 'admin']);
 
 $categories = fetch_all('SELECT inv_category_id, name FROM inventory_categories ORDER BY name');
 

@@ -751,6 +751,7 @@ input[type="checkbox"].switch:focus-visible { outline: 3px solid var(--navy-700)
     min-height: 40px; padding: 0 var(--s3); border-radius: var(--r-sm);
     color: var(--ink); font-size: var(--fs-sm); font-weight: 600; text-decoration: none;
 }
+.tabs-signup { margin-bottom: var(--s4); }
 .tab:hover { background: var(--muted-bg); color: var(--ink); text-decoration: none; }
 .tab[aria-current] { background: var(--navy); color: var(--on-dark); }
 .tab-count { font-variant-numeric: tabular-nums; opacity: .65; }
@@ -1747,6 +1748,7 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
     font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;
 }
 .portal-slides-toggle:hover { color: var(--navy); }
+.portal-slides-toggle[hidden] { display: none; }   /* nothing to pause without JavaScript */
 .portal-brand-inner { position: relative; z-index: 1; max-width: 34rem; }
 .portal-mark { margin: 0; line-height: 1.15; display: flex; align-items: center; gap: var(--s3); }
 .portal-logo { flex: none; width: auto; height: 2.5rem; }
@@ -1816,6 +1818,7 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 .password-toggle:hover { background: var(--navy-50); color: var(--navy); }
 .password-toggle:focus-visible { outline: 3px solid var(--navy-700); outline-offset: 1px; }
 .password-toggle[aria-pressed="true"] { color: var(--navy); }
+.password-toggle[hidden] { display: none; }   /* no JavaScript, no toggle */
 .password-toggle .icon-hide,
 .password-toggle[aria-pressed="true"] .icon-show { display: none; }
 .password-toggle[aria-pressed="true"] .icon-hide { display: block; }
@@ -1994,6 +1997,7 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 .is-stepped .form-section + .form-section { margin-top: 0; padding-top: 0; border-top: 0; }
 .is-stepped .form-section > h3:focus { outline: none; }
 .steps-nav { display: flex; gap: var(--s3); margin-top: var(--s4); }
+.steps-nav[hidden] { display: none; }   /* stays hidden until app.js arms the steps */
 .steps-nav .btn { min-height: 48px; font-size: 1rem; font-weight: 600; border-radius: var(--r); }
 .steps-nav [data-steps-next] { flex: 1; }
 .steps-nav .portal-submit { flex: 1; width: auto; margin-top: 0; }

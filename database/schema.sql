@@ -46,7 +46,7 @@ CREATE TABLE year_levels (
 
 CREATE TABLE roles (
     role_id         TINYINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    name            VARCHAR(40)  NOT NULL UNIQUE,   -- student | staff | coordinator | admin
+    name            VARCHAR(40)  NOT NULL UNIQUE,   -- student | staff | coordinator | admin | guest
     description     VARCHAR(255) NULL
 ) ENGINE=InnoDB;
 
@@ -73,6 +73,8 @@ CREATE TABLE users (
     course_id       INT UNSIGNED     NULL,
     year_level_id   TINYINT UNSIGNED NULL,
     section         VARCHAR(20)      NULL,
+    -- Guests only: their answer to "How are you connected to the unit's activities?"
+    connection_note VARCHAR(500)     NULL,
 
     -- Account state
     status          ENUM('pending','active','inactive','suspended')
@@ -626,7 +628,8 @@ INSERT INTO roles (name, description) VALUES
     ('admin',       'Full system access including user and category management'),
     ('staff',       'Office personnel: activities, requirements, inventory, reports'),
     ('coordinator', 'Assigned to specific activities: participants and scheduling'),
-    ('student',     'Views activities, registers, submits requirements');
+    ('student',     'Views activities, registers, submits requirements'),
+    ('guest',       'Outside the student body: views the schedule and announcements');
 
 INSERT INTO year_levels (label, sort_order) VALUES
     ('1st Year', 1), ('2nd Year', 2), ('3rd Year', 3), ('4th Year', 4);

@@ -70,9 +70,9 @@ requirement submission is meaningless without a registration.
 
 | Table | Purpose | Key design note |
 |-------|---------|-----------------|
-| `roles` | student / staff / coordinator / admin | A lookup table, not an ENUM, so a new role needs no `ALTER TABLE` |
+| `roles` | student / staff / coordinator / admin / guest | A lookup table, not an ENUM, so a new role needs no `ALTER TABLE` |
 | `courses`, `year_levels` | Academic reference data | Separate tables so renaming a course does not rewrite student rows |
-| `users` | All accounts, all roles | One table with nullable academic fields. Staff simply have `course_id = NULL` |
+| `users` | All accounts, all roles | One table with nullable academic fields. Staff simply have `course_id = NULL`. `connection_note` is filled for guests only: their answer to how they are connected to the unit's activities |
 | `auth_tokens` | Remember-me and password reset | Stores a **SHA-256 hash** of the token — a leaked row cannot be replayed |
 
 ### Module 2 — Activities

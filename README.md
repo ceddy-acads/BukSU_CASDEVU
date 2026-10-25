@@ -42,14 +42,15 @@ C:\xampp\mysql\bin\mysql.exe -u root < database/schema.sql
 C:\xampp\mysql\bin\mysql.exe -u root casms < database/demo-data.sql
 ```
 
-Adds 37 accounts, 6 activities, 36 registrations, 20 inventory items,
+Adds 39 accounts, 6 activities, 36 registrations, 20 inventory items,
 6 venues, reservations, loans and announcements — enough to walk through
 every screen. The dataset is deliberately mixed: activities in every status,
-registrations pending/approved/rejected/completed, two accounts awaiting
+registrations pending/approved/rejected/completed, three accounts awaiting
 approval, one overdue loan, one damaged item and one under maintenance.
 
 All demo accounts use the password `demo1234`; the administrator seeded by
-`schema.sql` keeps its own password and is left untouched. The script is
+`schema.sql` keeps its own password and is left untouched. The guest demo accounts are
+`reyes.guest@example.com` (active) and `lim.guest@example.com` (pending). The script is
 idempotent — re-running it adds nothing.
 
 **2c. Already have a database? Add the bell's dismiss column**
@@ -80,6 +81,26 @@ C:\xampp\mysql\bin\mysql.exe -u root casms < database/update-student-borrowing.s
 Adds student equipment requests: the request columns on reservations, the
 requestable flag on items and the school ID photo columns on users. A fresh
 `schema.sql` install already has them. Safe to run twice.
+
+**2f. Already have a database? Add guest accounts**
+
+```bash
+C:\xampp\mysql\bin\mysql.exe -u root casms < database/update-guest-accounts.sql
+```
+
+Adds the Guest role and the `connection_note` column on users. Without it,
+User accounts and guest sign-up fail. A fresh `schema.sql` install already
+has them. Safe to run twice.
+
+**2g. Already have a database? Add highlight reports**
+
+```bash
+C:\xampp\mysql\bin\mysql.exe -u root casms < database/update-highlight-reports.sql
+```
+
+Adds the `highlight_reports` table and its upload limit setting. Run it
+before deploying the code: every activity page reads this table. A fresh
+`schema.sql` install already has it. Safe to run twice.
 
 **3. Start Apache and MySQL in the XAMPP Control Panel**
 
@@ -186,6 +207,7 @@ BukSU CASDEVU/
 │   ├── schema.sql           Clean installer: 22 tables, 3 views, seed data
 │   ├── demo-data.sql        Optional realistic dataset for a walkthrough
 │   ├── update-courses.sql   Brings an existing database to BukSU's programs
+│   ├── update-guest-accounts.sql  Adds the guest role and users.connection_note
 │   ├── update-notification-dismiss.sql  Adds notifications.dismissed_at
 │   └── update-student-borrowing.sql  Adds student equipment requests and ID photos
 ├── docs/                    Requirements, DB design, role matrix, build plan,
@@ -522,7 +544,7 @@ a cancelled confirmation leaving the button untouched; the account menu from
 the keyboard; and role scoping of the review queue.
 
 **Fast regression pass.** `bin/smoke.php` signs in over HTTP as administrator,
-staff, coordinator and student, then requests every page under `public/` with
+staff, coordinator, student and guest, then requests every page under `public/` with
 real record ids taken from the database. It fails on a server error, a line
 written to the error log, an error message inside a page, a role that should be
 able to open a page getting 403, or a page that should be refused returning 200
@@ -532,6 +554,7 @@ able to open a page getting 403, or a page that should be refused returning 200
 C:\xampp\php\php.exe bin\smoke.php                 # all pages, all roles
 C:\xampp\php\php.exe bin\smoke.php --only=admin/ --verbose
 C:\xampp\php\php.exe bin\smoke.php --admin=me@buksu.edu.ph:password
+C:\xampp\php\php.exe bin\smoke.php --guest=reyes.guest@example.com:demo1234
 ```
 
 It issues GET requests only, so it never changes data. What it cannot replace:

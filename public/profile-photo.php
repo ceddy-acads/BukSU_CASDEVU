@@ -5,7 +5,8 @@
  * Photos live outside the web root like every other upload, so they are
  * streamed through here to signed-in users only. The URL carries a version
  * (see user_photo_url()), so a changed photo is fetched fresh while an
- * unchanged one can be cached.
+ * unchanged one can be cached. Only the owner and the office get a photo;
+ * anyone else gets the same 404 as a missing one.
  */
 
 declare(strict_types=1);

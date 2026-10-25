@@ -175,7 +175,7 @@ function review_pending_reservations(int $limit = 50): array
     );
 }
 
-/** Student accounts waiting for activation, oldest first. Office only. */
+/** Accounts waiting for activation, oldest first. Office only. */
 function review_pending_accounts(int $limit = 50): array
 {
     if (!is_office_staff()) {

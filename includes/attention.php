@@ -69,7 +69,7 @@ function attention_items(): array
                 'tone'    => 'warning',
                 'icon'    => 'users',
                 'title'   => 'Accounts waiting for approval',
-                'message' => $pendingAccounts . ' student account' . ($pendingAccounts === 1 ? ' is' : 's are')
+                'message' => $pendingAccounts . ' account' . ($pendingAccounts === 1 ? ' is' : 's are')
                              . ' waiting for approval.',
                 'href'    => 'admin/users.php?status=pending',
                 'action'  => 'Review accounts',

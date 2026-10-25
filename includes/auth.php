@@ -111,6 +111,12 @@ function is_office_staff(): bool
     return has_role('staff', 'admin');
 }
 
+/** Guests: people outside the student body, schedule only. */
+function is_guest(): bool
+{
+    return has_role('guest');
+}
+
 // =====================================================================
 // Login / logout
 // =====================================================================

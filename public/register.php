@@ -1,8 +1,9 @@
 <?php
 /**
- * CASMS — Student self-registration (FR-1.2, FR-1.3)
+ * CASMS — Student and guest self-registration (FR-1.2, FR-1.3)
  *
- * New accounts are created with status 'pending' and cannot sign in until the
+ * Students use the default form; ?as=guest is the form for people outside the
+ * student body (parents, outside coaches). New accounts are created with status 'pending' and cannot sign in until the
  * office activates them.
  */
 
@@ -17,8 +18,13 @@ $courses    = fetch_all('SELECT course_id, code, name, department FROM courses W
 $yearLevels = fetch_all('SELECT year_level_id, label FROM year_levels ORDER BY sort_order');
 
 $errors = [];
+$as     = (is_post() ? post('as') : get('as')) === 'guest' ? 'guest' : 'student';
 
-if (is_post()) {
+// Set by either handler below when an account was created; the notify,
+// flash and redirect tail is shared.
+$signedUp = null;
+
+if (is_post() && $as === 'student') {
     csrf_verify();
 
     $studentNumber = post('student_number');
@@ -47,6 +53,8 @@ if (is_post()) {
         $errors[] = 'Course and year level are required.';
     } elseif (!in_array($courseId, array_map(static fn(array $c): string => (string) $c['course_id'], $courses), true)) {
         $errors[] = 'Choose a course from the list.';
+    } elseif (!in_array($yearLevelId, array_map(static fn(array $y): string => (string) $y['year_level_id'], $yearLevels), true)) {
+        $errors[] = 'Choose a year level from the list.';
     }
     if (($passwordProblem = password_error($password)) !== null) {
         $errors[] = $passwordProblem;
@@ -54,6 +62,15 @@ if (is_post()) {
     if ($password !== $passwordAgain) {
         $errors[] = 'The two passwords do not match.';
     }
+    $errors = array_merge($errors, length_errors([
+        'Student number' => [$studentNumber, 30],
+        'First name'     => [$firstName, 80],
+        'Middle name'    => [$middleName, 80],
+        'Last name'      => [$lastName, 80],
+        'Email address'  => [$email, 150],
+        'Contact number' => [$contactNumber, 30],
+        'Section'        => [$section, 20],
+    ]));
 
     // Uniqueness — the database also enforces this, but a clear message beats
     // a constraint violation. One message whichever is taken: it reads better
@@ -97,31 +114,121 @@ if (is_post()) {
         $newUserId = (int) db()->lastInsertId();
         audit_log('create', 'user', $newUserId, 'Student self-registered: ' . $email);
 
-        // Let the office know an account is waiting.
-        $officeIds = fetch_all(
-            "SELECT u.user_id FROM users u JOIN roles r ON r.role_id = u.role_id
-              WHERE r.name IN ('staff','admin') AND u.status = 'active'"
-        );
-        notify_many(
-            array_map(static fn(array $r): int => (int) $r['user_id'], $officeIds),
-            'system',
+        $signedUp = [
             'New student registration',
             $firstName . ' ' . $lastName . ' (' . $studentNumber . ') is awaiting account approval.',
-            url('admin/users.php?status=pending')
-        );
+        ];
+    }
+}
 
-        clear_old_input();
-        flash('success', 'Your account was created and is now awaiting approval by the office. You will be able to sign in once it is activated.');
-        redirect('login.php');
+if (is_post() && $as === 'guest') {
+    csrf_verify();
+
+    $firstName      = post('first_name');
+    $middleName     = post('middle_name');
+    $lastName       = post('last_name');
+    $email          = strtolower(post('email'));
+    $contactNumber  = post('contact_number');
+    $connectionNote = post('connection_note');
+    $password       = (string) ($_POST['password'] ?? '');
+    $passwordAgain  = (string) ($_POST['password_confirm'] ?? '');
+
+    if ($firstName === '' || $lastName === '') {
+        $errors[] = 'First name and last name are required.';
+    }
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = 'A valid email address is required.';
+    }
+    if ($contactNumber === '') {
+        $errors[] = 'Contact number is required.';
+    }
+    if ($connectionNote === '') {
+        $errors[] = 'Tell the office how you are connected to the unit\'s activities.';
+    } elseif (mb_strlen($connectionNote) > 500) {
+        $errors[] = 'Your connection to the unit must be 500 characters or fewer.';
+    }
+    if (($passwordProblem = password_error($password)) !== null) {
+        $errors[] = $passwordProblem;
+    }
+    if ($password !== $passwordAgain) {
+        $errors[] = 'The two passwords do not match.';
+    }
+    $errors = array_merge($errors, length_errors([
+        'First name'     => [$firstName, 80],
+        'Middle name'    => [$middleName, 80],
+        'Last name'      => [$lastName, 80],
+        'Email address'  => [$email, 150],
+        'Contact number' => [$contactNumber, 30],
+    ]));
+
+    if ($errors === [] && fetch_value('SELECT 1 FROM users WHERE email = ? LIMIT 1', [$email])) {
+        $errors[] = 'An account with this email address already exists. '
+                  . 'Sign in instead, or reset your password if you have forgotten it.';
     }
 
+    if ($errors === []) {
+        query(
+            'INSERT INTO users
+                 (role_id, email, password_hash, first_name, middle_name,
+                  last_name, contact_number, connection_note, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [
+                fetch_value("SELECT role_id FROM roles WHERE name = 'guest'"),
+                $email,
+                password_hash($password, PASSWORD_DEFAULT),
+                $firstName,
+                $middleName !== '' ? $middleName : null,
+                $lastName,
+                $contactNumber,
+                $connectionNote,
+                'pending',
+            ]
+        );
+
+        $newUserId = (int) db()->lastInsertId();
+        audit_log('create', 'user', $newUserId, 'Guest self-registered: ' . $email);
+
+        $signedUp = [
+            'New guest sign-up',
+            $firstName . ' ' . $lastName . ' is awaiting account approval as a guest.',
+        ];
+    }
+}
+
+if ($signedUp !== null) {
+    // Let the office know an account is waiting.
+    $officeIds = fetch_all(
+        "SELECT u.user_id FROM users u JOIN roles r ON r.role_id = u.role_id
+          WHERE r.name IN ('staff','admin') AND u.status = 'active'"
+    );
+    notify_many(
+        array_map(static fn(array $r): int => (int) $r['user_id'], $officeIds),
+        'system',
+        $signedUp[0],
+        $signedUp[1],
+        url('admin/users.php?status=pending')
+    );
+
+    clear_old_input();
+    flash('success', 'Your account was created and is now awaiting approval by the office. You will be able to sign in once it is activated.');
+    redirect('login.php');
+}
+
+if (is_post()) {
     remember_input($_POST);
 }
 $pageTitle = 'Create an account';
-$authIntro = 'The office reviews new accounts before you can sign in.';
+$authIntro = $as === 'guest'
+    ? 'For parents, coaches and others who follow the unit\'s activities. The office reviews new accounts before you can sign in.'
+    : 'The office reviews new accounts before you can sign in.';
 $portalWide = true;
 require __DIR__ . '/../includes/layout/portal-header.php';
 ?>
+
+<nav class="tabs tabs-signup" aria-label="Who is signing up">
+    <a class="tab" href="<?= url('register.php') ?>"<?= $as === 'student' ? ' aria-current="page"' : '' ?>>BukSU student</a>
+    <a class="tab" href="<?= url('register.php?as=guest') ?>"<?= $as === 'guest' ? ' aria-current="page"' : '' ?>>Not a BukSU student</a>
+</nav>
 
 <?php if ($errors !== []): ?>
     <div class="alert alert-error" role="alert">
@@ -138,22 +245,66 @@ require __DIR__ . '/../includes/layout/portal-header.php';
 
     <p class="steps-status" data-steps-status hidden aria-live="polite"></p>
 
+<?php if ($as === 'guest'): ?>
+    <input type="hidden" name="as" value="guest">
+
+    <div class="form-section" data-step>
+        <h3 tabindex="-1">About you</h3>
+        <div class="form-grid form-grid-2">
+            <div class="form-row">
+                <label for="first_name">First name <span class="req">*</span></label>
+                <input type="text" id="first_name" name="first_name" maxlength="80"
+                       value="<?= e(old('first_name')) ?>" autocomplete="given-name" required>
+            </div>
+            <div class="form-row">
+                <label for="last_name">Last name <span class="req">*</span></label>
+                <input type="text" id="last_name" name="last_name" maxlength="80"
+                       value="<?= e(old('last_name')) ?>" autocomplete="family-name" required>
+            </div>
+            <div class="form-row">
+                <label for="middle_name">Middle name <span class="optional">(optional)</span></label>
+                <input type="text" id="middle_name" name="middle_name" maxlength="80"
+                       value="<?= e(old('middle_name')) ?>" autocomplete="additional-name">
+            </div>
+            <div class="form-row">
+                <label for="email">Email address <span class="req">*</span></label>
+                <input type="email" id="email" name="email" maxlength="150"
+                       value="<?= e(old('email')) ?>" autocomplete="username" required>
+            </div>
+            <div class="form-row">
+                <label for="contact_number">Contact number <span class="req">*</span></label>
+                <input type="tel" id="contact_number" name="contact_number" maxlength="30"
+                       value="<?= e(old('contact_number')) ?>" autocomplete="tel" required>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section" data-step>
+        <h3 tabindex="-1">Your connection</h3>
+        <div class="form-row">
+            <label for="connection_note">How are you connected to the unit's activities? <span class="req">*</span></label>
+            <textarea id="connection_note" name="connection_note" rows="4" maxlength="500" required
+                      aria-describedby="connection_note-hint"><?= e(old('connection_note')) ?></textarea>
+            <p class="hint" id="connection_note-hint">For example: parent of a student in the dance troupe, or coach of a visiting team. The office reads this before activating your account.</p>
+        </div>
+    </div>
+<?php else: ?>
     <div class="form-section" data-step>
         <h3 tabindex="-1">Your name</h3>
         <div class="form-grid form-grid-2">
             <div class="form-row">
                 <label for="first_name">First name <span class="req">*</span></label>
-                <input type="text" id="first_name" name="first_name"
+                <input type="text" id="first_name" name="first_name" maxlength="80"
                        value="<?= e(old('first_name')) ?>" autocomplete="given-name" required>
             </div>
             <div class="form-row">
                 <label for="last_name">Last name <span class="req">*</span></label>
-                <input type="text" id="last_name" name="last_name"
+                <input type="text" id="last_name" name="last_name" maxlength="80"
                        value="<?= e(old('last_name')) ?>" autocomplete="family-name" required>
             </div>
             <div class="form-row">
                 <label for="middle_name">Middle name <span class="optional">(optional)</span></label>
-                <input type="text" id="middle_name" name="middle_name"
+                <input type="text" id="middle_name" name="middle_name" maxlength="80"
                        value="<?= e(old('middle_name')) ?>" autocomplete="additional-name">
             </div>
         </div>
@@ -164,17 +315,17 @@ require __DIR__ . '/../includes/layout/portal-header.php';
         <div class="form-grid form-grid-2">
             <div class="form-row">
                 <label for="student_number">Student number <span class="req">*</span></label>
-                <input type="text" id="student_number" name="student_number"
+                <input type="text" id="student_number" name="student_number" maxlength="30"
                        value="<?= e(old('student_number')) ?>" required>
             </div>
             <div class="form-row">
                 <label for="email">Email address <span class="req">*</span></label>
-                <input type="email" id="email" name="email"
+                <input type="email" id="email" name="email" maxlength="150"
                        value="<?= e(old('email')) ?>" autocomplete="username" required>
             </div>
             <div class="form-row">
                 <label for="contact_number">Contact number <span class="optional">(optional)</span></label>
-                <input type="tel" id="contact_number" name="contact_number"
+                <input type="tel" id="contact_number" name="contact_number" maxlength="30"
                        value="<?= e(old('contact_number')) ?>" autocomplete="tel">
             </div>
         </div>
@@ -204,10 +355,11 @@ require __DIR__ . '/../includes/layout/portal-header.php';
             </div>
             <div class="form-row">
                 <label for="section">Section <span class="optional">(optional)</span></label>
-                <input type="text" id="section" name="section" value="<?= e(old('section')) ?>">
+                <input type="text" id="section" name="section" maxlength="20" value="<?= e(old('section')) ?>">
             </div>
         </div>
     </div>
+<?php endif; ?>
 
     <div class="form-section" data-step>
         <h3 tabindex="-1">Password</h3>

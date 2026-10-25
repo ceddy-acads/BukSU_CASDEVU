@@ -25,7 +25,7 @@
  * Options
  *   --base=URL          Site URL to test (default: http://localhost/<folder>/public)
  *   --only=TEXT         Only request pages whose path contains TEXT
- *   --admin=EMAIL:PASS  Override an account; also --staff=, --coordinator=, --student=
+ *   --admin=EMAIL:PASS  Override an account; also --staff=, --coordinator=, --student=, --guest=
  *   --slow=MS           Report a request slower than this (default 1500)
  *   --timeout=SECONDS   Per-request timeout (default 20)
  *   --verbose           Print every request, not only failures
@@ -60,10 +60,11 @@ $defaults = [
     'staff'       => 'rosales.office@buksu.edu.ph:demo1234',
     'coordinator' => 'bautista.coach@buksu.edu.ph:demo1234',
     'student'     => 'andrea.santos@student.buksu.edu.ph:demo1234',
+    'guest'       => 'reyes.guest@example.com:demo1234',
 ];
 
 $options = $defaults;
-$roles   = ['admin', 'staff', 'coordinator', 'student'];
+$roles   = ['admin', 'staff', 'coordinator', 'student', 'guest'];
 
 foreach (array_slice($argv, 1) as $arg) {
     if ($arg === '--help' || $arg === '-h') {
@@ -76,7 +77,7 @@ foreach (array_slice($argv, 1) as $arg) {
         Options
           --base=URL          Site URL to test (default http://localhost/<folder>/public)
           --only=TEXT         Only request pages whose path contains TEXT
-          --admin=EMAIL:PASS  Override an account; also --staff=, --coordinator=, --student=
+          --admin=EMAIL:PASS  Override an account; also --staff=, --coordinator=, --student=, --guest=
           --slow=MS           Report a request slower than this (default 1500)
           --timeout=SECONDS   Per-request timeout (default 20)
           --verbose           Print every request, not only failures
@@ -227,6 +228,10 @@ $ids['coord_participant'] = (int) (db_value($pdo,
        JOIN users u                  ON u.user_id = ac.user_id
       WHERE u.email = ? LIMIT 1',
     [account_email($options['coordinator'])]) ?? $studentUserId);
+
+$ids['photo_user'] = (int) (db_value($pdo,
+    'SELECT user_id FROM users WHERE photo_path IS NOT NULL AND email <> ? ORDER BY user_id LIMIT 1',
+    [account_email($options['guest'])]) ?? $studentUserId);
 
 echo 'Dataset  ' . db_value($pdo, 'SELECT COUNT(*) FROM activities') . ' activities, '
     . db_value($pdo, 'SELECT COUNT(*) FROM inventory_items') . ' items, '
@@ -434,20 +439,23 @@ function sign_in(string $base, string $role, string $credentials, int $timeout):
 
 $pages = [
     // Every signed-in role
-    ['path' => 'index.php',                       'allow' => ['admin', 'staff', 'coordinator', 'student']],
-    ['path' => 'profile.php',                     'allow' => ['admin', 'staff', 'coordinator', 'student']],
-    ['path' => 'settings.php',                    'allow' => ['admin', 'staff', 'coordinator', 'student']],
-    ['path' => 'notifications.php',               'allow' => ['admin', 'staff', 'coordinator', 'student'],
+    ['path' => 'index.php',                       'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest']],
+    ['path' => 'profile.php',                     'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest']],
+    ['path' => 'settings.php',                    'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest']],
+    ['path' => 'notifications.php',               'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest'],
      'tolerate' => [302]],   // opens the bell panel on the dashboard instead
-    ['path' => 'profile-photo.php',               'allow' => ['admin', 'staff', 'coordinator', 'student'],
+    ['path' => 'profile-photo.php',               'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest'],
      'params' => ['id' => 'own_user'], 'optional' => true, 'binary' => true],
+    // another person's photo: a guest gets the same 404 as a missing one
+    ['path' => 'profile-photo.php',               'allow' => ['admin', 'staff', 'coordinator', 'student'],
+     'params' => ['id' => 'photo_user'], 'optional' => true, 'binary' => true],
 
     ['path' => 'review.php',                      'allow' => ['admin', 'staff', 'coordinator']],
 
-    ['path' => 'activities/index.php',            'allow' => ['admin', 'staff', 'coordinator', 'student']],
-    ['path' => 'activities/view.php',             'allow' => ['admin', 'staff', 'coordinator', 'student'],
+    ['path' => 'activities/index.php',            'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest']],
+    ['path' => 'activities/view.php',             'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest'],
      'params' => ['id' => 'activity'], 'optional' => true],
-    ['path' => 'activities/calendar.php',         'allow' => ['admin', 'staff', 'coordinator', 'student']],
+    ['path' => 'activities/calendar.php',         'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest']],
     ['path' => 'activities/manage.php',           'allow' => ['admin', 'staff', 'coordinator'],
      'params' => ['id' => 'assigned'], 'optional' => true],
     ['path' => 'activities/coordinators.php',     'allow' => ['admin', 'staff'],
@@ -483,7 +491,7 @@ $pages = [
     ['path' => 'id-photo.php',                    'allow' => ['student'], 'query' => 'side=front',
      'params' => ['user' => 'own_user'], 'optional' => true, 'binary' => true],
 
-    ['path' => 'announcements/index.php',         'allow' => ['admin', 'staff', 'coordinator', 'student']],
+    ['path' => 'announcements/index.php',         'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest']],
     ['path' => 'announcements/manage.php',        'allow' => ['admin', 'staff', 'coordinator']],
 
     ['path' => 'reports/index.php',               'allow' => ['admin', 'staff', 'coordinator']],
@@ -500,32 +508,32 @@ $pages = [
     ['path' => 'admin/reminders.php',             'allow' => ['admin', 'staff']],
 
     // Public pages. A signed-in visitor is redirected away from some of them.
-    ['path' => 'login.php',                       'allow' => ['admin', 'staff', 'coordinator', 'student'],
+    ['path' => 'login.php',                       'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest'],
      'tolerate' => [302]],
-    ['path' => 'register.php',                    'allow' => ['admin', 'staff', 'coordinator', 'student'],
+    ['path' => 'register.php',                    'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest'],
      'tolerate' => [302]],
-    ['path' => 'forgot-password.php',             'allow' => ['admin', 'staff', 'coordinator', 'student'],
+    ['path' => 'forgot-password.php',             'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest'],
      'tolerate' => [302]],   // a signed-in visitor is sent to their profile
-    ['path' => 'reset-password.php',              'allow' => ['admin', 'staff', 'coordinator', 'student'],
+    ['path' => 'reset-password.php',              'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest'],
      'optional' => true],
 
     // Highlight reports: public cover grid
-    ['path' => 'highlights/index.php',            'allow' => ['admin', 'staff', 'coordinator', 'student'],
-     'guest' => 'allow'],
+    ['path' => 'highlights/index.php',            'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest'],
+     'signed_out' => 'allow'],
 
     // Highlight reports: upload page
     ['path' => 'highlights/manage.php',           'allow' => ['admin', 'staff', 'coordinator'],
-     'guest' => 'login'],
+     'signed_out' => 'login'],
     ['path' => 'highlights/manage.php',           'allow' => ['admin', 'staff', 'coordinator'],
      'params' => ['activity_id' => 'assigned'], 'optional' => true],
 
     // Highlight reports: public PDF
-    ['path' => 'highlights/file.php',             'allow' => ['admin', 'staff', 'coordinator', 'student'],
-     'params' => ['activity_id' => 'highlight'], 'optional' => true, 'binary' => true, 'guest' => 'allow'],
+    ['path' => 'highlights/file.php',             'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest'],
+     'params' => ['activity_id' => 'highlight'], 'optional' => true, 'binary' => true, 'signed_out' => 'allow'],
 
     // Highlight reports: public flipbook viewer
-    ['path' => 'highlights/view.php',             'allow' => ['admin', 'staff', 'coordinator', 'student'],
-     'params' => ['activity_id' => 'highlight'], 'optional' => true, 'guest' => 'allow'],
+    ['path' => 'highlights/view.php',             'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest'],
+     'params' => ['activity_id' => 'highlight'], 'optional' => true, 'signed_out' => 'allow'],
 ];
 
 if ($options['only'] !== '') {
@@ -588,6 +596,7 @@ function body_error(string $body): ?string
         'Notice: ',
         'Deprecated: ',
         'Parse error',
+        'impeccable-live-start', // design-tool helper left in a layout after a live session
     ] as $marker) {
         if (str_contains($body, $marker)) {
             return $marker;
@@ -688,6 +697,12 @@ foreach ($pages as $page) {
             }
         }
 
+        // The spec: no path, by link, from a Guest account to student data or the office's pages.
+        if ($problem === null && $role === 'guest' && $result['status'] === 200 && empty($page['binary'])
+            && preg_match('#(?:href|action|data-modal-src)="[^"]*/(review\.php|admin/|reports/|inventory/|requirements/|participation/|activities/(manage|coordinators|eligibility)\.php)#', $result['body'], $link)) {
+            $problem = 'links to ' . substr($link[0], 6) . ', which a guest may not open';
+        }
+
         if ($problem === null) {
             if ($options['verbose']) {
                 ok(sprintf('%-72s %4d  %5.0fms', $label, $result['status'], $result['seconds'] * 1000));
@@ -735,15 +750,15 @@ if ($otherJar === null) {
 // =====================================================================
 // Signed out
 //
-// guest 'allow': a visitor with no session gets the page (404 only when optional
+// signed_out 'allow': a visitor with no session gets the page (404 only when optional
 // and its record is not installed).
-// guest 'login': a visitor is sent to the sign-in page.
+// signed_out 'login': a visitor is sent to the sign-in page.
 // =====================================================================
 
 section('Signed out');
 $guestJar = tempnam(sys_get_temp_dir(), 'smoke-guest');
 foreach ($pages as $page) {
-    if (!isset($page['guest'])) {
+    if (!isset($page['signed_out'])) {
         continue;
     }
     $pairs = [];
@@ -767,7 +782,7 @@ foreach ($pages as $page) {
         $problem = 'wrote to the error log: ' . $newLog[0];
     } elseif ($result['status'] !== 302 && empty($page['binary']) && ($marker = body_error($result['body'])) !== null) {
         $problem = 'page contains "' . $marker . '"';
-    } elseif ($page['guest'] === 'login') {
+    } elseif ($page['signed_out'] === 'login') {
         if ($result['status'] !== 302 || !str_contains($result['location'], 'login.php')) {
             $problem = 'HTTP ' . $result['status'] . ' (expected a redirect to sign-in)';
         }

@@ -13,6 +13,7 @@ require_once __DIR__ . '/../includes/bootstrap.php';
 require_login();
 
 $user       = current_user();
+$isStudent  = current_role() === 'student';
 // Offered courses, plus the student's own even if it has since been retired,
 // so saving the profile never clears it.
 $courses    = fetch_all(
@@ -98,9 +99,21 @@ if (is_post()) {
         $yearLevelId   = post('year_level_id');
         $section       = post('section');
 
+        // Only students hold an academic placement.
+        if (!$isStudent) {
+            $courseId = $yearLevelId = $section = '';
+        }
+
         if ($firstName === '' || $lastName === '') {
             $errors[] = 'First name and last name are required.';
         }
+        $errors = array_merge($errors, length_errors([
+            'First name'     => [$firstName, 80],
+            'Middle name'    => [$middleName, 80],
+            'Last name'      => [$lastName, 80],
+            'Contact number' => [$contactNumber, 30],
+            'Section'        => [$section, 20],
+        ]));
 
         if ($errors === []) {
             query(
@@ -167,7 +180,6 @@ if (is_post() && $errors !== []) {
 }
 $mode = in_array($mode, ['details', 'password'], true) ? $mode : 'view';
 
-$isStudent = current_role() === 'student';
 $initials  = strtoupper(mb_substr((string) $user['first_name'], 0, 1) . mb_substr((string) $user['last_name'], 0, 1));
 $photoUrl  = user_photo_url($user);
 
@@ -247,22 +259,22 @@ require __DIR__ . '/../includes/layout/header.php';
                     <div class="form-grid form-grid-2">
                         <div class="form-row">
                             <label for="first_name">First name <span class="req">*</span></label>
-                            <input type="text" id="first_name" name="first_name"
+                            <input type="text" id="first_name" name="first_name" maxlength="80"
                                    value="<?= e(post('first_name', (string) $user['first_name'])) ?>" required autocomplete="given-name">
                         </div>
                         <div class="form-row">
                             <label for="last_name">Last name <span class="req">*</span></label>
-                            <input type="text" id="last_name" name="last_name"
+                            <input type="text" id="last_name" name="last_name" maxlength="80"
                                    value="<?= e(post('last_name', (string) $user['last_name'])) ?>" required autocomplete="family-name">
                         </div>
                         <div class="form-row">
                             <label for="middle_name">Middle name <span class="optional">(optional)</span></label>
-                            <input type="text" id="middle_name" name="middle_name"
+                            <input type="text" id="middle_name" name="middle_name" maxlength="80"
                                    value="<?= e(post('middle_name', (string) $user['middle_name'])) ?>" autocomplete="additional-name">
                         </div>
                         <div class="form-row">
                             <label for="contact_number">Contact number <span class="optional">(optional)</span></label>
-                            <input type="tel" id="contact_number" name="contact_number"
+                            <input type="tel" id="contact_number" name="contact_number" maxlength="30"
                                    value="<?= e(post('contact_number', (string) $user['contact_number'])) ?>" autocomplete="tel">
                         </div>
                     </div>
@@ -291,7 +303,7 @@ require __DIR__ . '/../includes/layout/header.php';
                         </div>
                         <div class="form-row">
                             <label for="section">Section</label>
-                            <input type="text" id="section" name="section" value="<?= e(post('section', (string) $user['section'])) ?>">
+                            <input type="text" id="section" name="section" maxlength="20" value="<?= e(post('section', (string) $user['section'])) ?>">
                         </div>
                     <?php endif; ?>
 
@@ -314,6 +326,9 @@ require __DIR__ . '/../includes/layout/header.php';
                         <div><dt>Section</dt><dd><?= $show($user['section']) ?></dd></div>
                     <?php else: ?>
                         <div><dt>Role</dt><dd><?= e(ucfirst((string) $user['role_name'])) ?></dd></div>
+                        <?php if (is_guest()): ?>
+                            <div class="profile-wide"><dt>Connection to the unit</dt><dd><?= $show($user['connection_note']) ?></dd></div>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </dl>
             <?php endif; ?>

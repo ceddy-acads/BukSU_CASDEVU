@@ -206,6 +206,22 @@ function password_error(string $password): ?string
     return 'Your password needs ' . ($missing === [] ? $last : implode(', ', $missing) . ' and ' . $last) . '.';
 }
 
+/**
+ * One message per field longer than its column allows, keyed as
+ * label => [value, limit]. Without this check a non-strict MySQL quietly cuts
+ * the value and a strict one fails the insert.
+ */
+function length_errors(array $fields): array
+{
+    $errors = [];
+    foreach ($fields as $label => [$value, $limit]) {
+        if (mb_strlen($value) > $limit) {
+            $errors[] = $label . ' must be ' . $limit . ' characters or fewer.';
+        }
+    }
+    return $errors;
+}
+
 // =====================================================================
 // Reaching people
 // =====================================================================
@@ -485,4 +501,18 @@ function user_photo_url(array $user): ?string
     }
     return url('profile-photo.php?id=' . (int) $user['user_id']
         . '&v=' . substr(md5((string) $user['photo_path']), 0, 10));
+}
+
+/**
+ * A one-time password for the office to relay. Unambiguous characters only,
+ * so it reads clearly over the phone or on paper.
+ */
+function temporary_password(): string
+{
+    $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+    $temp     = '';
+    for ($i = 0; $i < 12; $i++) {
+        $temp .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+    }
+    return $temp;
 }

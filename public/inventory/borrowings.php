@@ -236,8 +236,10 @@ $availableItems = fetch_all(
       ORDER BY i.name"
 );
 $borrowers = fetch_all(
-    "SELECT user_id, first_name, last_name, student_number FROM users
-      WHERE status = 'active' ORDER BY last_name, first_name"
+    "SELECT u.user_id, u.first_name, u.last_name, u.student_number
+       FROM users u JOIN roles r ON r.role_id = u.role_id
+      WHERE u.status = 'active' AND r.name IN ('student','coordinator','staff','admin')
+      ORDER BY u.last_name, u.first_name"
 );
 
 // Pre-fill from an approved reservation when arriving from that screen.
