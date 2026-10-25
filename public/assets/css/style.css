@@ -690,7 +690,7 @@ input[type="checkbox"].switch:focus-visible { outline: 3px solid var(--navy-700)
 @media print {
     .page-head, .photo-band { min-height: 0; padding: 0; background: none !important; color: #000; border-left: 0; border-bottom: 0; }
     .photo-band::after { display: none; }
-    .page-head h1, .page-head p { color: #000; }
+    .page-head h1, .page-head h1 + p, .page-head p { color: #000; }
 }
 
 /* Back / context link above a title */
@@ -2240,6 +2240,10 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 .reveal-in {
     opacity: 1; transform: none;
     transition: opacity .45s cubic-bezier(.2, .8, .2, 1), transform .45s cubic-bezier(.2, .8, .2, 1);
+}
+/* Paper never scrolls, so every block prints whole, unarmed or mid-rise. */
+@media print {
+    .reveal-armed { opacity: 1; transform: none; transition: none; }
 }
 @media (prefers-reduced-motion: reduce) {
     .reveal-armed { opacity: 1; transform: none; }
