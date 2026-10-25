@@ -860,6 +860,9 @@ a.stat:hover .stat-value { color: var(--navy-700); }
 
 .btn-row { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
 .btn-row form { margin: 0; }
+/* A text field inside a button row (a reject reason) keeps a readable width;
+   on a narrow row it takes the whole line and the buttons wrap below it. */
+.btn-row > .input-grow { flex: 1 1 14rem; }
 
 @media (max-width: 639px) {
     /* Thumb-sized targets on phones. */
@@ -895,6 +898,10 @@ a.stat:hover .stat-value { color: var(--navy-700); }
     .form-actions > .btn, .form-actions > form > .btn,
     table.data td.actions .btn-row > .btn, table.data td.actions .btn-row > form > .btn { width: 100%; }
     .page-head .btn-row > .btn-group > .btn { flex: 1; }
+    /* A row with a text field (a reject reason) stays a wrapping row: equal
+       grid columns would squeeze the field to a third of the cell. */
+    table.data td.actions .btn-row:has(> .input-grow) { display: flex; flex-wrap: wrap; }
+    table.data td.actions .btn-row:has(> .input-grow) > .btn { width: auto; }
 }
 @media (min-width: 720px) and (max-width: 1023px) {
     /* The shorter tablet field keeps every page action on one line, so the

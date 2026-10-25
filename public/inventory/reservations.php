@@ -364,7 +364,9 @@ require __DIR__ . '/../../includes/layout/header.php';
                             <?php if ((int) $reservation['student_request'] === 1): ?>
                                 <div class="form-row mb-2">
                                     <label for="return_at_<?= $rid ?>">Return by</label>
+                                    <?php // Not before now, and not before the request's start (the server also checks the start). ?>
                                     <input type="datetime-local" id="return_at_<?= $rid ?>" name="return_at"
+                                           min="<?= e(date('Y-m-d\TH:i', max(time(), (int) strtotime((string) $reservation['needed_from'])))) ?>"
                                            value="<?= e(date('Y-m-d\TH:i', strtotime((string) $reservation['needed_until']))) ?>">
                                 </div>
                             <?php endif; ?>

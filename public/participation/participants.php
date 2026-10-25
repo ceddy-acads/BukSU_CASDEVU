@@ -421,8 +421,9 @@ require __DIR__ . '/../../includes/layout/header.php';
 
                                 <?php if ($rowActions['reject']): ?>
                                     <button type="button" class="btn btn-outline btn-sm"
+                                            id="reject-open-<?= (int) $participant['registration_id'] ?>"
                                             aria-label="Reject <?= e($rowName) ?>"
-                                            onclick="document.getElementById('reject-<?= (int) $participant['registration_id'] ?>').hidden = false; this.hidden = true;">
+                                            onclick="var f = document.getElementById('reject-<?= (int) $participant['registration_id'] ?>'); f.hidden = false; this.hidden = true; f.elements.review_remarks.focus();">
                                         Reject
                                     </button>
                                 <?php endif; ?>
@@ -434,11 +435,16 @@ require __DIR__ . '/../../includes/layout/header.php';
                                     <input type="hidden" name="activity_id" value="<?= $activityId ?>">
                                     <input type="hidden" name="registration_id" value="<?= (int) $participant['registration_id'] ?>">
                                     <div class="btn-row">
-                                        <input type="text" name="review_remarks" required class="input-auto input-sm"
+                                        <input type="text" name="review_remarks" required class="input-auto input-sm input-grow"
                                                aria-label="Reason for rejecting <?= e($rowName) ?>"
                                                placeholder="Reason (shown to the student)">
                                         <button type="submit" class="btn btn-danger btn-sm">
                                             Confirm rejection
+                                        </button>
+                                        <?php // A way back: Reject opened on the wrong row closes without a reload. ?>
+                                        <button type="button" class="btn btn-outline btn-sm"
+                                                onclick="this.form.hidden = true; var o = document.getElementById('reject-open-<?= (int) $participant['registration_id'] ?>'); o.hidden = false; o.focus();">
+                                            Cancel
                                         </button>
                                     </div>
                                 </form>
