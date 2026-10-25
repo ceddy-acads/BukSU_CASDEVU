@@ -156,10 +156,11 @@ check them while reading:
 - **Existing items start as requestable.** The office then marks the
   office-only ones. The other default (nothing requestable until the office
   opts items in) would make the feature look broken at launch.
-- **If the student's registration is withdrawn, rejected or completed while a
-  request is pending,** the request is cancelled automatically and the
-  student is told why. Approved requests and loans that are already out are
-  left alone; the office handles those as today.
+- **If the student's registration is withdrawn or rejected** (revised during
+  the build, Ruling R5), the student's pending requests and approved-but-
+  uncollected requests for that activity are cancelled automatically and the
+  student is told why. Loans already out are left alone; the office handles
+  those as today.
 - **An activity with no coordinator assigned:** its student requests go to
   office staff, as `activity_reviewer_ids()` already does for registrations.
 
