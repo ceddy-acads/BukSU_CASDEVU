@@ -581,7 +581,9 @@ statements that the system fails them:
    would only reorder the visible page, so those keep their server order
 12. **Highlight report size is capped by PHP.** The limit in Settings can never
    exceed the smaller of `upload_max_filesize` and `post_max_size` in
-   `php.ini`. Raising it past that is a hosting requirement, not a setting
+   `php.ini`. Raising it past that is a hosting requirement, not a setting.
+   Production also needs `display_errors=Off` and `display_startup_errors=Off`,
+   or an oversized upload prints PHP's own warning above the page
 
 ---
 

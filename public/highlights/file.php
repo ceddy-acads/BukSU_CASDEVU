@@ -21,11 +21,15 @@ $absolutePath = $row !== null ? upload_absolute_path((string) $row['file_path'])
 if ($absolutePath === null || !is_file($absolutePath)
     || (new finfo(FILEINFO_MIME_TYPE))->file($absolutePath) !== 'application/pdf') {
     http_response_code(404);
-    exit;
+    exit;   // binary route: a bare status, as inventory/photo.php does (AGENTS rule 8 exception)
 }
 
 // A long read must not hold the session lock.
 session_write_close();
+// Public, cacheable response: no session cookie or no-cache headers.
+header_remove('Set-Cookie');
+header_remove('Pragma');
+header_remove('Expires');
 
 $size  = (int) filesize($absolutePath);
 $range = parse_byte_range($_SERVER['HTTP_RANGE'] ?? null, $size);
@@ -33,7 +37,7 @@ $range = parse_byte_range($_SERVER['HTTP_RANGE'] ?? null, $size);
 $disposition = (($_GET['download'] ?? '') === '1') ? 'attachment' : 'inline';
 header('Content-Type: application/pdf');
 header('Accept-Ranges: bytes');
-header('Content-Disposition: ' . $disposition . '; filename="' . sanitize_filename((string) $row['title']) . '.pdf"');
+header('Content-Disposition: ' . $disposition . '; filename="' . sanitize_filename(str_replace(['/', '\\'], '-', (string) $row['title'])) . '.pdf"');
 header('X-Content-Type-Options: nosniff');
 header("Content-Security-Policy: default-src 'none'; object-src 'none'");
 // Short, so a report that gets hidden stops being served soon.

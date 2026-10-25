@@ -196,7 +196,6 @@ try {
         "SELECT h.activity_id FROM highlight_reports h JOIN activities a ON a.activity_id = h.activity_id
           WHERE a.status IN ('upcoming','ongoing','completed','closed') ORDER BY h.activity_id LIMIT 1");
 } catch (PDOException $e) {
-    $ids['highlight'] = 0;
     fwrite(STDERR, "
 The highlight_reports table is missing. Run: mysql -u root casms < database/update-highlight-reports.sql
 

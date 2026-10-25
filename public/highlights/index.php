@@ -45,7 +45,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <a class="hl-link" href="<?= url('highlights/view.php?activity_id=' . $id) ?>">
                     <span class="hl-cover" aria-hidden="true">
                         <span class="hl-cover-title"><?= e($report['title']) ?></span>
-                        <canvas data-hl-cover data-pdf="<?= e(url('highlights/file.php?activity_id=' . $id)) ?>"></canvas>
+                        <canvas data-hl-cover data-pdf="<?= e(highlight_file_url($report)) ?>"></canvas>
                     </span>
                     <span class="hl-title"><?= e($report['title']) ?></span>
                     <span class="hl-meta"><?= e($report['activity_title']) ?> · <span class="nowrap"><?= e(format_date($report['start_at'])) ?></span></span>

@@ -23,6 +23,13 @@ function highlight_status_sql(string $column = 'a.status'): string
     return $column . " IN ('" . implode("','", HIGHLIGHT_STATUSES) . "')";
 }
 
+/** URL of a report's PDF; `v` changes on replace so the 5-minute public cache never serves the old file. */
+function highlight_file_url(array $report, bool $download = false): string
+{
+    return url('highlights/file.php?activity_id=' . (int) $report['activity_id']
+        . '&v=' . (int) strtotime((string) $report['updated_at']) . ($download ? '&download=1' : ''));
+}
+
 /** '40M' to bytes; '0', '' and '-1' mean no limit. */
 function php_ini_bytes(string $value): int
 {

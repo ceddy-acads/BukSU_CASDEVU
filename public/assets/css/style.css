@@ -2218,14 +2218,20 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 @media (min-width: 720px) { .flipbook { padding: var(--s8) var(--s8) var(--s4); } }
 .flip-stage {
     margin-inline: auto;
-    max-width: max(240px, calc((100svh - 12rem) * var(--page-ratio, .707) * 2));
+    max-width: max(240px, calc((100svh - 21rem) * var(--page-ratio, .707) * 2));
 }
+/* The viewer's head is compact so the book and its controls fit one screen. */
+.page-head.flip-head { min-height: 0; padding: var(--s4) var(--s5); margin-bottom: var(--s3); }
+.page-head.flip-head h1 { font-size: clamp(1.5rem, 3vw, 2.25rem); }
+.page-head.flip-head .btn-row { flex: 0 1 auto; }
+@media (min-width: 720px) { .photo-band.flip-head > div:first-child { max-width: 70%; } }
 /* Before the pages arrive the stage holds a page's shape, so nothing jumps. */
 .flip-stage:empty { aspect-ratio: 1 / 1.414; max-width: 32rem; }
 @media (min-width: 720px) { .flip-stage:empty { aspect-ratio: 1.414 / 1; max-width: 60rem; } }
 .flip-page { background: var(--surface); overflow: hidden; }
 .flip-page img { display: block; width: 100%; height: 100%; object-fit: cover; }
 /* The spine: a soft fold shadow on the inner edge of each page in a spread. */
+/* taste-skill-ignore: spine shadow is the spec's required fold, DESIGN.md's second gradient exception */
 .stf__wrapper.--landscape .flip-page.is-left::after,
 .stf__wrapper.--landscape .flip-page.is-right::after {
     content: ""; position: absolute; top: 0; bottom: 0; width: 8%; pointer-events: none;

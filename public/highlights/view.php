@@ -17,11 +17,11 @@ if ($report === null) {
     abort_page(404, 'This highlight report is not available.');
 }
 
-$fileUrl   = url('highlights/file.php?activity_id=' . $activityId);
+$fileUrl   = highlight_file_url($report);
 $pageTitle = (string) $report['title'];
 require __DIR__ . '/../../includes/layout/header.php';
 ?>
-<div class="page-head photo-band"<?= photo_band_style(category_photo((string) $report['category'])) ?>>
+<div class="page-head photo-band flip-head"<?= photo_band_style(category_photo((string) $report['category'])) ?>>
     <div>
         <h1><?= e($report['title']) ?></h1>
         <p><?= e($report['activity_title']) ?> · <span class="nowrap"><?= e(format_date($report['start_at'])) ?></span></p>
@@ -46,7 +46,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 </section>
 
 <div class="btn-row flip-actions">
-    <a class="btn btn-outline" href="<?= e($fileUrl) ?>&amp;download=1">Download PDF (<?= e(format_filesize((int) $report['file_size'])) ?>)</a>
+    <a class="btn btn-outline" href="<?= e(highlight_file_url($report, true)) ?>">Download PDF (<?= e(format_filesize((int) $report['file_size'])) ?>)</a>
     <a class="btn btn-outline" href="<?= url('highlights/index.php') ?>">All highlights</a>
 </div>
 

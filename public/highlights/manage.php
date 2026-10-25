@@ -94,6 +94,10 @@ $formUrl = 'highlights/manage.php?activity_id=' . $activityId;   // kept in the 
 if (is_post()) {
     // PHP drops the whole body when it is over post_max_size, token included.
     if ($_POST === [] && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > highlight_server_limit_bytes()) {
+        // display_startup_errors may have printed PHP's own warning into the buffer already.
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
         $errors[] = 'This file is larger than ' . $maxMb . ' MB.';
     } else {
         csrf_verify();
@@ -196,7 +200,8 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <?php if ($visible): ?>
                     <a class="btn btn-outline" href="<?= url('highlights/view.php?activity_id=' . $activityId) ?>">Open</a>
                 <?php endif; ?>
-                <form method="post" action="<?= url($formUrl) ?>" class="inline-form">
+                <form method="post" action="<?= url($formUrl) ?>" class="inline-form"
+                      onsubmit="return confirm('Delete this highlight report? It is removed from the Highlights page and cannot be restored.');">
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="delete">
                     <button type="submit" class="btn btn-outline" data-loading="Deleting…">Delete report</button>
