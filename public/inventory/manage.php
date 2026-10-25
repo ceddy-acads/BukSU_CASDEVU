@@ -328,10 +328,14 @@ require __DIR__ . '/../../includes/layout/header.php';
         <a class="btn btn-outline" href="<?= url('inventory/index.php') ?>">Cancel</a>
     </div>
 </form>
+<?php if ($isEdit && ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'fetch'): ?>
+    <?php // Only in the popup: Delete is on the full page, below this fragment. ?>
+    <p class="hint mt-4">To delete this item, <a href="<?= url('inventory/manage.php?id=' . (int) $itemId . '#delete-item') ?>">open the full edit page</a>.</p>
+<?php endif; ?>
 </div><?php // #item-form-wrap ?>
 
 <?php if ($isEdit): ?>
-    <section class="card mt-6">
+    <section class="card mt-6" id="delete-item">
         <div class="card-head">
             <h2>Delete this item</h2>
             <p class="hint">Only items with no borrowing history can be deleted. Otherwise, set the status to unavailable.</p>
