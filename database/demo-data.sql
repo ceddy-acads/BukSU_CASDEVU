@@ -41,6 +41,23 @@ FROM (
 JOIN roles r ON r.name = v.role;
 
 -- =====================================================================
+-- GUESTS (outside the student body)
+-- =====================================================================
+
+INSERT IGNORE INTO users (role_id, email, password_hash, first_name, last_name, contact_number, connection_note, status)
+SELECT r.role_id, v.email,
+       '$2y$10$wTIZOyWz1J.gZwVQrAwxGeOgemgjbj3wcyPu2tLZuqAzLydhHs/zO',
+       v.first_name, v.last_name, v.contact, v.note, v.status
+FROM (
+    SELECT 'reyes.guest@example.com' AS email, 'Maricel' AS first_name, 'Reyes' AS last_name,
+           '0917-555-0201' AS contact,
+           'Parent of Andrea Santos, who dances with the university troupe.' AS note, 'active' AS status
+    UNION ALL SELECT 'lim.guest@example.com', 'Joel', 'Lim', '0917-555-0202',
+           'Volunteer coach of the Malaybalay youth chess club; we join the open tournaments.', 'pending'
+) AS v
+JOIN roles r ON r.name = 'guest';
+
+-- =====================================================================
 -- TEAM TEST ACCOUNTS (one admin, one staff, one coordinator)
 -- =====================================================================
 -- Shared so every teammate's copy has the same sign-ins. Each keeps the

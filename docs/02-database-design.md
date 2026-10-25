@@ -1,7 +1,7 @@
 # CASMS — Database Design
 
 **DBMS:** MySQL / MariaDB (XAMPP), InnoDB, `utf8mb4_unicode_ci`
-**Script:** `database/schema.sql` — verified to execute cleanly; creates 24 tables, 3 views, and seed data.
+**Script:** `database/schema.sql` — verified to execute cleanly; creates 25 tables, 3 views, and seed data.
 
 ---
 
@@ -70,9 +70,9 @@ requirement submission is meaningless without a registration.
 
 | Table | Purpose | Key design note |
 |-------|---------|-----------------|
-| `roles` | student / staff / coordinator / admin | A lookup table, not an ENUM, so a new role needs no `ALTER TABLE` |
+| `roles` | student / staff / coordinator / admin / guest | A lookup table, not an ENUM, so a new role needs no `ALTER TABLE` |
 | `courses`, `year_levels` | Academic reference data | Separate tables so renaming a course does not rewrite student rows |
-| `users` | All accounts, all roles | One table with nullable academic fields. Staff simply have `course_id = NULL` |
+| `users` | All accounts, all roles | One table with nullable academic fields. Staff simply have `course_id = NULL`. `connection_note` is filled for guests only: their answer to how they are connected to the unit's activities |
 | `auth_tokens` | Remember-me and password reset | Stores a **SHA-256 hash** of the token — a leaked row cannot be replayed |
 
 ### Module 2 — Activities
@@ -122,7 +122,13 @@ The "missing requirements" list is the **absence** of a row here — see view
 by summing open borrowings (`v_item_availability`). A stored counter would
 eventually drift out of sync with reality; a derived one cannot.
 
-### Module 7 — Invitations from outside groups
+### Module 7 — Highlight reports
+
+| Table | Purpose | Key design note |
+|-------|---------|-----------------|
+| `highlight_reports` | One PDF report per activity, shown on the public highlights page | `UNIQUE (activity_id)` makes "one report per activity" a database rule; uploading again replaces the row and file. Visibility follows the activity status and is never stored |
+
+### Module 8 — Invitations from outside groups
 
 | Table | Purpose | Key design note |
 |-------|---------|-----------------|

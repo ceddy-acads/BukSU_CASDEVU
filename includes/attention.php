@@ -48,6 +48,17 @@ function attention_items(): array
                 'action'  => 'Open the review queue',
             ];
         }
+        if (!is_office_staff() && $counts['reservations'] > 0) {   // the office has its own reservation item below
+            $items[] = [
+                'tone'    => 'warning',
+                'icon'    => 'inventory',
+                'title'   => 'Equipment requests',
+                'message' => $counts['reservations'] . ' student request' . ($counts['reservations'] === 1 ? ' is' : 's are')
+                             . ' waiting for your decision.',
+                'href'    => 'review.php?lane=reservations',
+                'action'  => 'Open the review queue',
+            ];
+        }
     }
 
     if (is_office_staff()) {
@@ -71,7 +82,7 @@ function attention_items(): array
                 'tone'    => 'warning',
                 'icon'    => 'users',
                 'title'   => 'Accounts waiting for approval',
-                'message' => $pendingAccounts . ' student account' . ($pendingAccounts === 1 ? ' is' : 's are')
+                'message' => $pendingAccounts . ' account' . ($pendingAccounts === 1 ? ' is' : 's are')
                              . ' waiting for approval.',
                 'href'    => 'admin/users.php?status=pending',
                 'action'  => 'Review accounts',

@@ -42,14 +42,15 @@ C:\xampp\mysql\bin\mysql.exe -u root < database/schema.sql
 C:\xampp\mysql\bin\mysql.exe -u root casms < database/demo-data.sql
 ```
 
-Adds 37 accounts, 6 activities, 36 registrations, 20 inventory items,
+Adds 39 accounts, 6 activities, 36 registrations, 20 inventory items,
 6 venues, reservations, loans and announcements — enough to walk through
 every screen. The dataset is deliberately mixed: activities in every status,
-registrations pending/approved/rejected/completed, two accounts awaiting
+registrations pending/approved/rejected/completed, three accounts awaiting
 approval, one overdue loan, one damaged item and one under maintenance.
 
 All demo accounts use the password `demo1234`; the administrator seeded by
-`schema.sql` keeps its own password and is left untouched. The script is
+`schema.sql` keeps its own password and is left untouched. The guest demo accounts are
+`reyes.guest@example.com` (active) and `lim.guest@example.com` (pending). The script is
 idempotent — re-running it adds nothing.
 
 **2c. Already have a database? Add the bell's dismiss column**
@@ -71,7 +72,37 @@ Office of the Registrar) without resetting anything. Courses not on that list
 are retired: hidden from sign-up but kept for students already linked to them.
 A fresh `schema.sql` install already has the list.
 
-**2e. Already have a database? Add invitations from outside groups**
+**2e. Already have a database? Add student borrowing**
+
+```bash
+C:\xampp\mysql\bin\mysql.exe -u root casms < database/update-student-borrowing.sql
+```
+
+Adds student equipment requests: the request columns on reservations, the
+requestable flag on items and the school ID photo columns on users. A fresh
+`schema.sql` install already has them. Safe to run twice.
+
+**2f. Already have a database? Add guest accounts**
+
+```bash
+C:\xampp\mysql\bin\mysql.exe -u root casms < database/update-guest-accounts.sql
+```
+
+Adds the Guest role and the `connection_note` column on users. Without it,
+User accounts and guest sign-up fail. A fresh `schema.sql` install already
+has them. Safe to run twice.
+
+**2g. Already have a database? Add highlight reports**
+
+```bash
+C:\xampp\mysql\bin\mysql.exe -u root casms < database/update-highlight-reports.sql
+```
+
+Adds the `highlight_reports` table and its upload limit setting. Run it
+before deploying the code: every activity page reads this table. A fresh
+`schema.sql` install already has it. Safe to run twice.
+
+**2h. Already have a database? Add invitations from outside groups**
 
 ```bash
 C:\xampp\mysql\bin\mysql.exe -u root casms < database/update-outside-invitations.sql
@@ -182,11 +213,14 @@ same computer; deploy under a real hostname for links that work anywhere.
 ```
 BukSU CASDEVU/
 ├── database/
-│   ├── schema.sql           Clean installer: 24 tables, 3 views, seed data
+│   ├── schema.sql           Clean installer: 25 tables, 3 views, seed data
 │   ├── demo-data.sql        Optional realistic dataset for a walkthrough
 │   ├── update-courses.sql   Brings an existing database to BukSU's programs
+│   ├── update-guest-accounts.sql  Adds the guest role and users.connection_note
+│   ├── update-highlight-reports.sql  Adds the highlight_reports table
 │   ├── update-notification-dismiss.sql  Adds notifications.dismissed_at
-│   └── update-outside-invitations.sql  Adds the invitations table
+│   ├── update-outside-invitations.sql  Adds the invitations table
+│   └── update-student-borrowing.sql  Adds student equipment requests and ID photos
 ├── docs/                    Requirements, DB design, role matrix, build plan,
 │                            test-accounts.pdf
 ├── bin/
@@ -521,7 +555,7 @@ a cancelled confirmation leaving the button untouched; the account menu from
 the keyboard; and role scoping of the review queue.
 
 **Fast regression pass.** `bin/smoke.php` signs in over HTTP as administrator,
-staff, coordinator and student, then requests every page under `public/` with
+staff, coordinator, student and guest, then requests every page under `public/` with
 real record ids taken from the database. It fails on a server error, a line
 written to the error log, an error message inside a page, a role that should be
 able to open a page getting 403, or a page that should be refused returning 200
@@ -531,6 +565,7 @@ able to open a page getting 403, or a page that should be refused returning 200
 C:\xampp\php\php.exe bin\smoke.php                 # all pages, all roles
 C:\xampp\php\php.exe bin\smoke.php --only=admin/ --verbose
 C:\xampp\php\php.exe bin\smoke.php --admin=me@buksu.edu.ph:password
+C:\xampp\php\php.exe bin\smoke.php --guest=reyes.guest@example.com:demo1234
 ```
 
 It issues GET requests only, so it never changes data. What it cannot replace:
@@ -582,20 +617,26 @@ statements that the system fails them:
    419, which Apache does not recognise and replaces with 500. The page itself
    reads correctly
 9. **No scheduled task is installed by default.** Deadline reminders only go
-   out when the runner is invoked — see setup step 6
+   out when the runner is invoked — see setup step 6. The same runner also
+   sends return reminders (the day before a student's equipment loan is due)
 10. **Default credentials ship in the repository.** `admin123` for the seeded
    administrator and `demo1234` for demo accounts. Change them before the
    system is used with real data
 11. **Paginated tables are not sortable.** Users, the audit log and the staff
    inventory list are split into pages on the server; sorting in the browser
    would only reorder the visible page, so those keep their server order
-12. **The invitation form is public.** `invitations/submit.php` needs no
+12. **Highlight report size is capped by PHP.** The limit in Settings can never
+   exceed the smaller of `upload_max_filesize` and `post_max_size` in
+   `php.ini`. Raising it past that is a hosting requirement, not a setting.
+   Production also needs `display_errors=Off` and `display_startup_errors=Off`,
+   or an oversized upload prints PHP's own warning above the page
+13. **The invitation form is public.** `invitations/submit.php` needs no
    account, so it is reachable from outside only if IT exposes the server.
    Submissions are limited to 5 per hour per address and per email, counted
    from the connecting address. Behind a reverse proxy that address is the
    proxy's, so everyone shares one limit until the caller of
    `invitation_submissions_limited()` reads the forwarded header
-13. **Invitation decisions are emailed only once SMTP is set up.** Until then
+14. **Invitation decisions are emailed only once SMTP is set up.** Until then
    they are written to `storage/logs/mail.log`, and the review queue lists
    them under "Email not sent: contact by hand" for the office to follow up
 

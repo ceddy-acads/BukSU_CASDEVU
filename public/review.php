@@ -7,8 +7,9 @@
  * made (verify.php, participants.php, reservations.php, users.php,
  * invitations/view.php), so the
  * approval rules, notifications, and audit logging all stay where they are.
- * Coordinators see only their assigned activities; reservations and account
- * approvals and outside invitations are office-only (includes/review.php).
+ * Coordinators see only their assigned activities and the student equipment
+ * requests for them; account approvals and outside invitations are
+ * office-only (includes/review.php).
  */
 
 declare(strict_types=1);
@@ -44,9 +45,11 @@ $lanes = [
     'documents'     => ['Documents', 'Students uploaded these and are waiting for your decision.'],
     'registrations' => ['Registrations', 'Students asked to join these activities.'],
 ];
+$lanes['reservations'] = ['Reservations', is_office_staff()
+    ? 'Coordinators and students asked to reserve costumes or equipment.'
+    : 'Students asked to borrow equipment for your activities.'];
 if (is_office_staff()) {
-    $lanes['reservations'] = ['Reservations', 'Coordinators asked to reserve costumes or equipment.'];
-    $lanes['accounts']     = ['Accounts', 'These students cannot sign in until an account is activated.'];
+    $lanes['accounts']     = ['Accounts', 'These people cannot sign in until their account is activated.'];
     $lanes['invitations']  = ['Invitations', 'Outside groups invited BukSU students to these programs.'];
 }
 
@@ -99,7 +102,7 @@ require __DIR__ . '/../includes/layout/header.php';
 <?php if ($counts['total'] === 0): ?>
     <div class="empty">
         <strong>You are all caught up</strong>
-        No documents, registrations<?= is_office_staff() ? ', reservations, accounts, or invitations' : '' ?> are waiting for review.
+        No documents, registrations<?= is_office_staff() ? ', reservations, accounts, or invitations' : ', or equipment requests' ?> are waiting for review.
         <div class="btn-row">
             <a class="btn btn-outline" href="<?= url('activities/index.php') ?>">Go to activities</a>
         </div>
@@ -213,7 +216,11 @@ require __DIR__ . '/../includes/layout/header.php';
             <?php if ($reservations === []): ?>
                 <div class="empty">
                     <strong>No reservation requests waiting</strong>
-                    New requests appear here as soon as coordinators send them.
+                    <?php if (is_office_staff()): ?>
+                    New requests appear here as soon as coordinators or students send them.
+                    <?php else: ?>
+                    Student equipment requests for your activities appear here as soon as they're sent.
+                    <?php endif; ?>
                 </div>
             <?php else: ?>
                 <div class="table-wrap">
@@ -252,21 +259,21 @@ require __DIR__ . '/../includes/layout/header.php';
             <?php if ($accounts === []): ?>
                 <div class="empty">
                     <strong>No accounts waiting</strong>
-                    New sign-ups appear here as soon as students register.
+                    New sign-ups appear here as soon as someone signs up.
                 </div>
             <?php else: ?>
                 <div class="table-wrap">
                     <table class="data table-stack" data-sortable>
                         <thead>
-                            <tr><th data-sort="text">Student</th><th data-sort="text">Email</th><th data-sort="number">Registered</th>
+                            <tr><th data-sort="text">Name</th><th data-sort="text">Email</th><th data-sort="number">Registered</th>
                                 <th class="actions"><span class="sr-only">Action</span></th></tr>
                         </thead>
                         <tbody>
                         <?php foreach ($accounts as $row): ?>
                             <tr>
-                                <td data-label="Student">
+                                <td data-label="Name">
                                     <strong><?= e($row['last_name'] . ', ' . $row['first_name']) ?></strong>
-                                    <div class="hint"><?= e($row['student_number'] ?? '') ?></div>
+                                    <div class="hint"><?= e(($row['student_number'] ?? '') !== '' ? $row['student_number'] : 'Guest') ?></div>
                                 </td>
                                 <td data-label="Email"><?= e($row['email']) ?></td>
                                 <td data-label="Registered" data-sort-value="<?= (int) strtotime((string) $row['created_at']) ?>"><?= e(waiting_label($row['created_at'])) ?></td>

@@ -13,6 +13,7 @@ require_once __DIR__ . '/../includes/bootstrap.php';
 require_login();
 
 $user       = current_user();
+$isStudent  = current_role() === 'student';
 // Offered courses, plus the student's own even if it has since been retired,
 // so saving the profile never clears it.
 $courses    = fetch_all(
@@ -50,6 +51,44 @@ if (is_post()) {
         redirect('profile.php');
     }
 
+    // ------------------------------------------------------------ School ID
+    if ($action === 'id_photo_upload' && current_role() === 'student') {
+        $uid   = (int) $user['user_id'];
+        $saved = 0;
+        foreach (['front' => 'id_front', 'back' => 'id_back'] as $side => $field) {
+            if ((int) ($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
+            $stored = store_id_photo($_FILES[$field]);
+            if (!$stored['ok']) {
+                $errors[] = ucfirst($side) . ' of ID: ' . $stored['error'];
+                continue;
+            }
+            replace_id_photo($uid, $side, $stored['path']);
+            audit_log('update', 'user', $uid, 'Uploaded own school ID (' . $side . ')');
+            $saved++;
+        }
+        if ($saved === 0 && $errors === []) {
+            $errors[] = 'Choose a photo of the front, the back, or both.';
+        }
+        if ($saved > 0 && $errors === []) {
+            flash('success', 'Your school ID has been saved.');
+            redirect('profile.php#school-id');
+        }
+    }
+
+    if ($action === 'id_photo_delete' && current_role() === 'student') {
+        $uid = (int) $user['user_id'];
+        if (student_has_open_borrowing($uid)) {
+            $errors[] = "You can't remove your ID while you have a borrow request or borrowed items. You can still replace it.";
+        } else {
+            delete_id_photos($uid);
+            audit_log('update', 'user', $uid, 'Removed own school ID');
+            flash('success', 'Your school ID has been removed.');
+            redirect('profile.php#school-id');
+        }
+    }
+
     // ------------------------------------------------------ Update details
     if ($action === 'details') {
         $firstName     = post('first_name');
@@ -60,9 +99,21 @@ if (is_post()) {
         $yearLevelId   = post('year_level_id');
         $section       = post('section');
 
+        // Only students hold an academic placement.
+        if (!$isStudent) {
+            $courseId = $yearLevelId = $section = '';
+        }
+
         if ($firstName === '' || $lastName === '') {
             $errors[] = 'First name and last name are required.';
         }
+        $errors = array_merge($errors, length_errors([
+            'First name'     => [$firstName, 80],
+            'Middle name'    => [$middleName, 80],
+            'Last name'      => [$lastName, 80],
+            'Contact number' => [$contactNumber, 30],
+            'Section'        => [$section, 20],
+        ]));
 
         if ($errors === []) {
             query(
@@ -129,7 +180,6 @@ if (is_post() && $errors !== []) {
 }
 $mode = in_array($mode, ['details', 'password'], true) ? $mode : 'view';
 
-$isStudent = current_role() === 'student';
 $initials  = strtoupper(mb_substr((string) $user['first_name'], 0, 1) . mb_substr((string) $user['last_name'], 0, 1));
 $photoUrl  = user_photo_url($user);
 
@@ -209,22 +259,22 @@ require __DIR__ . '/../includes/layout/header.php';
                     <div class="form-grid form-grid-2">
                         <div class="form-row">
                             <label for="first_name">First name <span class="req">*</span></label>
-                            <input type="text" id="first_name" name="first_name"
+                            <input type="text" id="first_name" name="first_name" maxlength="80"
                                    value="<?= e(post('first_name', (string) $user['first_name'])) ?>" required autocomplete="given-name">
                         </div>
                         <div class="form-row">
                             <label for="last_name">Last name <span class="req">*</span></label>
-                            <input type="text" id="last_name" name="last_name"
+                            <input type="text" id="last_name" name="last_name" maxlength="80"
                                    value="<?= e(post('last_name', (string) $user['last_name'])) ?>" required autocomplete="family-name">
                         </div>
                         <div class="form-row">
                             <label for="middle_name">Middle name <span class="optional">(optional)</span></label>
-                            <input type="text" id="middle_name" name="middle_name"
+                            <input type="text" id="middle_name" name="middle_name" maxlength="80"
                                    value="<?= e(post('middle_name', (string) $user['middle_name'])) ?>" autocomplete="additional-name">
                         </div>
                         <div class="form-row">
                             <label for="contact_number">Contact number <span class="optional">(optional)</span></label>
-                            <input type="tel" id="contact_number" name="contact_number"
+                            <input type="tel" id="contact_number" name="contact_number" maxlength="30"
                                    value="<?= e(post('contact_number', (string) $user['contact_number'])) ?>" autocomplete="tel">
                         </div>
                     </div>
@@ -253,7 +303,7 @@ require __DIR__ . '/../includes/layout/header.php';
                         </div>
                         <div class="form-row">
                             <label for="section">Section</label>
-                            <input type="text" id="section" name="section" value="<?= e(post('section', (string) $user['section'])) ?>">
+                            <input type="text" id="section" name="section" maxlength="20" value="<?= e(post('section', (string) $user['section'])) ?>">
                         </div>
                     <?php endif; ?>
 
@@ -276,6 +326,9 @@ require __DIR__ . '/../includes/layout/header.php';
                         <div><dt>Section</dt><dd><?= $show($user['section']) ?></dd></div>
                     <?php else: ?>
                         <div><dt>Role</dt><dd><?= e(ucfirst((string) $user['role_name'])) ?></dd></div>
+                        <?php if (is_guest()): ?>
+                            <div class="profile-wide"><dt>Connection to the unit</dt><dd><?= $show($user['connection_note']) ?></dd></div>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </dl>
             <?php endif; ?>
@@ -350,5 +403,57 @@ require __DIR__ . '/../includes/layout/header.php';
         </div>
     <?php endif; ?>
 </section>
+
+<?php if ($isStudent):
+    $idFront = trim((string) $user['id_front_path']) !== '';
+    $idBack  = trim((string) $user['id_back_path']) !== '';
+?>
+<section class="card profile-sheet id-photos" id="school-id" aria-labelledby="school-id-title">
+    <h2 class="profile-panel-title" id="school-id-title">School ID for borrowing</h2>
+    <p class="profile-panel-sub">Upload both sides of your school ID. Only you, the office while you have borrowed items, and the coordinator deciding your request can see it.</p>
+
+    <div class="id-photos-grid">
+        <?php foreach (['front' => $idFront, 'back' => $idBack] as $side => $present): ?>
+            <div>
+                <h3 class="id-photos-label"><?= e(ucfirst($side)) ?></h3>
+                <?php if ($present): ?>
+                    <img class="id-photos-preview" src="<?= e(url('id-photo.php?user=' . (int) $user['user_id'] . '&side=' . $side . '&v=' . (int) @filemtime((string) upload_absolute_path($user['id_' . $side . '_path'])))) ?>"
+                         alt="<?= e('Your school ID, ' . $side) ?>" width="240" height="150">
+                <?php else: ?>
+                    <p class="muted">Not uploaded</p>
+                <?php endif; ?>
+            </div>
+        <?php endforeach; ?>
+    </div>
+
+    <form method="post" action="<?= url('profile.php') ?>" enctype="multipart/form-data">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="id_photo_upload">
+        <div class="form-grid form-grid-2">
+            <div class="form-row">
+                <label for="id_front">Front <?= $idFront ? '(replace)' : '' ?></label>
+                <input type="file" id="id_front" name="id_front" accept="image/jpeg,image/png">
+            </div>
+            <div class="form-row">
+                <label for="id_back">Back <?= $idBack ? '(replace)' : '' ?></label>
+                <input type="file" id="id_back" name="id_back" accept="image/jpeg,image/png">
+            </div>
+        </div>
+        <p class="profile-photo-hint">JPG or PNG. You can replace one side at a time.</p>
+        <div class="profile-actions">
+            <button type="submit" class="btn btn-primary" data-loading="Uploading…">Save ID photos</button>
+        </div>
+    </form>
+
+    <?php if ($idFront || $idBack): ?>
+        <form method="post" action="<?= url('profile.php') ?>" class="profile-actions"
+              onsubmit="return confirm('Remove both ID photos? You can upload them again later.');">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="id_photo_delete">
+            <button type="submit" class="btn btn-outline">Remove ID photos</button>
+        </form>
+    <?php endif; ?>
+</section>
+<?php endif; ?>
 
 <?php require __DIR__ . '/../includes/layout/footer.php'; ?>

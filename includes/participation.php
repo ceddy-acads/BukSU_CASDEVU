@@ -197,3 +197,21 @@ function requirement_next_html(array $state): string
     $lead = ['student' => 'Your turn:', 'office' => 'With the office:', 'none' => 'Done:'][$state['owner']] ?? '';
     return '<p class="next-action next-' . e($state['owner']) . '"><strong>' . $lead . '</strong> ' . e($state['next']) . '</p>';
 }
+
+/** Withdraw a registration and cancel the student's open equipment requests for that activity. */
+function withdraw_registration(int $registrationId): void
+{
+    $reg = fetch_one(
+        'SELECT r.user_id, r.activity_id, a.title
+           FROM registrations r JOIN activities a ON a.activity_id = r.activity_id
+          WHERE r.registration_id = ?',
+        [$registrationId]
+    );
+    if ($reg === null) {
+        return;
+    }
+    query("UPDATE registrations SET status = 'withdrawn' WHERE registration_id = ?", [$registrationId]);
+    audit_log('update', 'registration', $registrationId, 'Student withdrew from: ' . $reg['title']);
+    cancel_open_student_requests((int) $reg['user_id'], (int) $reg['activity_id'],
+        'Your registration was withdrawn, so your equipment request was cancelled.');
+}

@@ -19,6 +19,7 @@ $user      = current_user();
 $userId    = (int) $user['user_id'];
 $isStudent = current_role() === 'student';
 $isAdmin   = has_role('admin');
+$isGuest   = is_guest();
 $errors    = [];
 
 if (is_post()) {
@@ -27,6 +28,9 @@ if (is_post()) {
 
     // ------------------------------------------------ What reaches me by email
     if ($action === 'notifications') {
+        if ($isGuest) {
+            abort_page(403, 'Guest accounts do not receive email notifications.');
+        }
         // Students are the only people the system emails reminders to;
         // reviewers are the only people it emails about work waiting on them.
         $key = $isStudent ? 'email_reminders' : 'email_review_alerts';
@@ -73,6 +77,8 @@ if (is_post()) {
         $officeName = trim(post('office_name'));
         $university = trim(post('university_name'));
         $megabytes  = post('max_upload_size_mb');
+        $hlMegabytes = post('highlight_max_upload_mb');
+        $hlCeiling   = (int) floor(highlight_server_limit_bytes() / 1048576);
 
         if ($officeName === '' || mb_strlen($officeName) > 120) {
             $errors[] = 'Office name is required, up to 120 characters.';
@@ -83,17 +89,22 @@ if (is_post()) {
         if (!ctype_digit($megabytes) || (int) $megabytes < 1 || (int) $megabytes > 50) {
             $errors[] = 'Upload limit must be a whole number of megabytes between 1 and 50.';
         }
+        if (!ctype_digit($hlMegabytes) || (int) $hlMegabytes < 1 || (int) $hlMegabytes > $hlCeiling) {
+            $errors[] = 'Highlight report limit must be a whole number of megabytes between 1 and '
+                . $hlCeiling . ", this server's limit.";
+        }
 
         if ($errors === []) {
             save_office_settings([
                 'office_name'        => $officeName,
                 'university_name'    => $university,
                 'max_upload_size_mb' => (string) (int) $megabytes,
+                'highlight_max_upload_mb' => (string) (int) $hlMegabytes,
             ]);
 
             audit_log('update', 'setting', null,
                       'Office details set to "' . $officeName . '", "' . $university . '", '
-                      . (int) $megabytes . ' MB uploads');
+                      . (int) $megabytes . ' MB uploads, ' . (int) $hlMegabytes . ' MB highlight reports');
             flash('success', 'Office settings saved.');
             redirect('settings.php');
         }
@@ -112,7 +123,9 @@ $officeFields = [
     'office_name'        => ['Office name', (string) office_setting('office_name', OFFICE_NAME)],
     'university_name'    => ['University name', (string) office_setting('university_name', UNIVERSITY)],
     'max_upload_size_mb' => ['Largest file', (string) (int) (max_upload_bytes() / 1024 / 1024)],
+    'highlight_max_upload_mb' => ['Largest highlight report', (string) (int) floor(highlight_max_bytes() / 1048576)],
 ];
+$highlightCeiling = (int) floor(highlight_server_limit_bytes() / 1048576);
 $editing = is_post() ? post('edit') : get('edit');
 if (!$isAdmin || !isset($officeFields[$editing])) {
     $editing = '';
@@ -126,7 +139,7 @@ require __DIR__ . '/../includes/layout/header.php';
 <div class="page-head">
     <div>
         <h1>Settings</h1>
-        <p>What reaches you by email, how your activity list opens<?= $isAdmin ? ', and the details the office prints on its messages' : '' ?>.</p>
+        <p><?= $isGuest ? 'How your activity list opens' : 'What reaches you by email, how your activity list opens' ?><?= $isAdmin ? ', and the details the office prints on its messages' : '' ?>.</p>
     </div>
 </div>
 
@@ -134,7 +147,7 @@ require __DIR__ . '/../includes/layout/header.php';
 <div class="settings-layout">
 
 <nav class="settings-nav" aria-label="Settings sections">
-    <a href="#notifications">Notifications</a>
+    <?php if (!$isGuest): ?><a href="#notifications">Notifications</a><?php endif; ?>
     <a href="#activity-list">Activity list</a>
     <?php if ($isAdmin): ?><a href="#office">Office</a><?php endif; ?>
     <a href="#account">Account</a>
@@ -143,6 +156,7 @@ require __DIR__ . '/../includes/layout/header.php';
 <div class="settings-cards">
 
 <?php // ---------------------------------------------------- Notifications ?>
+<?php if (!$isGuest): ?>
 <section class="set-card" id="notifications" aria-labelledby="notifications-title">
     <div class="set-card-head"><h2 id="notifications-title">Notifications</h2></div>
     <div class="set-card-body">
@@ -164,6 +178,7 @@ require __DIR__ . '/../includes/layout/header.php';
         </form>
     </div>
 </section>
+<?php endif; ?>
 
 <?php // --------------------------------------------------- Activity list ?>
 <section class="set-card" id="activity-list" aria-labelledby="activity-list-title">
@@ -210,11 +225,15 @@ require __DIR__ . '/../includes/layout/header.php';
                         <?php endif; ?>
 
                         <div class="form-row">
-                            <label for="<?= e($key) ?>"><?= e($label) ?><?= $key === 'max_upload_size_mb' ? ' (MB)' : '' ?></label>
+                            <label for="<?= e($key) ?>"><?= e($label) ?><?= in_array($key, ['max_upload_size_mb', 'highlight_max_upload_mb'], true) ? ' (MB)' : '' ?></label>
                             <?php if ($key === 'max_upload_size_mb'): ?>
                                 <input type="number" id="<?= e($key) ?>" name="<?= e($key) ?>" min="1" max="50" required autofocus
                                        value="<?= e(post($key, $value)) ?>">
                                 <div class="hint">1&ndash;50. Students see this limit on the upload page.</div>
+                            <?php elseif ($key === 'highlight_max_upload_mb'): ?>
+                                <input type="number" id="<?= e($key) ?>" name="<?= e($key) ?>" min="1" max="<?= $highlightCeiling ?>" required autofocus
+                                       value="<?= e(post($key, $value)) ?>">
+                                <div class="hint">Up to <?= $highlightCeiling ?> MB on this server. A higher limit needs upload_max_filesize and post_max_size raised in php.ini first.</div>
                             <?php else: ?>
                                 <input type="text" id="<?= e($key) ?>" name="<?= e($key) ?>" required maxlength="120" autofocus
                                        value="<?= e(post($key, $value)) ?>">
@@ -229,7 +248,11 @@ require __DIR__ . '/../includes/layout/header.php';
                     <div class="set-row">
                         <div class="set-text">
                             <span class="set-label"><?= e($label) ?></span>
-                            <p class="set-desc"><?= e($value) ?><?= $key === 'max_upload_size_mb' ? ' MB per requirement document' : '' ?></p>
+                            <p class="set-desc"><?= e($value) ?><?= match ($key) {
+                                'max_upload_size_mb'      => ' MB per requirement document',
+                                'highlight_max_upload_mb' => ' MB per highlight report PDF',
+                                default                   => '',
+                            } ?></p>
                         </div>
                         <a class="btn btn-outline btn-sm" href="<?= url('settings.php?edit=' . $key . '#office') ?>">Change<span class="sr-only"> <?= e(strtolower($label)) ?></span></a>
                     </div>

@@ -3,13 +3,13 @@
  * CASDevU — Serve an inventory item's photo (FR-6.1)
  *
  * Photos live outside the web root like every other upload, so they are
- * streamed through here to signed-in users only.
+ * streamed through here to students, coordinators and the office (not guests).
  */
 
 declare(strict_types=1);
 require_once __DIR__ . '/../../includes/bootstrap.php';
 
-require_login();
+require_role(['student', 'coordinator', 'staff', 'admin']);
 
 $itemId = get_id('id');
 $path   = $itemId !== null

@@ -58,4 +58,12 @@ printf(
     PHP_EOL
 );
 
+$returns = send_return_reminders($dryRun);
+printf(
+    "%sReturn reminders: %d due, %d sent, %d already sent, %d emailed%s",
+    $dryRun ? '[DRY RUN] ' : '',
+    $returns['due'], $returns['sent'], $returns['skipped'], $returns['emailed'],
+    PHP_EOL
+);
+
 exit(0);

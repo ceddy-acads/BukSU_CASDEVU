@@ -5,6 +5,7 @@
  * Built around the one question each role opens it with:
  *   students  — "what do I still need to do?"
  *   office    — "what is waiting on me?"
+ *   guests    — "what is on, and when?"
  */
 
 declare(strict_types=1);
@@ -60,7 +61,7 @@ if ($role === 'student') {
               WHERE m.user_id = ? AND a.status <> 'completed'", [$user['user_id']]),
             'class' => 'stat-danger', 'href' => 'participation/my-activities.php'],
     ];
-} else {
+} elseif (can_review()) {
     $stats = [
         ['label' => 'Active activities', 'value' => fetch_value(
             "SELECT COUNT(*) FROM activities WHERE status IN ('upcoming','ongoing')"),
@@ -76,6 +77,9 @@ if ($role === 'student') {
             'class' => '', 'href' => is_office_staff() ? 'inventory/borrowings.php' : null],
     ];
 }
+
+// Students and guests get the two-column layout; the office rows run full width.
+$wideRows = !in_array($role, ['student', 'guest'], true);
 
 $pageTitle = 'Dashboard';
 require __DIR__ . '/../includes/layout/header.php';
@@ -98,7 +102,7 @@ require __DIR__ . '/../includes/layout/header.php';
             <a class="btn btn-gold" href="<?= url('activities/manage.php') ?>"
                data-modal data-modal-title="New activity" data-modal-wrap="#activity-form-wrap">New activity</a>
         </div>
-    <?php elseif ($role === 'student'): ?>
+    <?php elseif (in_array($role, ['student', 'guest'], true)): ?>
         <div class="btn-row">
             <a class="btn btn-outline" href="<?= url('activities/index.php') ?>">Browse activities</a>
         </div>
@@ -108,6 +112,7 @@ require __DIR__ . '/../includes/layout/header.php';
 <?php // Alerts that used to sit here (pending accounts, overdue returns, missing
       // documents) now open in the notification pop-up: includes/attention.php. ?>
 
+<?php if ($stats !== []): ?>
 <div class="stats">
     <?php foreach ($stats as $stat): ?>
         <?php
@@ -122,12 +127,13 @@ require __DIR__ . '/../includes/layout/header.php';
         </<?= $tag ?>>
     <?php endforeach; ?>
 </div>
+<?php endif; ?>
 
 <div class="grid grid-2">
     <?php // Registrations and documents waiting for review open in the
           // notification pop-up (includes/attention.php), so for office roles
           // the agenda takes the row the old work-queue card shared. ?>
-    <section class="card<?= $role !== 'student' ? ' span-all' : '' ?>">
+    <section class="card<?= $wideRows ? ' span-all' : '' ?>">
         <div class="card-head">
             <h2>Upcoming activities</h2>
             <?php if ($upcoming !== []): ?>
@@ -193,7 +199,7 @@ require __DIR__ . '/../includes/layout/header.php';
     <?php endif; ?>
 
     <?php // The news row takes the full width below for office roles. ?>
-    <section class="card<?= $role !== 'student' ? ' span-all' : '' ?>">
+    <section class="card<?= $wideRows ? ' span-all' : '' ?>">
         <div class="card-head">
             <h2>Latest announcements</h2>
             <?php if ($announcements !== []): ?>
@@ -207,7 +213,7 @@ require __DIR__ . '/../includes/layout/header.php';
                 Office news and schedule changes will be posted here.
             </div>
         <?php else: ?>
-            <div class="feed<?= $role !== 'student' ? ' feed-cols' : '' ?>">
+            <div class="feed<?= $wideRows ? ' feed-cols' : '' ?>">
                 <?php foreach ($announcements as $announcement): ?>
                     <article class="news-item">
                         <?php if ($announcement['is_pinned']): ?>

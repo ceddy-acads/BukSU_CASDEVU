@@ -87,7 +87,8 @@ require __DIR__ . '/../../includes/layout/header.php';
         <a class="crumb" href="<?= url('reports/index.php') ?>">&larr; Back to reports</a>
         <h1>Inventory report</h1>
         <p><?= count($items) ?> item<?= count($items) === 1 ? '' : 's' ?>
-           &middot; <?= number_format($summary['available']) ?> units available</p>
+           &middot; <?= number_format($summary['available']) ?> units available<?php if ($summary['overdue'] > 0): ?>
+           &middot; <?= $summary['overdue'] ?> overdue<?php endif; ?></p>
     </div>
     <div class="btn-row">
         <button type="button" class="btn btn-outline" data-print>Print</button>
@@ -101,12 +102,8 @@ require __DIR__ . '/../../includes/layout/header.php';
     by <?= e(full_name(current_user())) ?>
 </div>
 
-<?php if ($summary['overdue'] > 0): ?>
-    <div class="alert alert-error">
-        <strong><?= $summary['overdue'] ?></strong> loan<?= $summary['overdue'] === 1 ? ' is' : 's are' ?>
-        past the expected return date.
-    </div>
-<?php endif; ?>
+<?php // Overdue returns, as a task, open in the notification pop-up (includes/attention.php);
+      // the count stays in the subtitle above so the printed report keeps it. ?>
 
 <div class="stats">
     <div class="stat">

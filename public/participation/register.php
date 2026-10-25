@@ -50,12 +50,7 @@ if ($action === 'withdraw') {
         redirect($backTo);
     }
 
-    query(
-        "UPDATE registrations SET status = 'withdrawn' WHERE registration_id = ?",
-        [$registration['registration_id']]
-    );
-    audit_log('update', 'registration', (int) $registration['registration_id'],
-              'Student withdrew from: ' . $activity['title']);
+    withdraw_registration((int) $registration['registration_id']);
 
     flash('success', 'You have withdrawn your registration.');
     redirect($backTo);
