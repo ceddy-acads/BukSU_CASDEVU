@@ -73,11 +73,14 @@ place, without a reload.
   no glass, no shadows at rest, no violet.
 - No gradients, with one exception: the page-head wash, a navy-to-blue
   gradient over the photograph, which the owner asked for on every screen.
+  The second is the flipbook spine, a soft shadow on the inner edge of each
+  page in a spread, which the highlight-reports spec requires.
 - The page head is a photograph under that wash: the campus picture behind a
   navy-to-blue gradient, heavy on the text side (94% navy) and lighter on the
   open side (82% blue), so the headline and the body copy keep at least
   4.5:1 over the brightest patch of sky. The domain colour survives as a
-  strip under the band.
+  strip under the band. The highlight viewer is the exception to the band
+  height: its head is compact so the book fits the screen.
 - A photo band carries one of the office's event photographs under that same
   wash, and never under text of its own: the picture is the field, the type
   sits on the dense side of the wash, and no word sits on an uncovered

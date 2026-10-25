@@ -190,8 +190,12 @@ if ($isQuickLook): ?>
         <h1><?= e($activity['title']) ?></h1>
         <p><?= e($activity['category']) ?></p>
     </div>
-    <?php if ($canManage || $canRegister): ?>
+    <?php $hasHighlights = published_highlight($activityId) !== null; ?>
+    <?php if ($canManage || $canRegister || $hasHighlights): ?>
         <div class="btn-row">
+            <?php if ($hasHighlights): ?>
+                <a class="btn btn-outline" href="<?= url('highlights/view.php?activity_id=' . $activityId) ?>">Read the highlights</a>
+            <?php endif; ?>
             <?php if ($canRegister): ?>
                 <a class="btn btn-gold" href="#participation">Register</a>
             <?php endif; ?>
@@ -375,6 +379,10 @@ if ($isQuickLook): ?>
                     <a class="btn btn-outline btn-sm"
                        href="<?= url('activities/eligibility.php?activity_id=' . $activityId) ?>">
                         Eligibility (<?= $eligibilityRuleCount ?>)
+                    </a>
+                    <a class="btn btn-outline btn-sm"
+                       href="<?= url('highlights/manage.php?activity_id=' . $activityId) ?>">
+                        Highlight report
                     </a>
                     <?php if (is_office_staff()): ?>
                         <a class="btn btn-outline btn-sm"

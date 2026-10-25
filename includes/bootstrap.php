@@ -25,6 +25,7 @@ require_once __DIR__ . '/attention.php';
 require_once __DIR__ . '/participation.php';
 require_once __DIR__ . '/review.php';
 require_once __DIR__ . '/uploads.php';
+require_once __DIR__ . '/highlights.php';
 require_once __DIR__ . '/inventory.php';
 require_once __DIR__ . '/borrowing.php';
 require_once __DIR__ . '/reports.php';

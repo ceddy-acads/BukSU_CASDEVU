@@ -8,3 +8,6 @@
 *.woff  binary
 *.woff2 binary
 *.ttf   binary
+
+# Vendor libraries: committed byte-for-byte, never converted.
+public/assets/vendor/** -text
