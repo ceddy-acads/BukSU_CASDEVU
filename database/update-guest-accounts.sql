@@ -9,7 +9,6 @@
 -- =====================================================================
 
 SET NAMES utf8mb4;
-USE casms;
 
 INSERT IGNORE INTO roles (name, description)
 VALUES ('guest', 'Outside the student body: views the schedule and announcements');
