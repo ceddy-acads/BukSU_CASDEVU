@@ -74,8 +74,8 @@ Demo accounts use password `demo1234`; the seeded administrator is
    bound (ORDER BY, LIMIT) are cast to `int` or checked against a whitelist.
 7. Uploads go through `store_upload()`, never `move_uploaded_file()`. Files are
    served only through `requirements/download.php`, `inventory/photo.php`,
-   `profile-photo.php` and `highlights/file.php`; the first three authorize
-   first, the last is deliberately public (visible statuses only).
+   `profile-photo.php`, `id-photo.php` and `highlights/file.php`; all but the
+   last authorize first, the last is deliberately public (visible statuses only).
 8. Stop a request with `abort_page($code, $message)`, never a bare `exit()`.
 9. Report queries live in `includes/reports.php` so the screen and its CSV agree.
    CSV cells pass through `csv_cell()`.

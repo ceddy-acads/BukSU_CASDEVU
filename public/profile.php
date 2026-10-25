@@ -50,6 +50,44 @@ if (is_post()) {
         redirect('profile.php');
     }
 
+    // ------------------------------------------------------------ School ID
+    if ($action === 'id_photo_upload' && current_role() === 'student') {
+        $uid   = (int) $user['user_id'];
+        $saved = 0;
+        foreach (['front' => 'id_front', 'back' => 'id_back'] as $side => $field) {
+            if ((int) ($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
+            $stored = store_id_photo($_FILES[$field]);
+            if (!$stored['ok']) {
+                $errors[] = ucfirst($side) . ' of ID: ' . $stored['error'];
+                continue;
+            }
+            replace_id_photo($uid, $side, $stored['path']);
+            audit_log('update', 'user', $uid, 'Uploaded own school ID (' . $side . ')');
+            $saved++;
+        }
+        if ($saved === 0 && $errors === []) {
+            $errors[] = 'Choose a photo of the front, the back, or both.';
+        }
+        if ($saved > 0 && $errors === []) {
+            flash('success', 'Your school ID has been saved.');
+            redirect('profile.php#school-id');
+        }
+    }
+
+    if ($action === 'id_photo_delete' && current_role() === 'student') {
+        $uid = (int) $user['user_id'];
+        if (student_has_open_borrowing($uid)) {
+            $errors[] = "You can't remove your ID while you have a borrow request or borrowed items. You can still replace it.";
+        } else {
+            delete_id_photos($uid);
+            audit_log('update', 'user', $uid, 'Removed own school ID');
+            flash('success', 'Your school ID has been removed.');
+            redirect('profile.php#school-id');
+        }
+    }
+
     // ------------------------------------------------------ Update details
     if ($action === 'details') {
         $firstName     = post('first_name');
@@ -350,5 +388,57 @@ require __DIR__ . '/../includes/layout/header.php';
         </div>
     <?php endif; ?>
 </section>
+
+<?php if ($isStudent):
+    $idFront = trim((string) $user['id_front_path']) !== '';
+    $idBack  = trim((string) $user['id_back_path']) !== '';
+?>
+<section class="card profile-sheet id-photos" id="school-id" aria-labelledby="school-id-title">
+    <h2 class="profile-panel-title" id="school-id-title">School ID for borrowing</h2>
+    <p class="profile-panel-sub">Upload both sides of your school ID. Only you, the office while you have borrowed items, and the coordinator deciding your request can see it.</p>
+
+    <div class="id-photos-grid">
+        <?php foreach (['front' => $idFront, 'back' => $idBack] as $side => $present): ?>
+            <div>
+                <h3 class="id-photos-label"><?= e(ucfirst($side)) ?></h3>
+                <?php if ($present): ?>
+                    <img class="id-photos-preview" src="<?= e(url('id-photo.php?user=' . (int) $user['user_id'] . '&side=' . $side . '&v=' . (int) @filemtime((string) upload_absolute_path($user['id_' . $side . '_path'])))) ?>"
+                         alt="<?= e('Your school ID, ' . $side) ?>" width="240" height="150">
+                <?php else: ?>
+                    <p class="muted">Not uploaded</p>
+                <?php endif; ?>
+            </div>
+        <?php endforeach; ?>
+    </div>
+
+    <form method="post" action="<?= url('profile.php') ?>" enctype="multipart/form-data">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="id_photo_upload">
+        <div class="form-grid form-grid-2">
+            <div class="form-row">
+                <label for="id_front">Front <?= $idFront ? '(replace)' : '' ?></label>
+                <input type="file" id="id_front" name="id_front" accept="image/jpeg,image/png">
+            </div>
+            <div class="form-row">
+                <label for="id_back">Back <?= $idBack ? '(replace)' : '' ?></label>
+                <input type="file" id="id_back" name="id_back" accept="image/jpeg,image/png">
+            </div>
+        </div>
+        <p class="profile-photo-hint">JPG or PNG. You can replace one side at a time.</p>
+        <div class="profile-actions">
+            <button type="submit" class="btn btn-primary" data-loading="Uploading…">Save ID photos</button>
+        </div>
+    </form>
+
+    <?php if ($idFront || $idBack): ?>
+        <form method="post" action="<?= url('profile.php') ?>" class="profile-actions"
+              onsubmit="return confirm('Remove both ID photos? You can upload them again later.');">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="id_photo_delete">
+            <button type="submit" class="btn btn-outline">Remove ID photos</button>
+        </form>
+    <?php endif; ?>
+</section>
+<?php endif; ?>
 
 <?php require __DIR__ . '/../includes/layout/footer.php'; ?>

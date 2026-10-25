@@ -176,8 +176,67 @@ function send_due_reminders(bool $dryRun = false): array
     ];
 }
 
+/**
+ * Remind students whose borrowed equipment falls due tomorrow (calendar date). Once per
+ * loan; the "[loan:<id>:due_soon]" marker in the notification is the record.
+ *
+ * @return array{due: int, sent: int, skipped: int, emailed: int}
+ */
+function send_return_reminders(bool $dryRun = false): array
+{
+    $rows = fetch_all(
+        "SELECT b.borrowing_id, b.borrower_id, b.expected_return_at,
+                i.name AS item_name, u.email, u.first_name
+           FROM borrowings b
+           JOIN inventory_items i ON i.item_id = b.item_id
+           JOIN users u           ON u.user_id = b.borrower_id
+           JOIN roles ro          ON ro.role_id = u.role_id
+          WHERE b.returned_at IS NULL
+            AND ro.name = 'student'
+            AND DATE(b.expected_return_at) = CURDATE() + INTERVAL 1 DAY
+          ORDER BY b.expected_return_at"
+    );
+    $sent = $skipped = $emailed = 0;
+
+    foreach ($rows as $row) {
+        $marker = '[loan:' . (int) $row['borrowing_id'] . ':due_soon]';
+        if (fetch_value(
+            "SELECT 1 FROM notifications WHERE user_id = ? AND type = 'reservation' AND message LIKE ? LIMIT 1",
+            [(int) $row['borrower_id'], '%' . $marker . '%']
+        )) {
+            $skipped++;
+            continue;
+        }
+        if ($dryRun) {
+            continue;
+        }
+
+        $text = $row['item_name'] . ' is due back on ' . format_datetime($row['expected_return_at']) . '.';
+        $link = url('inventory/reservations.php');
+        notify((int) $row['borrower_id'], 'reservation', 'Equipment due back soon', $text . ' ' . $marker, $link);
+        $sent++;
+
+        if (MAIL_NOTIFICATIONS_ENABLED && user_preference_on((int) $row['borrower_id'], 'email_reminders', true)
+            && send_mail(
+                (string) $row['email'], 'Equipment due back soon',
+                'Hi ' . $row['first_name'] . ',' . PHP_EOL . PHP_EOL . $text . PHP_EOL . PHP_EOL
+                . 'Details: ' . absolute_url($link) . PHP_EOL . PHP_EOL
+                . office_name() . PHP_EOL . university_name() . PHP_EOL . PHP_EOL
+                . 'This is an automated message. Please do not reply.'
+            )) {
+            $emailed++;
+        }
+    }
+
+    if (!$dryRun && $sent > 0) {
+        audit_log('notify', 'reminder', null, 'Sent ' . $sent . ' return reminder(s), ' . $emailed . ' by email');
+    }
+
+    return ['due' => count($rows), 'sent' => $sent, 'skipped' => $skipped, 'emailed' => $emailed];
+}
+
 /** Remove the internal marker before a reminder is shown to anyone. */
 function strip_reminder_marker(string $message): string
 {
-    return trim(preg_replace('/\s*\[req:\d+:[a-z_]+\]\s*/', '', $message) ?? $message);
+    return trim(preg_replace('/\s*\[(?:req|loan):\d+:[a-z_]+\]\s*/', '', $message) ?? $message);
 }

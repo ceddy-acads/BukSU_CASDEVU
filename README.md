@@ -71,6 +71,16 @@ Office of the Registrar) without resetting anything. Courses not on that list
 are retired: hidden from sign-up but kept for students already linked to them.
 A fresh `schema.sql` install already has the list.
 
+**2e. Already have a database? Add student borrowing**
+
+```bash
+C:\xampp\mysql\bin\mysql.exe -u root casms < database/update-student-borrowing.sql
+```
+
+Adds student equipment requests: the request columns on reservations, the
+requestable flag on items and the school ID photo columns on users. A fresh
+`schema.sql` install already has them. Safe to run twice.
+
 **3. Start Apache and MySQL in the XAMPP Control Panel**
 
 **4. Open the system**
@@ -176,7 +186,8 @@ BukSU CASDEVU/
 │   ├── schema.sql           Clean installer: 22 tables, 3 views, seed data
 │   ├── demo-data.sql        Optional realistic dataset for a walkthrough
 │   ├── update-courses.sql   Brings an existing database to BukSU's programs
-│   └── update-notification-dismiss.sql  Adds notifications.dismissed_at
+│   ├── update-notification-dismiss.sql  Adds notifications.dismissed_at
+│   └── update-student-borrowing.sql  Adds student equipment requests and ID photos
 ├── docs/                    Requirements, DB design, role matrix, build plan,
 │                            test-accounts.pdf
 ├── bin/
@@ -572,7 +583,8 @@ statements that the system fails them:
    419, which Apache does not recognise and replaces with 500. The page itself
    reads correctly
 9. **No scheduled task is installed by default.** Deadline reminders only go
-   out when the runner is invoked — see setup step 6
+   out when the runner is invoked — see setup step 6. The same runner also
+   sends return reminders (the day before a student's equipment loan is due)
 10. **Default credentials ship in the repository.** `admin123` for the seeded
    administrator and `demo1234` for demo accounts. Change them before the
    system is used with real data

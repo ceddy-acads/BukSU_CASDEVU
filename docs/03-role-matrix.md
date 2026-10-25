@@ -54,11 +54,15 @@ Read highlight reports also works signed out (public page); a Guest account cann
 | Action | Student | Coordinator | Staff | Admin |
 |--------|:-------:|:-----------:|:-----:|:-----:|
 | View catalog and availability | ✔ | ✔ | ✔ | ✔ |
-| Request a reservation | ✘ | ✔ | ✔ | ✔ |
-| Approve / reject reservation | ✘ | ✘ | ✔ | ✔ |
+| Request a reservation | ◐ only for an activity where their registration is approved | ✔ | ✔ | ✔ |
+| Approve / reject reservation | ✘ | ◐ only student requests for assigned activities | ✔ | ✔ |
 | Record release (borrowing) | ✘ | ✘ | ✔ | ✔ |
 | Record return | ✘ | ✘ | ✔ | ✔ |
 | Add / edit / delete items | ✘ | ✘ | ✔ | ✔ |
+| View loans from student requests | ◐ own only | ◐ assigned activities only | ✔ | ✔ |
+| Mark an item office-only | ✘ | ✘ | ✔ | ✔ |
+| Upload / replace own ID photos | ✔ | ✘ | ✘ | ✘ |
+| View a student's ID photos | ◐ own only | ◐ only while that student's request for an assigned activity is pending | ◐ while the student has an approved request not yet collected, or a loan out | ◐ same as staff |
 
 ## Announcements and Notifications
 
@@ -84,6 +88,7 @@ Read highlight reports also works signed out (public page); a Guest account cann
 | Action | Student | Coordinator | Staff | Admin |
 |--------|:-------:|:-----------:|:-----:|:-----:|
 | Edit own profile | ✔ | ✔ | ✔ | ✔ |
+| View another user's profile photo | ✘ | ✘ | ✔ | ✔ |
 | Choose own email and list settings | ✔ | ✔ | ✔ | ✔ |
 | Edit the office's name, university, upload limit | ✘ | ✘ | ✘ | ✔ |
 | Activate pending student accounts | ✘ | ✘ | ✔ | ✔ |

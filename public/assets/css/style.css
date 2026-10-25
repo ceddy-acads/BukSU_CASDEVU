@@ -411,6 +411,10 @@ img    { max-width: 100%; height: auto; }
     .profile-id { margin-bottom: var(--s5); }
 }
 @media (max-width: 359px) { .profile-fields { grid-template-columns: minmax(0, 1fr); } }
+.id-photos { margin-top: var(--s4); }
+.id-photos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: var(--s4); margin: var(--s4) 0; }
+.id-photos-label { margin: 0 0 var(--s2); font-size: var(--fs-sm); }
+.id-photos-preview { display: block; max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: var(--r-sm); }
 .profile-note { margin: var(--s5) 0 0; font-size: var(--fs-sm); color: var(--ink-soft); }
 .profile-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--s2); margin-top: var(--s5); }
 .profile-panel .profile-actions { margin-top: var(--s2); }
@@ -427,7 +431,8 @@ img    { max-width: 100%; height: auto; }
     display: flex; align-items: center; min-height: 44px; padding: 0 var(--s3);
     border-radius: var(--r-sm); color: var(--ink-soft); font-weight: 600; text-decoration: none;
 }
-.settings-nav a:hover { background: var(--surface-3); color: var(--navy); }
+.settings-nav a:hover,
+.settings-nav a[aria-current] { background: var(--surface-3); color: var(--navy); }
 .settings-cards { display: grid; gap: var(--s5); min-width: 0; }
 @container (min-width: 820px) {
     .settings-layout { grid-template-columns: 12rem minmax(0, 46rem); gap: var(--s8); justify-content: center; }
@@ -691,7 +696,7 @@ input[type="checkbox"].switch:focus-visible { outline: 3px solid var(--navy-700)
 @media print {
     .page-head, .photo-band { min-height: 0; padding: 0; background: none !important; color: #000; border-left: 0; border-bottom: 0; }
     .photo-band::after { display: none; }
-    .page-head h1, .page-head p { color: #000; }
+    .page-head h1, .page-head h1 + p, .page-head p { color: #000; }
 }
 
 /* Back / context link above a title */
@@ -781,14 +786,18 @@ input[type="checkbox"].switch:focus-visible { outline: 3px solid var(--navy-700)
 /* Stat tiles: scoreboard figures. The number is set in the display face at
    poster size; the tile stays white so four of them read as one row. The
    label and the number are held 18px apart — the number needs its own air
-   or it reads as part of the label. */
+   or it reads as part of the label. The tone (or the domain field) is a 4px
+   cap clipped to the tile's corners, not a border, so it keeps its full
+   thickness instead of tapering into the rounded corners. */
 .stat {
+    --stat-cap: var(--navy);
+    position: relative; overflow: hidden;
     background: var(--surface); border: 0;
     border-radius: var(--r); padding: var(--s4) var(--s4) var(--s5);
     min-width: 0;
     display: flex; flex-direction: column; gap: 18px;
-    border-top: 6px solid var(--navy);
 }
+.stat::before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: var(--stat-cap); }
 a.stat { text-decoration: none; color: inherit; }
 a.stat:hover { background: var(--navy-50); }
 a.stat:hover .stat-value { color: var(--navy-700); }
@@ -800,16 +809,16 @@ a.stat:hover .stat-value { color: var(--navy-700); }
 }
 .stat-label { order: 1; font-size: var(--fs-sm); font-weight: 600; color: var(--ink-soft); }
 @media (min-width: 640px) { .stat { padding: var(--s5) var(--s5) var(--s6); } .stat-value { font-size: 3.75rem; } }
-.stat-gold    { border-top-color: var(--gold); }
+.stat-gold    { --stat-cap: var(--gold); }
 .stat-gold    .stat-value { color: var(--warning); }
-.stat-success { border-top-color: var(--success); }
+.stat-success { --stat-cap: var(--success); }
 .stat-success .stat-value { color: var(--success); }
-.stat-danger  { border-top-color: var(--danger); }
+.stat-danger  { --stat-cap: var(--danger); }
 .stat-danger  .stat-value { color: var(--danger); }
 /* A stat row inside a domain page carries that domain's field. */
-.band-sports  .stat { border-top-color: var(--field-sports); }
-.band-culture .stat { border-top-color: var(--field-culture); }
-.band-arts    .stat { border-top-color: var(--field-arts); }
+.band-sports  .stat { --stat-cap: var(--field-sports); }
+.band-culture .stat { --stat-cap: var(--field-culture); }
+.band-arts    .stat { --stat-cap: var(--field-arts); }
 
 /* ------------------------------------------------------------ 6. Buttons */
 
@@ -1094,7 +1103,7 @@ table.data tfoot td { font-weight: 700; background: var(--surface-2); border-top
 .empty {
     text-align: center; padding: var(--s10) var(--s5);
     color: var(--ink-soft);
-    background: var(--surface-2); border-left: 6px solid var(--gold);
+    background: var(--surface-2);
     border-radius: var(--r);
 }
 .empty strong { display: block; color: var(--ink); font-size: var(--fs-md); margin-bottom: var(--s1); }
@@ -2351,6 +2360,10 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 .reveal-in {
     opacity: 1; transform: none;
     transition: opacity .45s cubic-bezier(.2, .8, .2, 1), transform .45s cubic-bezier(.2, .8, .2, 1);
+}
+/* Paper never scrolls, so every block prints whole, unarmed or mid-rise. */
+@media print {
+    .reveal-armed { opacity: 1; transform: none; transition: none; }
 }
 @media (prefers-reduced-motion: reduce) {
     .reveal-armed { opacity: 1; transform: none; }
