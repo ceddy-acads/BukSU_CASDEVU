@@ -132,7 +132,7 @@ function send_due_reminders(bool $dryRun = false): array
 
         notify(
             $userId, 'deadline', $title, $message,
-            url('requirements/submit.php?activity_id=' . (int) $row['activity_id'])
+            url('activities/view.php?id=' . (int) $row['activity_id'] . '#my-requirements')
         );
         $sent++;
 
@@ -149,7 +149,7 @@ function send_due_reminders(bool $dryRun = false): array
                 . '  Deadline:    ' . format_datetime($row['deadline_at'])
                 . ($stage === 'due_today' ? ' (today)' : ' (' . $daysLeft . ' day(s) away)') . PHP_EOL . PHP_EOL
                 . 'Submit it here: '
-                . absolute_url(url('requirements/submit.php?activity_id=' . (int) $row['activity_id']))
+                . absolute_url(url('activities/view.php?id=' . (int) $row['activity_id'] . '#my-requirements'))
                 . PHP_EOL . PHP_EOL
                 . office_name() . PHP_EOL . university_name() . PHP_EOL . PHP_EOL
                 . 'This is an automated message. Please do not reply.'

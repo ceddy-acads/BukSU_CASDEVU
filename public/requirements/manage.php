@@ -98,7 +98,7 @@ if (is_post()) {
                     'requirement',
                     'New requirement added',
                     $activity['title'] . ' now requires: ' . $name,
-                    url('requirements/submit.php?activity_id=' . $activityId)
+                    url('activities/view.php?id=' . $activityId . '#my-requirements')
                 );
 
                 flash('success', 'Requirement added.');

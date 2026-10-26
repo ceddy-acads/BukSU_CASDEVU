@@ -460,20 +460,25 @@ $pages = [
     ['path' => 'review.php',                      'allow' => ['admin', 'staff', 'coordinator']],
 
     ['path' => 'invitations/submit.php',          'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest']],
-    ['path' => 'invitations/view.php',            'allow' => ['admin', 'staff', 'coordinator'],
+    ['path' => 'invitations/mine.php',            'allow' => ['guest']],
+    ['path' => 'approvals.php',                  'allow' => ['admin'], 'tolerate' => [405]],
+    ['path' => 'invitations/view.php',            'allow' => ['admin', 'staff', 'coordinator', 'guest'],
      'params' => ['id' => 'invitation'], 'optional' => true],
-    ['path' => 'invitations/letter.php',          'allow' => ['admin', 'staff', 'coordinator'],
+    ['path' => 'invitations/letter.php',          'allow' => ['admin', 'staff', 'coordinator', 'guest'],
      'params' => ['id' => 'invitation_letter'], 'optional' => true, 'binary' => true],
 
     ['path' => 'activities/index.php',            'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest']],
     ['path' => 'activities/view.php',             'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest'],
      'params' => ['id' => 'activity'], 'optional' => true],
+    ['path' => 'activities/join.php',             'allow' => ['student'],
+     'params' => ['activity_id' => 'activity'], 'optional' => true, 'tolerate' => [302]],
     ['path' => 'activities/calendar.php',         'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest']],
-    ['path' => 'activities/manage.php',           'allow' => ['admin', 'staff', 'coordinator'],
+    ['path' => 'activities/manage.php',           'allow' => ['admin', 'staff', 'coordinator']],
+    ['path' => 'activities/manage.php',           'allow' => ['admin', 'staff'],
      'params' => ['id' => 'assigned'], 'optional' => true],
     ['path' => 'activities/coordinators.php',     'allow' => ['admin', 'staff'],
      'params' => ['activity_id' => 'assigned'], 'optional' => true],
-    ['path' => 'activities/eligibility.php',      'allow' => ['admin', 'staff', 'coordinator'],
+    ['path' => 'activities/eligibility.php',      'allow' => ['admin', 'staff'],
      'params' => ['activity_id' => 'assigned'], 'optional' => true],
 
     ['path' => 'participation/my-activities.php', 'allow' => ['student']],
@@ -481,7 +486,7 @@ $pages = [
     ['path' => 'participation/participants.php',  'allow' => ['admin', 'staff', 'coordinator'],
      'params' => ['activity_id' => 'assigned'], 'optional' => true],
 
-    ['path' => 'requirements/mine.php',           'allow' => ['student']],
+    ['path' => 'requirements/mine.php',           'allow' => ['student'], 'tolerate' => [302]],
     ['path' => 'requirements/submit.php',         'allow' => ['student'],
      'params' => ['activity_id' => 'student_activity'], 'optional' => true, 'tolerate' => [302]],
     ['path' => 'requirements/manage.php',         'allow' => ['admin', 'staff', 'coordinator'],
@@ -506,6 +511,11 @@ $pages = [
 
     ['path' => 'announcements/index.php',         'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest']],
     ['path' => 'announcements/manage.php',        'allow' => ['admin', 'staff', 'coordinator']],
+    ['path' => 'announcements/index.php?status=draft', 'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest']],
+    ['path' => 'announcements/index.php?status=pending', 'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest']],
+    ['path' => 'announcements/index.php?status=rejected', 'allow' => ['admin', 'staff', 'coordinator', 'student', 'guest']],
+    ['path' => 'review.php?lane=activities', 'allow' => ['admin', 'staff', 'coordinator']],
+    ['path' => 'review.php?lane=announcements', 'allow' => ['admin', 'staff', 'coordinator']],
 
     ['path' => 'reports/index.php',               'allow' => ['admin', 'staff', 'coordinator']],
     ['path' => 'reports/participation.php',       'allow' => ['admin', 'staff', 'coordinator']],
@@ -714,7 +724,7 @@ foreach ($pages as $page) {
                 $problem = 'redirected to ' . $result['location'] . ' (expected a page)';
             }
         } elseif ($expected) {
-            if ($result['status'] === 200) {
+            if ($result['status'] === 200 || in_array($result['status'], $tolerate, true)) {
                 // pass
             } elseif ($result['status'] === 403 && in_array($role, $soft, true)) {
                 // pass: documented limit, e.g. a coordinator outside their activities

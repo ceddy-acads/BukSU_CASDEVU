@@ -103,12 +103,12 @@ require __DIR__ . '/../../includes/layout/header.php';
                         </div>
                         <?php if ($needsFiles): ?>
                             <a class="btn btn-gold btn-sm btn-block"
-                               href="<?= url('requirements/submit.php?activity_id=' . (int) $registration['activity_id']) ?>">
+                               href="<?= url('activities/view.php?id=' . (int) $registration['activity_id'] . '#my-requirements') ?>">
                                 Upload or check documents
                             </a>
                         <?php else: ?>
                             <a class="btn btn-outline btn-sm btn-block"
-                               href="<?= url('requirements/submit.php?activity_id=' . (int) $registration['activity_id']) ?>">
+                               href="<?= url('activities/view.php?id=' . (int) $registration['activity_id'] . '#my-requirements') ?>">
                                 View my documents
                             </a>
                         <?php endif; ?>

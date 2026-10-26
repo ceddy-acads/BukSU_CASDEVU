@@ -17,8 +17,20 @@ $params     = [];
 
 if (!$canPost) {
     $conditions[] = "a.status = 'published'";
-} elseif (get('status') === 'draft') {
-    $conditions[] = "a.status = 'draft'";
+} else {
+    if (current_role() === 'coordinator') {
+        $conditions[] = "(a.status = 'published' OR a.posted_by = ?)";
+        $params[] = current_user_id();
+    }
+    $filter = get('status', current_role() === 'coordinator' ? 'published' : '');
+    if (in_array($filter, ['draft', 'pending', 'published', 'rejected', 'archived'], true)) {
+        $conditions[] = 'a.status = ?';
+        $params[] = $filter;
+        if (current_role() === 'coordinator' && $filter !== 'published') {
+            $conditions[] = 'a.posted_by = ?';
+            $params[] = current_user_id();
+        }
+    }
 }
 
 if ($keyword !== '') {
@@ -91,7 +103,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 <div class="page-head">
     <div>
         <h1>Announcements</h1>
-        <p><?= $total ?> announcement<?= $total === 1 ? '' : 's' ?> from the office, grouped by when they matter.</p>
+        <p><?= $total ?> announcement<?= $total === 1 ? '' : 's' ?><?= current_role() === 'coordinator' ? ' in this view. Save drafts or submit announcements for approval.' : ' from the office, grouped by when they matter.' ?></p>
     </div>
     <?php if ($canPost): ?>
         <div class="btn-row">
@@ -100,17 +112,27 @@ require __DIR__ . '/../../includes/layout/header.php';
     <?php endif; ?>
 </div>
 
+<?php if (current_role() === 'coordinator'): ?>
+<nav class="tabs" aria-label="Announcement status">
+    <?php foreach (['published' => 'Published', 'draft' => 'Draft bin', 'pending' => 'Pending approval', 'rejected' => 'Rejected'] as $tab => $label): ?>
+        <a class="tab" href="<?= url('announcements/index.php?status=' . $tab) ?>"<?= ($filter ?? 'published') === $tab ? ' aria-current="page"' : '' ?>><?= e($label) ?></a>
+    <?php endforeach; ?>
+</nav>
+<?php endif; ?>
 <form method="get" class="filter-bar">
+    <?php if (current_role() === 'coordinator'): ?><input type="hidden" name="status" value="<?= e($filter) ?>"><?php endif; ?>
     <div class="form-row">
         <label for="q">Search</label>
         <input type="search" id="q" name="q" value="<?= e($keyword) ?>" placeholder="Title or content">
     </div>
-    <?php if ($canPost): ?>
+    <?php if ($canPost && current_role() !== 'coordinator'): ?>
         <div class="form-row">
             <label for="status">Show</label>
             <select id="status" name="status">
                 <option value=""      <?= get('status') === ''      ? 'selected' : '' ?>>All</option>
                 <option value="draft" <?= get('status') === 'draft' ? 'selected' : '' ?>>Drafts only</option>
+                <option value="pending" <?= get('status') === 'pending' ? 'selected' : '' ?>>Pending approval</option>
+                <option value="rejected" <?= get('status') === 'rejected' ? 'selected' : '' ?>>Rejected</option>
             </select>
         </div>
     <?php endif; ?>
@@ -123,7 +145,11 @@ require __DIR__ . '/../../includes/layout/header.php';
 </form>
 
 <?php if ($announcements === []): ?>
-    <?php if ($hasFilters): ?>
+    <?php if (current_role() === 'coordinator' && $keyword === ''): ?>
+        <div class="empty"><strong><?= ($filter ?? '') === 'draft' ? 'Your Draft bin is empty' : 'No announcements in this view yet' ?></strong>
+        Save a new announcement as a draft, or choose Announce to send it for administrator approval.
+        <a class="btn btn-outline" href="<?= url('announcements/manage.php') ?>">New announcement</a></div>
+    <?php elseif ($hasFilters): ?>
         <div class="empty">
             <strong>No announcements match your search</strong>
             Try a different keyword, or show everything.
@@ -178,7 +204,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                 </div>
 
                 <?php // Same rule as manage.php: the office edits any post, a coordinator only their own. ?>
-                <?php if (is_office_staff() || (int) $announcement['posted_by'] === current_user_id()): ?>
+                <?php if (can_edit_announcement($announcement)): ?>
                     <div class="btn-row">
                         <a class="btn btn-outline btn-sm"
                            href="<?= url('announcements/manage.php?id=' . (int) $announcement['announcement_id']) ?>"

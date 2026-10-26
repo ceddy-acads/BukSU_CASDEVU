@@ -1266,6 +1266,10 @@ table.data tfoot td { font-weight: 700; background: var(--surface-2); border-top
 .catalog-avail { font-size: var(--fs-base); margin: var(--s1) 0 !important; }
 /* Office view: the item's status sits on the photo's corner, Edit at the foot. */
 .catalog-item { position: relative; }
+.catalog-request { color: inherit; text-decoration: underline; text-underline-offset: .2em; }
+.catalog-request::after { content: ""; position: absolute; inset: 0; border-radius: var(--r); }
+.catalog-request:focus-visible { outline: none; }
+.catalog-request:focus-visible::after { outline: 2px solid var(--ink); outline-offset: -3px; }
 .catalog-status { position: absolute; top: var(--s2); left: var(--s2); }
 .catalog-body { flex: 1; }
 .catalog-foot {
@@ -1769,14 +1773,6 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
     background: linear-gradient(rgba(16, 40, 77, .9), rgba(16, 40, 77, .82)); /* taste-skill-ignore: navy scrim over the photograph */
 }
 @media (prefers-reduced-motion: reduce) { .portal-slide { transition: none; } }
-/* Pause control, at the end of the office line under the card. */
-.portal-slides-toggle {
-    display: block; width: fit-content; min-height: 44px; margin: var(--s2) auto 0; padding: var(--s2) var(--s1);
-    border: 0; background: none; color: inherit; cursor: pointer;
-    font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;
-}
-.portal-slides-toggle:hover { color: var(--navy); }
-.portal-slides-toggle[hidden] { display: none; }   /* nothing to pause without JavaScript */
 .portal-brand-inner { position: relative; z-index: 1; max-width: 34rem; }
 .portal-mark { margin: 0; line-height: 1.15; display: flex; align-items: center; gap: var(--s3); }
 .portal-logo { flex: none; width: auto; height: 2.5rem; }
@@ -1951,7 +1947,6 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
             linear-gradient(to top, rgba(16, 40, 77, .7), rgba(16, 40, 77, .7) 26rem, rgba(16, 40, 77, 0) 36rem), /* taste-skill-ignore: navy scrim over the photograph */
             linear-gradient(rgba(16, 40, 77, .55), rgba(16, 40, 77, .55)); /* taste-skill-ignore: navy scrim over the photograph */
     }
-    .portal-slides-toggle:hover { color: var(--on-dark); }
     .portal-brand-inner { max-width: 38rem; flex: 1; display: flex; flex-direction: column; }
     /* Auto top margin pushes the headline and description to the bottom. */
     .portal-headline {
@@ -2402,4 +2397,19 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
     .page-head h1, .portal-headline span, .portal-panel { animation: none; }
     .portal-slide.is-active { animation: none; }
     .photo-band[style*="--band-photo"]::after { animation: none; }
+}
+
+/* Activity registration follows the existing dialog and form components. */
+.join-dialog .modal-body { min-height: 0; }
+.join-requirement { min-width: 0; margin: 0 0 var(--s5); padding: var(--s4) 0; border: 0; border-bottom: 1px solid var(--line); }
+.join-requirement legend { max-width: 100%; padding: 0; font-weight: 600; overflow-wrap: anywhere; }
+.join-requirement p { overflow-wrap: anywhere; }
+.join-requirement input[type="file"] { max-width: 100%; }
+.join-page { max-width: 720px; }
+[data-join-errors][hidden], [data-join-error][hidden] { display: none; }
+#my-requirements { scroll-margin-top: var(--s5); }
+@media (max-width: 600px) {
+    .join-dialog { width: calc(100vw - 1rem); max-height: calc(100dvh - 1rem); }
+    .join-dialog .modal-panel { max-height: calc(100dvh - 1rem); }
+    .join-dialog .modal-head, .join-dialog .modal-body { padding: var(--s4); }
 }

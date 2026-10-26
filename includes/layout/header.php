@@ -41,6 +41,7 @@ $navSection = match (true) {
     $currentFile === 'profile.php'                              => 'profile',
     $currentFile === 'settings.php'                             => 'settings',
     $currentFile === 'calendar.php'                             => 'calendar',
+    $currentDir === 'invitations' && $role === 'guest'           => 'calendar',
     $currentDir === 'activities'                                => 'activities',
     $currentDir === 'announcements'                             => 'announcements',
     $currentDir === 'highlights'                                => 'highlights',
@@ -48,7 +49,7 @@ $navSection = match (true) {
     $currentDir === 'inventory'                                 => 'inventory',
     $currentDir === 'reports'                                   => 'reports',
     $currentDir === 'admin'                                     => pathinfo($currentFile, PATHINFO_FILENAME),
-    $currentDir === 'requirements' && $isStudent                => 'my-requirements',
+    $currentDir === 'requirements' && $isStudent                => 'activities',
     $currentDir === 'participation' && $isStudent               => 'my-activities',
     $currentDir === 'participation' || $currentDir === 'requirements' => 'activities',
     default                                                     => '',
@@ -68,7 +69,6 @@ $sections = [
     'inventory'       => [$isStudent ? 'Costumes & equipment' : 'Inventory', 'inventory/index.php'],
     'reports'         => ['Reports', 'reports/index.php'],
     'my-activities'   => ['My activities', 'participation/my-activities.php'],
-    'my-requirements' => ['My requirements', 'requirements/mine.php'],
     'borrow-requests' => ['My borrow requests', 'inventory/reservations.php'],
     'users'           => ['Accounts', 'admin/users.php'],
     'venues'          => ['Venues', 'admin/venues.php'],
@@ -131,7 +131,6 @@ $initials = $user
                 <?= nav_link('dashboard', 'index.php', 'Dashboard', $navSection) ?>
                 <?php if ($isStudent): ?>
                     <?= nav_link('my-activities', 'participation/my-activities.php', 'My activities', $navSection) ?>
-                    <?= nav_link('my-requirements', 'requirements/mine.php', 'My requirements', $navSection) ?>
                 <?php elseif (can_review()): ?>
                     <?= nav_link('review', 'review.php', 'Review queue', $navSection, $reviewCount, 'waiting for review') ?>
                 <?php endif; ?>

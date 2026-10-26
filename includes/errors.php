@@ -99,6 +99,8 @@ function abort_page(int $code, string $message): never
     }
 
     [$title, $lead] = match ($code) {
+        400     => ['Invalid request', 'Check the form and try again.'],
+        405     => ['Use the review controls', 'This action requires a submitted form.'],
         403     => ['You do not have access', 'Your account is not allowed to open this page.'],
         404     => ['Not found', 'The page or record you asked for does not exist.'],
         419     => ['Your session expired', 'The form could not be verified, so nothing was saved.'],

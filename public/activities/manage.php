@@ -15,7 +15,7 @@ $isEdit     = $activityId !== null;
 if ($isEdit) {
     require_activity_access($activityId);
 } else {
-    require_role(['staff', 'admin']);
+    require_role(['staff', 'admin', 'coordinator']);
 }
 
 $categories = fetch_all('SELECT category_id, name FROM activity_categories WHERE is_active = 1 ORDER BY name');
@@ -28,7 +28,11 @@ if ($isEdit) {
         http_response_code(404);
         abort_page(404, 'Activity not found.');
     }
+    if (!can_edit_activity_details($activity)) {
+        abort_page(403, 'Only the office may edit approved activity details. You can still manage participants and requirements.');
+    }
 }
+$isCoordinator = current_role() === 'coordinator';
 
 // Only active venues may be chosen. An activity already pointing at an archived
 // venue keeps it in the list, marked, so editing something else does not
@@ -100,13 +104,27 @@ if (is_post()) {
     $regCloses      = post('registration_closes_at');
     $maxIn          = post('max_participants');
     $statusIn       = post('status');
+    if ($isCoordinator || ($isEdit && $activity['approval_status'] !== 'approved')) {
+        $statusIn = 'draft';
+    }
 
     // ------------------------------------------------------------ Validation
     if ($title === '') {
         $errors[] = 'Title is required.';
     }
+    if (mb_strlen($title) > 200) { $errors[] = 'The title must be 200 characters or fewer.'; }
     if ($categoryIdIn === '' || !ctype_digit($categoryIdIn)) {
         $errors[] = 'Category is required.';
+    } elseif (!fetch_value('SELECT 1 FROM activity_categories WHERE category_id = ?', [(int) $categoryIdIn])) {
+        $errors[] = 'Choose a valid category.';
+    }
+    foreach (['Start' => $startAt, 'End' => $endAt, 'Registration opens' => $regOpens, 'Registration closes' => $regCloses] as $label => $value) {
+        if ($value !== '') {
+            $parsed = DateTimeImmutable::createFromFormat('!Y-m-d\TH:i', $value);
+            if (!$parsed || $parsed->format('Y-m-d\TH:i') !== $value) {
+                $errors[] = $label . ' must be a valid date and time.';
+            }
+        }
     }
     if ($startAt === '' || $endAt === '') {
         $errors[] = 'Start and end date/time are required.';
@@ -164,11 +182,19 @@ if (is_post()) {
         $maxCount   = $maxIn !== '' ? (int) $maxIn : null;
 
         if ($isEdit) {
+            db()->beginTransaction();
+            $locked = fetch_one('SELECT * FROM activities WHERE activity_id = ? FOR UPDATE', [$activityId]);
+            if ($locked === null || !can_edit_activity_details($locked)
+                || $locked['approval_status'] !== $activity['approval_status']) {
+                db()->rollBack();
+                flash('error', 'The activity changed while you were editing. Please open it again.');
+                redirect('activities/view.php?id=' . $activityId);
+            }
             query(
                 'UPDATE activities
                     SET category_id = ?, venue_id = ?, title = ?, description = ?, eligibility = ?,
                         instructions = ?, start_at = ?, end_at = ?, registration_opens_at = ?,
-                        registration_closes_at = ?, max_participants = ?, status = ?
+                        registration_closes_at = ?, max_participants = ?, status = ?, review_version = review_version + 1
                   WHERE activity_id = ?',
                 [
                     $categoryId, $venueId, $title,
@@ -181,15 +207,24 @@ if (is_post()) {
                     $maxCount, $statusIn, $activityId,
                 ]
             );
+            if ($isCoordinator) {
+                query("UPDATE activities SET approval_status = 'pending', reviewed_by = NULL,
+                           reviewed_at = NULL, rejection_reason = NULL WHERE activity_id = ?", [$activityId]);
+                if ($activity['approval_status'] === 'rejected') {
+                    notify_publication_review($title, 'activities/view.php?id=' . $activityId);
+                }
+            }
 
             audit_log('update', 'activity', $activityId, 'Updated activity: ' . $title,
                       $activity, ['title' => $title, 'status' => $statusIn]);
+            db()->commit();
 
             flash('success', 'Activity updated.' . ($venueWarning ? ' ' . $venueWarning : ''));
             redirect('activities/view.php?id=' . $activityId);
         }
 
         // ------------------------------------------------------------ Create
+        db()->beginTransaction();
         query(
             'INSERT INTO activities
                  (category_id, venue_id, title, slug, description, eligibility, instructions,
@@ -209,7 +244,14 @@ if (is_post()) {
         );
 
         $newId = (int) db()->lastInsertId();
+        if ($isCoordinator) {
+            query("UPDATE activities SET approval_status = 'pending' WHERE activity_id = ?", [$newId]);
+            query('INSERT INTO activity_coordinators (activity_id, user_id, assignment_role, assigned_by) VALUES (?, ?, ?, ?)',
+                [$newId, current_user_id(), 'Coordinator', current_user_id()]);
+            notify_publication_review($title, 'activities/view.php?id=' . $newId);
+        }
         audit_log('create', 'activity', $newId, 'Created activity: ' . $title);
+        db()->commit();
 
         // Announce it to students the moment it goes live (FR-3.3).
         if ($statusIn === 'upcoming') {
@@ -223,7 +265,7 @@ if (is_post()) {
         }
 
         clear_old_input();
-        flash('success', 'Activity created.' . ($venueWarning ? ' ' . $venueWarning : ''));
+        flash('success', ($isCoordinator ? 'Activity submitted. Pending approval by an administrator.' : 'Activity created.') . ($venueWarning ? ' ' . $venueWarning : ''));
         redirect('activities/view.php?id=' . $newId);
     }
 
@@ -255,11 +297,14 @@ require __DIR__ . '/../../includes/layout/header.php';
     <div>
         <a class="crumb" href="<?= $isEdit ? url('activities/view.php?id=' . $activityId) : url('activities/index.php') ?>">&larr; <?= $isEdit ? 'Back to activity' : 'Back to activities' ?></a>
         <h1><?= $isEdit ? 'Edit activity' : 'New activity' ?></h1>
-        <p><?= $isEdit ? e($activity['title']) : 'Publish a culture, arts, or sports activity.' ?></p>
+        <p><?= $isEdit ? e($activity['title']) : ($isCoordinator ? 'Submit a culture, arts, or sports activity for approval.' : 'Publish a culture, arts, or sports activity.') ?></p>
     </div>
 </div>
 
 <div id="activity-form-wrap">
+<?php if ($isCoordinator): ?>
+    <p class="alert alert-info">Submitting this activity sends it to an administrator for approval. It stays unpublished until approved.</p>
+<?php endif; ?>
 <?php if ($errors !== []): ?>
     <div class="alert alert-error" role="alert">
         <?php foreach ($errors as $error): ?>
@@ -268,7 +313,7 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 <?php endif; ?>
 
-<form method="post" novalidate>
+<form method="post" novalidate data-loading="Saving…">
     <?= csrf_field() ?>
 
     <section class="card">
@@ -277,7 +322,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 
             <div class="form-row">
                 <label for="title">Title <span class="req">*</span></label>
-                <input type="text" id="title" name="title" value="<?= e(field('title', $activity)) ?>" required>
+                <input type="text" id="title" name="title" maxlength="200" value="<?= e(field('title', $activity)) ?>" required>
             </div>
 
             <div class="form-grid form-grid-2">
@@ -293,6 +338,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <?php if (!$isCoordinator && (!$isEdit || $activity['approval_status'] === 'approved')): ?>
                 <div class="form-row">
                     <label for="status">Status <span class="req">*</span></label>
                     <select id="status" name="status" required>
@@ -306,6 +352,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                     </select>
                     <p class="hint">Drafts are hidden from students.</p>
                 </div>
+                <?php endif; ?>
             </div>
 
             <div class="form-row">
@@ -392,7 +439,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">
-                <?= $isEdit ? 'Save changes' : 'Create activity' ?>
+                <?= $isCoordinator ? ($isEdit ? 'Save and submit for approval' : 'Submit for approval') : ($isEdit ? 'Save changes' : 'Create activity') ?>
             </button>
             <a class="btn btn-outline"
                href="<?= $isEdit ? url('activities/view.php?id=' . $activityId) : url('activities/index.php') ?>">

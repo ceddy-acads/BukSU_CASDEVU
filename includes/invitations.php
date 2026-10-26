@@ -18,7 +18,7 @@ declare(strict_types=1);
  */
 function can_view_invitations(): bool
 {
-    return is_office_staff() || current_role() === 'coordinator';
+    return is_office_staff() || in_array(current_role(), ['coordinator', 'guest'], true);
 }
 
 /**
@@ -36,6 +36,9 @@ function fetch_visible_invitation(int $id): ?array
 
     if (is_office_staff()) {
         return fetch_one('SELECT * FROM invitations WHERE invitation_id = ?', [$id]);
+    }
+    if (current_role() === 'guest') {
+        return fetch_one('SELECT * FROM invitations WHERE invitation_id = ? AND submitted_by = ?', [$id, current_user_id()]);
     }
 
     return fetch_one(
@@ -90,6 +93,18 @@ function invitation_when(array $invitation): string
  */
 function invitation_send_decision(array $invitation): string
 {
+    if ($invitation['submitted_by'] !== null) {
+        $approved = $invitation['status'] === 'approved';
+        $body = 'Good day, ' . $invitation['contact_name'] . ".\n\nYour program \"" . $invitation['title']
+            . '" has been ' . ($approved ? 'approved and added to your calendar.' : 'rejected.')
+            . "\nWhen: " . invitation_when($invitation) . "\nPlace: " . $invitation['place']
+            . ($approved ? '' : "\nReason: " . $invitation['remarks'])
+            . "\n\n" . absolute_url(url('invitations/view.php?id=' . (int) $invitation['invitation_id']));
+        if (!send_mail($invitation['email'], 'Program ' . ($approved ? 'approved: ' : 'rejected: ') . $invitation['title'], $body)) {
+            return 'failed';
+        }
+        return email_delivers() ? 'sent' : 'logged';
+    }
     $subject = 'Your invitation to ' . university_name() . ': ' . $invitation['title'];
 
     $lines = [

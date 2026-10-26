@@ -72,7 +72,7 @@ if ($role === 'student') {
             'class' => 'stat-gold', 'href' => 'review.php?lane=registrations'],
         ['label' => 'Requirements to verify', 'value' => review_counts()['documents'],
             'class' => 'stat-gold', 'href' => 'review.php?lane=documents'],
-        ['label' => 'Items on loan', 'value' => fetch_value(
+        ['label' => $role === 'coordinator' ? 'Borrowed Items' : 'Items on loan', 'value' => fetch_value(
             'SELECT COUNT(*) FROM borrowings WHERE returned_at IS NULL'),
             'class' => '', 'href' => is_office_staff() ? 'inventory/borrowings.php' : null],
     ];
@@ -97,7 +97,7 @@ require __DIR__ . '/../includes/layout/header.php';
             <?php endif; ?>
         </p>
     </div>
-    <?php if (is_office_staff()): ?>
+    <?php if (has_role('staff', 'admin', 'coordinator')): ?>
         <div class="btn-row">
             <a class="btn btn-gold" href="<?= url('activities/manage.php') ?>"
                data-modal data-modal-title="New activity" data-modal-wrap="#activity-form-wrap">New activity</a>

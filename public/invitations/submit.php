@@ -8,6 +8,8 @@
 
 declare(strict_types=1);
 require_once __DIR__ . '/../../includes/bootstrap.php';
+$guestSubmission = current_role() === 'guest';
+if ($guestSubmission) { require_role(['guest']); }
 
 // field => [label, max length, required]
 $limits = [
@@ -32,6 +34,7 @@ if (is_post()) {
         $in[$field] = post($field);
     }
     $in['email'] = strtolower($in['email']);
+    if ($guestSubmission) { $in['email'] = (string) current_user()['email']; }
     $startRaw    = post('start_at');
     $endRaw      = post('end_at');
 
@@ -92,8 +95,8 @@ if (is_post()) {
             query(
                 "INSERT INTO invitations
                      (organization, contact_name, email, phone, title, start_at, end_at, place, details,
-                      letter_path, letter_name, letter_mime, letter_size, status, ip_address)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)",
+                      letter_path, letter_name, letter_mime, letter_size, status, ip_address, submitted_by)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)",
                 [
                     $in['organization'], $in['contact_name'], $in['email'],
                     $in['phone'] !== '' ? $in['phone'] : null,
@@ -103,9 +106,17 @@ if (is_post()) {
                     $letter['path'] ?? null, $letter['original'] ?? null,
                     $letter['mime'] ?? null, $letter['size'] ?? null,
                     $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+                    $guestSubmission ? current_user_id() : null,
                 ]
             );
-            audit_log('create', 'invitation', (int) db()->lastInsertId(), 'Invitation received');
+            $newInvitationId = (int) db()->lastInsertId();
+            audit_log('create', 'invitation', $newInvitationId, 'Invitation received');
+            if ($guestSubmission) {
+                notify_publication_review($in['title'], 'invitations/view.php?id=' . $newInvitationId);
+                flash('success', 'Program submitted. Pending approval by an administrator.');
+                clear_old_input();
+                redirect('invitations/mine.php');
+            }
             $sent   = true;
             $sentTo = $in['email'];
         }
@@ -118,10 +129,10 @@ if (is_post()) {
     }
 }
 
-$pageTitle  = 'Submit an invitation';
+$pageTitle  = $guestSubmission ? 'Add program' : 'Submit an invitation';
 $authIntro  = 'Invite Bukidnon State University students to your program. No account needed: the office reviews every invitation.';
 $portalWide = true;
-require __DIR__ . '/../../includes/layout/portal-header.php';
+require $guestSubmission ? __DIR__ . '/../../includes/layout/header.php' : __DIR__ . '/../../includes/layout/portal-header.php';
 
 // Wrapper class, aria attributes and message for one field.
 $rowClass = static fn(string $f): string => 'form-row' . (isset($errors[$f]) ? ' has-error' : '');
@@ -130,6 +141,10 @@ $aria     = static fn(string $f): string => isset($errors[$f])
 $fieldErr = static fn(string $f): string => isset($errors[$f])
     ? '<p class="field-error" id="' . $f . '-error">' . e($errors[$f]) . '</p>' : '';
 ?>
+<?php if ($guestSubmission): ?>
+<div class="page-head"><div><h1>Add program</h1><p>An administrator must approve your program before it appears on your calendar.</p></div>
+<a class="btn btn-outline" href="<?= url('invitations/mine.php') ?>">My programs</a></div>
+<?php endif; ?>
 
 <?php if ($sent): ?>
     <div class="alert alert-success" role="status">
@@ -149,7 +164,7 @@ $fieldErr = static fn(string $f): string => isset($errors[$f])
         <div class="alert alert-error" role="alert"><?= e($errors['form']) ?></div>
     <?php endif; ?>
 
-    <form method="post" enctype="multipart/form-data" class="portal-form" novalidate>
+    <form method="post" enctype="multipart/form-data" class="portal-form" novalidate data-loading="Submitting…">
         <?= csrf_field() ?>
 
         <div class="<?= $rowClass('organization') ?>">
@@ -169,7 +184,7 @@ $fieldErr = static fn(string $f): string => isset($errors[$f])
         <div class="<?= $rowClass('email') ?>">
             <label for="email">Email address <span class="req">*</span></label>
             <input type="email" id="email" name="email" maxlength="190" required
-                   value="<?= e(old('email')) ?>" autocomplete="email" inputmode="email" spellcheck="false"<?= $aria('email') ?>>
+                   value="<?= e($guestSubmission ? current_user()['email'] : old('email')) ?>" <?= $guestSubmission ? 'readonly' : '' ?> autocomplete="email" inputmode="email" spellcheck="false"<?= $aria('email') ?>>
             <p class="hint">The office's decision is sent here.</p>
             <?= $fieldErr('email') ?>
         </div>
@@ -229,13 +244,13 @@ $fieldErr = static fn(string $f): string => isset($errors[$f])
             <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
         </div>
 
-        <button type="submit" class="btn btn-primary btn-block portal-submit" data-loading="Sending…">Send invitation</button>
+        <button type="submit" class="btn btn-primary btn-block portal-submit" data-loading="Sending…"><?= $guestSubmission ? 'Submit for approval' : 'Send invitation' ?></button>
     </form>
 
-    <div class="portal-secondary">
+    <?php if (!$guestSubmission): ?><div class="portal-secondary">
         <p><a href="<?= url('login.php') ?>">Staff and students: sign in</a></p>
-    </div>
+    </div><?php endif; ?>
 <?php endif; ?>
 
-<?php require __DIR__ . '/../../includes/layout/portal-footer.php'; ?>
+<?php require $guestSubmission ? __DIR__ . '/../../includes/layout/footer.php' : __DIR__ . '/../../includes/layout/portal-footer.php'; ?>
 <?php clear_old_input(); ?>

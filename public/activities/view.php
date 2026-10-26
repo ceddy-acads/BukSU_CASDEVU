@@ -186,7 +186,7 @@ if ($isQuickLook): ?>
 <div class="page-head photo-band"<?= photo_band_style(category_photo((string) $activity['category'])) ?>>
     <div>
         <a class="crumb" href="<?= url('activities/index.php') ?>">&larr; Back to activities</a>
-        <?= status_badge($activity['status'], 'activity') ?>
+        <?= $activity['approval_status'] === 'approved' ? status_badge($activity['status'], 'activity') : status_badge($activity['approval_status'], 'approval') ?>
         <h1><?= e($activity['title']) ?></h1>
         <p><?= e($activity['category']) ?></p>
     </div>
@@ -197,9 +197,9 @@ if ($isQuickLook): ?>
                 <a class="btn btn-outline" href="<?= url('highlights/view.php?activity_id=' . $activityId) ?>">Read the highlights</a>
             <?php endif; ?>
             <?php if ($canRegister): ?>
-                <a class="btn btn-gold" href="#participation">Register</a>
+                <a class="btn btn-gold" href="<?= e(url('activities/join.php?activity_id=' . $activityId)) ?>" data-join-open>Register</a>
             <?php endif; ?>
-            <?php if ($canManage): ?>
+            <?php if ($canManage && can_edit_activity_details($activity)): ?>
                 <a class="btn btn-outline" href="<?= url('activities/manage.php?id=' . $activityId) ?>">Edit activity</a>
             <?php endif; ?>
         </div>
@@ -249,7 +249,10 @@ if ($isQuickLook): ?>
             </section>
         <?php endif; ?>
 
-        <?php if ($requirements !== []): ?>
+        <?php if ($isStudent && $isActiveReg): ?>
+            <?php require __DIR__ . '/../../includes/layout/student-requirements.php'; ?>
+        <?php endif; ?>
+        <?php if ($requirements !== [] && !($isStudent && $isActiveReg)): ?>
             <section class="card card-flush">
                 <div class="card-head"><h2>Requirements</h2></div>
                 <div class="table-wrap">
@@ -305,7 +308,7 @@ if ($isQuickLook): ?>
                             <span style="width: <?= $regPct ?>%"></span>
                         </div>
                         <a class="btn <?= $regProgress['complete'] ? 'btn-outline' : 'btn-gold' ?> btn-block"
-                           href="<?= url('requirements/submit.php?activity_id=' . $activityId) ?>">
+                           href="#my-requirements">
                             <?= $regProgress['complete'] ? 'View my documents' : 'Submit requirements' ?>
                         </a>
                     <?php endif; ?>
@@ -323,23 +326,7 @@ if ($isQuickLook): ?>
 
                 <?php elseif ($eligibility['ok']): ?>
                     <p class="card-intro">You can join this activity. The office reviews every registration.</p>
-                    <form method="post" action="<?= url('participation/register.php') ?>">
-                        <?= csrf_field() ?>
-                        <input type="hidden" name="action" value="register">
-                        <input type="hidden" name="activity_id" value="<?= $activityId ?>">
-
-                        <div class="form-row">
-                            <label for="team_name">Team or group name <span class="optional">(optional)</span></label>
-                            <input type="text" id="team_name" name="team_name"
-                                   placeholder="e.g. College of Technologies">
-                        </div>
-                        <div class="form-row">
-                            <label for="remarks">Anything the office should know <span class="optional">(optional)</span></label>
-                            <input type="text" id="remarks" name="remarks">
-                        </div>
-
-                        <button type="submit" class="btn btn-primary btn-block">Register for this activity</button>
-                    </form>
+                    <a class="btn btn-primary btn-block" href="<?= e(url('activities/join.php?activity_id=' . $activityId)) ?>" data-join-open>Register for this activity</a>
                 <?php else: ?>
                     <div class="alert alert-warning alert-flush">
                         <?= e($eligibility['reason']) ?>
@@ -349,6 +336,14 @@ if ($isQuickLook): ?>
         <?php endif; ?>
 
         <?php if ($canManage): ?>
+            <?php
+            $approvalKind = 'activity';
+            $approvalId = $activityId;
+            $approvalState = $activity['approval_status'];
+            $approvalReason = $activity['rejection_reason'];
+            $approvalVersion = $activity['review_version'];
+            require __DIR__ . '/../../includes/layout/approval.php';
+            ?>
             <?php
             $pendingRegistrations = (int) fetch_value(
                 "SELECT COUNT(*) FROM registrations WHERE activity_id = ? AND status = 'pending'",
@@ -376,10 +371,10 @@ if ($isQuickLook): ?>
                        href="<?= url('requirements/verify.php?activity_id=' . $activityId) ?>">
                         Verify documents<?= $pendingSubmissions > 0 ? ' (' . $pendingSubmissions . ' pending)' : '' ?>
                     </a>
-                    <a class="btn btn-outline btn-sm"
+                    <?php if (can_edit_activity_details($activity)): ?><a class="btn btn-outline btn-sm"
                        href="<?= url('activities/eligibility.php?activity_id=' . $activityId) ?>">
                         Eligibility (<?= $eligibilityRuleCount ?>)
-                    </a>
+                    </a><?php endif; ?>
                     <a class="btn btn-outline btn-sm"
                        href="<?= url('highlights/manage.php?activity_id=' . $activityId) ?>">
                         Highlight report
@@ -483,4 +478,17 @@ if ($isQuickLook): ?>
     </div>
 </div>
 
+<?php if ($canRegister): ?>
+<dialog class="modal join-dialog" id="join-dialog" aria-labelledby="join-dialog-title">
+    <div class="modal-panel">
+        <div class="modal-head">
+            <h2 id="join-dialog-title">Register for this activity</h2>
+            <button type="button" class="icon-btn modal-close" data-join-close aria-label="Close registration"><?= icon('close') ?></button>
+        </div>
+        <div class="modal-body">
+            <?php require __DIR__ . '/../../includes/layout/join-form.php'; ?>
+        </div>
+    </div>
+</dialog>
+<?php endif; ?>
 <?php require __DIR__ . '/../../includes/layout/footer.php'; ?>

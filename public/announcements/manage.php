@@ -23,11 +23,12 @@ if ($isEdit) {
     }
 
     // A coordinator may only touch their own posts; the office may touch any.
-    if (!is_office_staff() && (int) $announcement['posted_by'] !== current_user_id()) {
+    if (!can_edit_announcement($announcement)) {
         http_response_code(403);
-        abort_page(403, 'You may only edit announcements you posted.');
+        abort_page(403, 'You may only edit your own unpublished announcements. Ask an administrator to change published content.');
     }
 }
+$isCoordinator = current_role() === 'coordinator';
 
 // Office staff may announce about anything; a coordinator only about the
 // activities they are assigned to.
@@ -45,8 +46,11 @@ $activities = is_office_staff()
  */
 function assert_may_announce_for(?int $activityId): void
 {
-    if ($activityId === null || is_office_staff()) {
+    if (is_office_staff()) {
         return;
+    }
+    if ($activityId === null) {
+        abort_page(403, 'Choose an activity you coordinate.');
     }
     $assigned = fetch_value(
         'SELECT 1 FROM activity_coordinators WHERE activity_id = ? AND user_id = ?',
@@ -81,11 +85,18 @@ if (is_post()) {
     $body       = post('body');
     $activityIn = post('activity_id');
     $status     = post('status', 'draft');
+    if ($isCoordinator) {
+        $status = post('intent') === 'announce' ? 'pending' : 'draft';
+    } elseif ($isEdit && ($announcement['requires_approval'] && in_array($announcement['status'], ['draft', 'pending', 'rejected'], true))) {
+        // The separate admin decision controls are the only publication path.
+        $status = $announcement['status'];
+    }
     $isPinned   = post('is_pinned') === '1' ? 1 : 0;
 
     if ($title === '') { $errors[] = 'A title is required.'; }
+    if (mb_strlen($title) > 200) { $errors[] = 'The title must be 200 characters or fewer.'; }
     if ($body === '')  { $errors[] = 'The announcement body cannot be empty.'; }
-    if (!in_array($status, ['draft', 'published', 'archived'], true)) {
+    if (!in_array($status, ['draft', 'pending', 'published', 'rejected', 'archived'], true)) {
         $errors[] = 'Please choose a valid status.';
     }
 
@@ -93,16 +104,30 @@ if (is_post()) {
         $activityId = $activityIn !== '' && ctype_digit($activityIn) ? (int) $activityIn : null;
 
         assert_may_announce_for($activityId);
+        if ($activityIn !== '' && ($activityId === null || !fetch_value('SELECT 1 FROM activities WHERE activity_id = ?', [$activityId]))) {
+            abort_page(400, 'Choose a valid related activity.');
+        }
+
+        db()->beginTransaction();
+        if ($isEdit) {
+            $locked = fetch_one('SELECT * FROM announcements WHERE announcement_id = ? FOR UPDATE', [$announcementId]);
+            if ($locked === null || !can_edit_announcement($locked) || $locked['status'] !== $announcement['status']) {
+                db()->rollBack();
+                flash('error', 'This announcement changed while you were editing. Open it again.');
+                redirect('announcements/index.php');
+            }
+        }
 
         // Notify only on the transition into 'published'.
-        $wasPublished  = $isEdit && $announcement['status'] === 'published';
+        $wasPublished  = $isEdit && $announcement['published_at'] !== null;
         $becomingLive  = $status === 'published' && !$wasPublished;
 
         if ($isEdit) {
             query(
                 'UPDATE announcements
                     SET title = ?, body = ?, activity_id = ?, status = ?, is_pinned = ?,
-                        published_at = CASE WHEN ? = 1 THEN NOW() ELSE published_at END
+                        published_at = CASE WHEN ? = 1 THEN NOW() ELSE published_at END,
+                        review_version = review_version + 1
                   WHERE announcement_id = ?',
                 [$title, $body, $activityId, $status, $isPinned, $becomingLive ? 1 : 0, $announcementId]
             );
@@ -111,12 +136,13 @@ if (is_post()) {
         } else {
             query(
                 'INSERT INTO announcements
-                     (activity_id, title, body, is_pinned, status, published_at, posted_by)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)',
+                     (activity_id, title, body, is_pinned, status, published_at, posted_by, requires_approval)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
                 [
                     $activityId, $title, $body, $isPinned, $status,
                     $status === 'published' ? date('Y-m-d H:i:s') : null,
                     current_user_id(),
+                    $isCoordinator ? 1 : 0,
                 ]
             );
             $targetId = (int) db()->lastInsertId();
@@ -132,12 +158,19 @@ if (is_post()) {
                 url('announcements/index.php')
             );
         }
+        if ($isCoordinator) {
+            query('UPDATE announcements SET requires_approval = 1, reviewed_by = NULL, reviewed_at = NULL, rejection_reason = NULL WHERE announcement_id = ?', [$targetId]);
+            if ($status === 'pending' && (!$isEdit || $announcement['status'] !== 'pending')) {
+                notify_publication_review($title, 'announcements/manage.php?id=' . $targetId);
+            }
+        }
+        db()->commit();
 
         clear_old_input();
         flash('success', $status === 'published'
             ? 'Announcement published' . ($becomingLive ? ' and students have been notified.' : '.')
-            : 'Announcement saved as a draft.');
-        redirect('announcements/index.php');
+            : ($status === 'pending' ? 'Announcement submitted. Pending approval by an administrator.' : 'Announcement saved.'));
+        redirect('announcements/index.php' . ($isCoordinator ? '?status=' . $status : ''));
     }
 
     remember_input($_POST);
@@ -172,14 +205,24 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 <?php endif; ?>
 
-<form method="post" novalidate>
+<?php if ($isEdit && in_array($announcement['status'], ['pending', 'rejected'], true)):
+    $approvalKind = 'announcement';
+    $approvalId = $announcementId;
+    $approvalState = $announcement['status'];
+    $approvalReason = $announcement['rejection_reason'];
+    $approvalVersion = $announcement['review_version'];
+    require __DIR__ . '/../../includes/layout/approval.php';
+endif; ?>
+<?php if ($isCoordinator): ?><p class="alert alert-info">Save a draft to finish later. Announce sends it to an administrator for approval.</p><?php endif; ?>
+
+<form method="post" novalidate data-loading="Saving…">
     <?= csrf_field() ?>
     <input type="hidden" name="action" value="save">
 
     <section class="card">
         <div class="form-row">
             <label for="title">Title <span class="req">*</span></label>
-            <input type="text" id="title" name="title" required
+            <input type="text" id="title" name="title" maxlength="200" required
                    value="<?= e(announcement_field('title', $announcement)) ?>">
         </div>
 
@@ -190,9 +233,9 @@ require __DIR__ . '/../../includes/layout/header.php';
 
         <div class="form-grid form-grid-2">
             <div class="form-row">
-                <label for="activity_id">Related activity <span class="optional">(optional)</span></label>
-                <select id="activity_id" name="activity_id">
-                    <option value="">Not related to an activity</option>
+                <label for="activity_id">Related activity <?= $isCoordinator ? '<span class="req">*</span>' : '<span class="optional">(optional)</span>' ?></label>
+                <select id="activity_id" name="activity_id" <?= $isCoordinator ? 'required' : '' ?>>
+                    <option value=""><?= $isCoordinator ? 'Choose an activity you coordinate' : 'Not related to an activity' ?></option>
                     <?php foreach ($activities as $activity): ?>
                         <option value="<?= (int) $activity['activity_id'] ?>"
                             <?= announcement_field('activity_id', $announcement) === (string) $activity['activity_id'] ? 'selected' : '' ?>>
@@ -201,6 +244,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                     <?php endforeach; ?>
                 </select>
             </div>
+            <?php if (!$isCoordinator && (!$isEdit || !$announcement['requires_approval'] || !in_array($announcement['status'], ['draft', 'pending', 'rejected'], true))): ?>
             <div class="form-row">
                 <label for="status">Status <span class="req">*</span></label>
                 <select id="status" name="status" required>
@@ -215,6 +259,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                     <?php endforeach; ?>
                 </select>
             </div>
+            <?php endif; ?>
         </div>
 
         <div class="form-row">
@@ -226,7 +271,12 @@ require __DIR__ . '/../../includes/layout/header.php';
         </div>
 
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Save changes' : 'Save announcement' ?></button>
+            <?php if ($isCoordinator): ?>
+                <button type="submit" name="intent" value="draft" class="btn btn-outline">Save draft</button>
+                <button type="submit" name="intent" value="announce" class="btn btn-primary">Announce</button>
+            <?php else: ?>
+                <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Save changes' : 'Save announcement' ?></button>
+            <?php endif; ?>
             <a class="btn btn-outline" href="<?= url('announcements/index.php') ?>">Cancel</a>
         </div>
     </section>

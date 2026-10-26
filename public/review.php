@@ -52,6 +52,10 @@ if (is_office_staff()) {
     $lanes['accounts']     = ['Accounts', 'These people cannot sign in until their account is activated.'];
     $lanes['invitations']  = ['Invitations', 'Outside groups invited BukSU students to these programs.'];
 }
+if (has_role('admin')) {
+    $lanes['activities'] = ['Activities', 'Coordinators submitted these activities for publication approval.'];
+    $lanes['announcements'] = ['Announcements', 'Coordinators chose Announce; these posts need publication approval.'];
+}
 
 // Open on whatever the URL asked for, else the first lane that has work.
 $lane = get('lane');
@@ -102,7 +106,7 @@ require __DIR__ . '/../includes/layout/header.php';
 <?php if ($counts['total'] === 0): ?>
     <div class="empty">
         <strong>You are all caught up</strong>
-        No documents, registrations<?= is_office_staff() ? ', reservations, accounts, or invitations' : ', or equipment requests' ?> are waiting for review.
+        Nothing is waiting for review in the categories available to you.
         <div class="btn-row">
             <a class="btn btn-outline" href="<?= url('activities/index.php') ?>">Go to activities</a>
         </div>
@@ -123,7 +127,23 @@ require __DIR__ . '/../includes/layout/header.php';
             <p class="hint"><?= e($lanes[$lane][1]) ?></p>
         </div>
 
-        <?php if ($lane === 'documents'): ?>
+        <?php if (has_role('admin') && in_array($lane, ['activities', 'announcements'], true)): ?>
+            <?php
+            $submissions = $lane === 'activities'
+                ? fetch_all("SELECT activity_id AS id, title, created_at FROM activities WHERE approval_status = 'pending' ORDER BY created_at LIMIT 50")
+                : fetch_all("SELECT announcement_id AS id, title, created_at FROM announcements WHERE status = 'pending' ORDER BY created_at LIMIT 50");
+            ?>
+            <?php if ($submissions === []): ?>
+                <div class="empty"><strong>No submissions waiting</strong>New coordinator submissions will appear here.</div>
+            <?php else: ?>
+                <div class="table-wrap"><table class="data table-stack"><thead><tr><th>Title</th><th>Submitted</th><th>Review</th></tr></thead><tbody>
+                <?php foreach ($submissions as $submission): ?>
+                    <tr><td data-label="Title"><?= e($submission['title']) ?></td><td data-label="Submitted"><?= e(format_datetime($submission['created_at'])) ?></td>
+                    <td data-label="Review"><a class="btn btn-outline btn-sm" href="<?= url(($lane === 'activities' ? 'activities/view.php?id=' : 'announcements/manage.php?id=') . (int) $submission['id']) ?>">Review</a></td></tr>
+                <?php endforeach; ?>
+                </tbody></table></div>
+            <?php endif; ?>
+        <?php elseif ($lane === 'documents'): ?>
             <?php if ($documents === []): ?>
                 <div class="empty">
                     <strong>No documents waiting</strong>

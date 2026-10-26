@@ -24,12 +24,13 @@ if ($invitation === null) {
 }
 $id       = (int) $invitation['invitation_id'];
 $isOffice = is_office_staff();
+$mayDecide = $isOffice && ($invitation['submitted_by'] === null || has_role('admin'));
 $self     = 'invitations/view.php?id=' . $id;
 
 // ------------------------------------------------------------------ Actions
 if (is_post()) {
     csrf_verify();
-    if (!$isOffice) {
+    if (!$mayDecide) {
         http_response_code(403);
         abort_page(403, 'Only the office can act on invitations.');
     }
@@ -37,6 +38,22 @@ if (is_post()) {
     $action = post('action');
 
     switch ($action) {
+        case 'retry_email':
+            db()->beginTransaction();
+            $locked = fetch_one('SELECT * FROM invitations WHERE invitation_id = ? FOR UPDATE', [$id]);
+            if ($locked === null || !in_array($locked['email_status'], ['logged', 'failed'], true)
+                || !in_array($locked['status'], ['approved', 'rejected'], true)) {
+                db()->rollBack();
+                flash('error', 'There is no failed or logged decision email to retry.');
+                redirect($self);
+            }
+            $state = invitation_send_decision($locked);
+            query('UPDATE invitations SET email_status = ? WHERE invitation_id = ?', [$state, $id]);
+            audit_log('retry_email', 'invitation', $id, 'Decision email: ' . $state);
+            db()->commit();
+            flash($state === 'sent' ? 'success' : 'error', $state === 'sent' ? 'Decision email sent.'
+                : ($state === 'logged' ? 'Email recorded locally. Real email delivery is not configured.' : 'Email delivery failed. The approval is unchanged; try again later.'));
+            break;
         case 'approve':
         case 'reject':
             $remarks = '';
@@ -134,7 +151,7 @@ $pageTitle = 'Invitation: ' . $invitation['title'];
 require __DIR__ . '/../../includes/layout/header.php';
 
 $status    = (string) $invitation['status'];
-$byHand    = $isOffice && in_array($invitation['email_status'], ['logged', 'failed'], true);
+$byHand    = $mayDecide && in_array($invitation['email_status'], ['logged', 'failed'], true);
 $startDate = strtotime((string) $invitation['start_at']);
 $backUrl   = $isOffice
     ? url('review.php?lane=invitations')
@@ -145,7 +162,7 @@ $backUrl   = $isOffice
     <div>
         <a class="crumb" href="<?= $backUrl ?>">&larr; <?= $isOffice ? 'Review queue' : 'Calendar' ?></a>
         <h1><?= e($invitation['title']) ?></h1>
-        <p>Invitation from <?= e($invitation['organization']) ?> <?= status_badge($status, 'invitation') ?></p>
+        <p><?= $invitation['submitted_by'] !== null ? 'Program from ' : 'Invitation from ' ?><?= e($invitation['organization']) ?> <?= status_badge($status, $invitation['submitted_by'] !== null ? 'approval' : 'invitation') ?></p>
     </div>
 </div>
 
@@ -193,12 +210,12 @@ $backUrl   = $isOffice
     </dl>
 </section>
 
-<?php if ($isOffice && $status === 'pending'): ?>
+<?php if ($mayDecide && $status === 'pending'): ?>
     <section class="card">
         <div class="card-head"><h2>Decide</h2></div>
         <div class="stack">
         <div>
-        <p>Approving posts it to the calendar for admins and coordinators and emails the sender that it was received. It does not commit BukSU to attend.</p>
+        <p><?= $invitation['submitted_by'] !== null ? 'Approving adds this program to the guest’s calendar and emails the approval decision to their account address.' : 'Approving posts it to the calendar for admins and coordinators and emails the sender that it was received. It does not commit BukSU to attend.' ?></p>
         <form method="post" action="<?= url($self) ?>">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="approve">
@@ -224,7 +241,7 @@ $backUrl   = $isOffice
         </form>
         </div>
     </section>
-<?php elseif ($isOffice && $status === 'approved'): ?>
+<?php elseif ($mayDecide && $status === 'approved'): ?>
     <section class="card">
         <div class="card-head"><h2>Cancel</h2></div>
         <p>It stays on the calendar, marked cancelled. Admins and coordinators are told. No email is sent.</p>
@@ -235,6 +252,11 @@ $backUrl   = $isOffice
             <button type="submit" class="btn btn-outline" data-loading="Cancelling…">Cancel invitation</button>
         </form>
     </section>
+<?php endif; ?>
+
+<?php if ($byHand && in_array($status, ['approved', 'rejected'], true)): ?>
+<section class="card"><h2>Decision email</h2><p><?= $invitation['email_status'] === 'logged' ? 'Recorded locally; it has not been sent to an inbox.' : 'Delivery failed. The decision is saved.' ?></p>
+<form method="post" action="<?= url($self) ?>"><?= csrf_field() ?><input type="hidden" name="action" value="retry_email"><button class="btn btn-outline" type="submit" data-loading="Sending…">Retry decision email</button></form></section>
 <?php endif; ?>
 
 <?php require __DIR__ . '/../../includes/layout/footer.php'; ?>

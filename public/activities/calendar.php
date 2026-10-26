@@ -65,6 +65,10 @@ $params     = [];
 if (!is_office_staff() && current_role() !== 'coordinator') {
     $conditions[] = "a.status <> 'draft'";
 }
+if (current_role() === 'coordinator') {
+    $conditions[] = "(a.status <> 'draft' OR a.activity_id IN (SELECT activity_id FROM activity_coordinators WHERE user_id = ?))";
+    $params[] = current_user_id();
+}
 if ($categoryIn !== '') {
     $conditions[] = 'a.category_id = ?';
     $params[]     = (int) $categoryIn;
@@ -76,7 +80,7 @@ $mineSelect = $isStudent ? 'mr.status AS my_status' : 'NULL AS my_status';
 $mineParams = $isStudent ? [(int) current_user_id()] : [];
 
 $activities = fetch_all(
-    "SELECT a.activity_id, a.title, a.start_at, a.end_at, a.status,
+    "SELECT a.activity_id, a.title, a.start_at, a.end_at, a.status, a.approval_status,
             c.name AS category, c.color_hex, v.name AS venue, $mineSelect
        FROM activities a
        JOIN activity_categories c ON c.category_id = a.category_id
@@ -106,19 +110,25 @@ if ($activities === []) {
 // so it leaves them out.
 $calendarEvents = [];
 foreach ($activities as $activity) {
+    if ($activity['approval_status'] !== 'approved') {
+        $activity['status'] = $activity['approval_status'];
+    }
     $calendarEvents[] = $activity + [
-        'kind' => 'activity', 'domain' => 'activity',
+        'kind' => 'activity', 'domain' => $activity['approval_status'] === 'approved' ? 'activity' : 'approval',
         'href' => url('activities/view.php?id=' . (int) $activity['activity_id']),
     ];
 }
 $invitationCount = 0;
 if (can_view_invitations() && $categoryIn === '') {
+    $invitationScope = current_role() === 'guest' ? ' AND submitted_by = ?' : '';
+    $invitationParams = [$lastDay . ' 23:59:59', $firstDay . ' 00:00:00'];
+    if (current_role() === 'guest') { $invitationParams[] = current_user_id(); }
     $invitations = fetch_all(
         "SELECT invitation_id, organization, title, start_at, end_at, place, status
            FROM invitations
-          WHERE status IN ('approved', 'cancelled') AND start_at <= ? AND end_at >= ?
+          WHERE status IN ('approved', 'cancelled') AND start_at <= ? AND end_at >= ?$invitationScope
           ORDER BY start_at, title",
-        [$lastDay . ' 23:59:59', $firstDay . ' 00:00:00']
+        $invitationParams
     );
     foreach ($invitations as $invitation) {
         $calendarEvents[] = [
@@ -233,6 +243,8 @@ function calendar_status_word(array $event): string
     return match ($event['status']) {
         'cancelled' => 'Cancelled',
         'draft'     => 'Draft',
+        'pending'   => 'Pending approval',
+        'rejected'  => 'Rejected',
         default     => '',
     };
 }
@@ -280,6 +292,9 @@ require __DIR__ . '/../../includes/layout/header.php';
 </div>
 
 <?php // The key is the filter: each category is a link, the active one filled. ?>
+<?php if (current_role() === 'guest'): ?>
+<div class="btn-row"><a class="btn btn-gold" href="<?= url('invitations/submit.php') ?>">Add program</a><a class="btn btn-outline" href="<?= url('invitations/mine.php') ?>">My programs</a></div>
+<?php endif; ?>
 <nav class="cal-filter" aria-label="Show one category">
     <a class="cal-filter-chip" href="<?= e(calendar_link($year, $month, 0, '')) ?>"<?= $categoryIn === '' ? ' aria-current="true"' : '' ?>>All categories</a>
     <?php foreach ($categories as $category): ?>

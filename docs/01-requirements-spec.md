@@ -9,6 +9,25 @@
 
 ## 1. Problem Statement
 
+### Publication approval workflow (October 2026)
+
+- Coordinator dashboards label the existing loan statistic **Borrowed Items**.
+- Coordinators create activities as **Pending approval**, automatically assigned
+  to themselves. Administrators approve publication or reject with a reason;
+  coordinators may revise pending submissions and resubmit rejected ones.
+- Coordinator announcements have a **Draft bin**. **Save draft** keeps work
+  private; **Announce** submits it for administrator approval. Students see
+  announcements and receive publication notifications only after approval.
+- Coordinators cannot change approved activity details, eligibility, or published
+  announcements. Participant, requirement, attendance, and equipment workflows
+  continue. Existing office management permissions remain.
+- Guests add calendar programs and track their own requests. Administrators alone
+  decide account-linked programs. Approved programs appear on the submitting
+  guest's calendar and a decision email goes to their account email. Other
+  guests' programs are private; programs do not enable student participation.
+- Pending publication submissions appear in the administrator's review queue.
+  Repeated or stale review decisions cannot publish content or repeat notices.
+
 The Office of Culture, Arts, and Sports currently coordinates activities through
 manual and informal channels. This produces five recurring problems, each named
 in the client's feature document:
@@ -84,7 +103,7 @@ build plan: `MUST` = core spine, required for a working system;
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FR-4.1 | A student registers for an activity from its detail page | MUST |
+| FR-4.1 | A student registers from the activity detail page through a popup, submitting mandatory files and acknowledgements with the registration before office review | MUST |
 | FR-4.2 | A student cannot register twice for the same activity (enforced at database level) | MUST |
 | FR-4.3 | Registration is blocked when the activity is closed, full, or the student is ineligible | MUST |
 | FR-4.4 | The activity page displays its eligibility conditions before the student applies | MUST |
@@ -103,7 +122,7 @@ build plan: `MUST` = core spine, required for a working system;
 | FR-5.3 | Students upload requirement files (PDF/JPG/PNG, max 5 MB) | MUST |
 | FR-5.4 | Uploads are validated by extension **and** MIME type, stored outside the web root, renamed to a random filename | MUST |
 | FR-5.5 | Staff mark a submission verified, pending, or rejected, with a reason on rejection | MUST |
-| FR-5.6 | Students see a per-activity checklist of which requirements are missing or rejected | MUST |
+| FR-5.6 | Students see and manage their checklist, submission status, and rejected-file replacements inside each activity; no separate student requirements sidebar entry | MUST |
 | FR-5.7 | Students are reminded a configurable number of days before a requirement deadline | SHOULD |
 
 ### FR-6 — Costume and Equipment Management
@@ -175,7 +194,7 @@ Confirm with the office before the corresponding module is built.
 |---|-----------------|--------------------------|
 | A-1 | Students self-register; accounts are activated by staff | If the office instead supplies a student master list, registration becomes an import |
 | A-2 | Notifications are in-app only for the MVP | Email/SMS needs an SMTP account or paid gateway |
-| A-3 | Reservations are made per activity, not per individual student | Changes who may submit a reservation request |
+| A-3 | Students may request costumes and equipment individually; a typed activity/purpose is required, and linking a registered activity is optional | The office reviews unlinked requests; assigned activity reviewers review linked requests |
 | A-4 | One student may join multiple activities concurrently | The office may cap concurrent participation |
 | A-5 | Requirement files are office-internal and not shared between activities | A shared "medical clearance on file" model would change the schema |
 | A-6 | Backup means an SQL dump downloaded by the admin | A scheduled off-server backup would need hosting support |

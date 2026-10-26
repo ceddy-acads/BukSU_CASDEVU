@@ -157,7 +157,12 @@ CREATE TABLE activities (
     status          ENUM('draft','upcoming','ongoing','completed','cancelled','closed')
                         NOT NULL DEFAULT 'draft',
 
-    created_by      INT UNSIGNED NOT NULL,          -- staff/admin who authored it
+    approval_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved',
+    review_version  INT UNSIGNED NOT NULL DEFAULT 1,
+    reviewed_by     INT UNSIGNED NULL,
+    reviewed_at     DATETIME NULL,
+    rejection_reason VARCHAR(500) NULL,
+    created_by      INT UNSIGNED NOT NULL,          -- author; coordinators require approval
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                         ON UPDATE CURRENT_TIMESTAMP,
@@ -166,8 +171,10 @@ CREATE TABLE activities (
     CONSTRAINT fk_activities_venue    FOREIGN KEY (venue_id)    REFERENCES venues(venue_id)
                                           ON DELETE SET NULL,
     CONSTRAINT fk_activities_author   FOREIGN KEY (created_by)  REFERENCES users(user_id),
+    CONSTRAINT fk_activity_reviewer FOREIGN KEY (reviewed_by) REFERENCES users(user_id) ON DELETE SET NULL,
     CONSTRAINT chk_activities_dates   CHECK (end_at >= start_at),
 
+    INDEX idx_activity_approval (approval_status, created_at),
     INDEX idx_activities_status   (status),
     INDEX idx_activities_schedule (start_at, end_at),
     INDEX idx_activities_venue    (venue_id, start_at, end_at)
@@ -222,7 +229,12 @@ CREATE TABLE announcements (
     body            TEXT         NOT NULL,
     attachment_path VARCHAR(255) NULL,
     is_pinned       TINYINT(1)   NOT NULL DEFAULT 0,
-    status          ENUM('draft','published','archived') NOT NULL DEFAULT 'draft',
+    status          ENUM('draft','pending','published','rejected','archived') NOT NULL DEFAULT 'draft',
+    requires_approval TINYINT(1) NOT NULL DEFAULT 0,
+    review_version  INT UNSIGNED NOT NULL DEFAULT 1,
+    reviewed_by     INT UNSIGNED NULL,
+    reviewed_at     DATETIME NULL,
+    rejection_reason VARCHAR(500) NULL,
     published_at    DATETIME     NULL,
     posted_by       INT UNSIGNED NOT NULL,
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -232,6 +244,7 @@ CREATE TABLE announcements (
     CONSTRAINT fk_ann_activity FOREIGN KEY (activity_id) REFERENCES activities(activity_id)
                                    ON DELETE SET NULL,
     CONSTRAINT fk_ann_author   FOREIGN KEY (posted_by)   REFERENCES users(user_id),
+    CONSTRAINT fk_announcement_reviewer FOREIGN KEY (reviewed_by) REFERENCES users(user_id) ON DELETE SET NULL,
     INDEX idx_ann_published (status, published_at),
     FULLTEXT KEY ft_ann_search (title, body)        -- powers keyword search
 ) ENGINE=InnoDB;
@@ -558,6 +571,7 @@ CREATE TABLE user_preferences (
 
 CREATE TABLE invitations (
     invitation_id   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    submitted_by    INT UNSIGNED NULL,
     organization    VARCHAR(200) NOT NULL,
     contact_name    VARCHAR(150) NOT NULL,
     email           VARCHAR(190) NOT NULL,
@@ -584,7 +598,9 @@ CREATE TABLE invitations (
 
     CONSTRAINT fk_invitations_reviewer FOREIGN KEY (reviewed_by) REFERENCES users(user_id)
                                            ON DELETE SET NULL,
+    CONSTRAINT fk_invitation_submitter FOREIGN KEY (submitted_by) REFERENCES users(user_id),
     CONSTRAINT chk_invitations_dates   CHECK (end_at >= start_at),
+    INDEX idx_invitation_submitter (submitted_by, status, start_at),
     INDEX idx_invitations_status   (status, start_at),
     INDEX idx_invitations_ip       (ip_address, created_at),
     INDEX idx_invitations_email    (email, created_at)

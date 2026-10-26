@@ -60,13 +60,19 @@ function activity_reviewer_ids(int $activityId): array
     );
 
     if ($reviewers === []) {
-        $reviewers = fetch_all(
-            "SELECT u.user_id FROM users u JOIN roles r ON r.role_id = u.role_id
-              WHERE r.name IN ('staff','admin') AND u.status = 'active'"
-        );
+        return office_reviewer_ids();
     }
 
     return array_map(static fn(array $row): int => (int) $row['user_id'], $reviewers);
+}
+
+/** @return int[] Active office reviewers for requests without an activity. */
+function office_reviewer_ids(): array
+{
+    return array_map('intval', array_column(fetch_all(
+        "SELECT u.user_id FROM users u JOIN roles r ON r.role_id = u.role_id
+          WHERE r.name IN ('staff','admin') AND u.status = 'active'"
+    ), 'user_id'));
 }
 
 /**
@@ -81,7 +87,7 @@ function review_counts(): array
         return $cache;
     }
 
-    $counts = ['documents' => 0, 'registrations' => 0, 'reservations' => 0, 'accounts' => 0, 'invitations' => 0, 'total' => 0];
+    $counts = ['documents' => 0, 'registrations' => 0, 'reservations' => 0, 'accounts' => 0, 'invitations' => 0, 'activities' => 0, 'announcements' => 0, 'total' => 0];
     if (!can_review()) {
         return $cache = $counts;
     }
@@ -110,10 +116,15 @@ function review_counts(): array
         $counts['accounts']     = (int) fetch_value("SELECT COUNT(*) FROM users WHERE status = 'pending'");
         // Pending decisions, plus decided ones whose sender still has to be told by hand.
         $counts['invitations']  = (int) fetch_value(
-            "SELECT COUNT(*) FROM invitations WHERE status = 'pending' OR email_status IN ('logged','failed')"
+            "SELECT COUNT(*) FROM invitations WHERE (status = 'pending' OR email_status IN ('logged','failed'))"
+            . (has_role('admin') ? '' : ' AND submitted_by IS NULL')
         );
     }
-    $counts['total'] = $counts['documents'] + $counts['registrations'] + $counts['reservations'] + $counts['accounts'] + $counts['invitations'];
+    if (has_role('admin')) {
+        $counts['activities'] = (int) fetch_value("SELECT COUNT(*) FROM activities WHERE approval_status = 'pending'");
+        $counts['announcements'] = (int) fetch_value("SELECT COUNT(*) FROM announcements WHERE status = 'pending'");
+    }
+    $counts['total'] = array_sum(array_diff_key($counts, ['total' => true]));
 
     return $cache = $counts;
 }
@@ -204,7 +215,7 @@ function review_pending_invitations(int $limit = 50): array
         "SELECT invitation_id, organization, contact_name, title, start_at, end_at, place, created_at,
                 letter_path IS NOT NULL AS has_letter
            FROM invitations
-          WHERE status = 'pending'
+          WHERE status = 'pending'" . (has_role('admin') ? '' : ' AND submitted_by IS NULL') . "
           ORDER BY created_at ASC
           LIMIT " . max(1, $limit)
     );
@@ -219,7 +230,7 @@ function review_unsent_invitations(int $limit = 50): array
     return fetch_all(
         "SELECT invitation_id, organization, contact_name, title, status, email, phone, reviewed_at, email_status
            FROM invitations
-          WHERE email_status IN ('logged','failed')
+          WHERE email_status IN ('logged','failed')" . (has_role('admin') ? '' : ' AND submitted_by IS NULL') . "
           ORDER BY reviewed_at ASC
           LIMIT " . max(1, $limit)
     );

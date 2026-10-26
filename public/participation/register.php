@@ -15,6 +15,19 @@ if (!is_post()) {
     redirect('activities/index.php');
 }
 
+// Oversized multipart requests have no POST token because PHP discards the body.
+// Reject before any mutation and explain how to recover.
+$isJoinFetch = str_contains((string) ($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json');
+if (student_upload_body_too_large()) {
+    if ($isJoinFetch) {
+        http_response_code(413);
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode(['ok' => false, 'errors' => ['form' => 'The combined files exceed the server upload limit. Choose smaller files and try again.']]);
+    } else {
+        abort_page(413, 'The combined files exceed the server upload limit. Go back and choose smaller files.');
+    }
+    return;
+}
 csrf_verify();
 
 $student    = current_user();
@@ -23,6 +36,12 @@ $action     = post('action', 'register');
 
 $activity = fetch_one('SELECT * FROM activities WHERE activity_id = ?', [$activityId]);
 if ($activity === null) {
+    if ($isJoinFetch) {
+        http_response_code(422);
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode(['ok' => false, 'errors' => ['form' => 'This activity no longer exists. Return to Activities to choose another one.']]);
+        return;
+    }
     flash('error', 'That activity no longer exists.');
     redirect('activities/index.php');
 }
@@ -59,71 +78,35 @@ if ($action === 'withdraw') {
 // =====================================================================
 // Register
 // =====================================================================
-$check = can_register($activity, $student);
-if (!$check['ok']) {
-    flash('error', $check['reason']);
-    redirect($backTo);
+$joinValues = student_join_values();
+$result = register_student_with_requirements($activityId, $student, $joinValues);
+if (!$result['ok']) {
+    if ($isJoinFetch) {
+        http_response_code(422);
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode($result);
+    } else {
+        $joinErrors = $result['errors'];
+        require __DIR__ . '/../activities/join.php';
+    }
+    return;
 }
 
-$teamName = post('team_name');
-$remarks  = post('remarks');
-
-// A previous withdrawal is reactivated rather than duplicated — the UNIQUE
-// key on (activity_id, user_id) means a second INSERT would fail anyway.
-$previous = fetch_one(
-    'SELECT registration_id FROM registrations WHERE activity_id = ? AND user_id = ?',
-    [$activityId, $student['user_id']]
-);
-
-if ($previous !== null) {
-    query(
-        "UPDATE registrations
-            SET status = 'pending', team_name = ?, remarks = ?,
-                reviewed_by = NULL, reviewed_at = NULL, review_remarks = NULL,
-                registered_at = NOW()
-          WHERE registration_id = ?",
-        [
-            $teamName !== '' ? $teamName : null,
-            $remarks  !== '' ? $remarks  : null,
-            $previous['registration_id'],
-        ]
+// The application is committed before any reviewer notification is attempted.
+try {
+    notify_many_and_email(
+        activity_reviewer_ids($activityId), 'registration', 'New registration to review',
+        full_name($student) . ' registered for ' . $activity['title'] . '.',
+        url('participation/participants.php?activity_id=' . $activityId . '&status=pending')
     );
-    $registrationId = (int) $previous['registration_id'];
-} else {
-    query(
-        'INSERT INTO registrations (activity_id, user_id, team_name, remarks)
-         VALUES (?, ?, ?, ?)',
-        [
-            $activityId,
-            $student['user_id'],
-            $teamName !== '' ? $teamName : null,
-            $remarks  !== '' ? $remarks  : null,
-        ]
-    );
-    $registrationId = (int) db()->lastInsertId();
+} catch (Throwable $error) {
+    error_log('[CASMS] Registration notification failed: ' . $error->getMessage());
 }
-
-audit_log('create', 'registration', $registrationId,
-          'Registered for: ' . $activity['title']);
-
-// Tell whoever will review it: the assigned coordinators, or the office.
-notify_many_and_email(
-    activity_reviewer_ids($activityId),
-    'registration',
-    'New registration to review',
-    full_name($student) . ' registered for ' . $activity['title'] . '.',
-    url('participation/participants.php?activity_id=' . $activityId . '&status=pending')
-);
-
-$requirementCount = (int) fetch_value(
-    'SELECT COUNT(*) FROM activity_requirements WHERE activity_id = ?',
-    [$activityId]
-);
-
-flash('success', $requirementCount > 0
-    ? 'You are registered. Your registration is awaiting review. Upload the required documents below in the meantime.'
-    : 'You are registered. Your registration is awaiting review by the office.');
-
-redirect($requirementCount > 0
-    ? 'requirements/submit.php?activity_id=' . $activityId
-    : $backTo);
+flash('success', 'Registration submitted. Waiting for approval.'
+    . ($result['submitted'] > 0 ? ' Your documents are also awaiting review.' : ''));
+if ($isJoinFetch) {
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode(['ok' => true, 'redirect' => url($backTo . '#my-requirements')]);
+    return;
+}
+redirect($backTo . '#my-requirements');

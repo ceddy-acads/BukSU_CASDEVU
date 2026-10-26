@@ -1,322 +1,77 @@
 <?php
-/**
- * CASMS — Student requirement checklist and upload (FR-5.3, FR-5.6)
- */
-
+/** Authorized compatibility route and replacement handler for activity requirements. */
 declare(strict_types=1);
 require_once __DIR__ . '/../../includes/bootstrap.php';
-
 require_role(['student']);
 
-$student    = current_user();
+if (is_post()) {
+    if (student_upload_body_too_large()) {
+        abort_page(413, 'The files exceed the server upload limit. Go back and choose a smaller file.');
+    }
+    csrf_verify();
+}
 $activityId = get_id('activity_id') ?? (int) post('activity_id');
-if ($activityId <= 0) {
-    http_response_code(404);
-    abort_page(404, 'Activity not found.');
-}
-
 $activity = fetch_one('SELECT * FROM activities WHERE activity_id = ?', [$activityId]);
-if ($activity === null) {
-    http_response_code(404);
-    abort_page(404, 'Activity not found.');
-}
-
-// A student may only submit for an activity they actually registered for.
-$registration = fetch_one(
-    'SELECT * FROM registrations WHERE activity_id = ? AND user_id = ?',
-    [$activityId, $student['user_id']]
-);
+if ($activity === null) { abort_page(404, 'Activity not found.'); }
+$registration = fetch_one('SELECT * FROM registrations WHERE activity_id = ? AND user_id = ?',
+    [$activityId, current_user_id()]);
+$backTo = 'activities/view.php?id=' . $activityId . '#my-requirements';
 if ($registration === null || in_array($registration['status'], ['withdrawn', 'rejected'], true)) {
     flash('error', 'You need an active registration for this activity before submitting documents.');
     redirect('activities/view.php?id=' . $activityId);
 }
+if (!is_post()) { redirect($backTo); }
 
-$registrationId = (int) $registration['registration_id'];
-
-// Documents are only accepted while the activity is still running. A closed,
-// completed, or cancelled activity is settled — accepting files for it would
-// create submissions nobody will ever review.
-$acceptsSubmissions = in_array($activity['status'], ['upcoming', 'ongoing'], true);
-$closedReason       = match ($activity['status']) {
-    'cancelled' => 'This activity has been cancelled, so documents are no longer accepted.',
-    'completed' => 'This activity has finished, so documents are no longer accepted.',
-    'closed'    => 'This activity is closed, so documents are no longer accepted.',
-    'draft'     => 'This activity is not yet open.',
-    default     => '',
-};
-
-// =====================================================================
-// Upload / acknowledge
-// =====================================================================
-if (is_post()) {
-    csrf_verify();
-
-    // Enforced server-side, not merely by hiding the form below.
-    if (!$acceptsSubmissions) {
-        flash('error', $closedReason);
-        redirect('requirements/submit.php?activity_id=' . $activityId);
+$stored = null;
+$oldPath = null;
+$errorMessage = null;
+try {
+    db()->beginTransaction();
+    $activity = fetch_one('SELECT * FROM activities WHERE activity_id = ? FOR UPDATE', [$activityId]);
+    $registration = fetch_one('SELECT * FROM registrations WHERE activity_id = ? AND user_id = ? FOR UPDATE',
+        [$activityId, current_user_id()]);
+    if ($activity === null || !in_array($activity['status'], ['upcoming', 'ongoing'], true)
+        || $registration === null || !in_array($registration['status'], ['pending', 'approved'], true)) {
+        $errorMessage = 'This activity or registration no longer accepts documents.';
     }
-
-    $requirementId = (int) post('requirement_id');
-
-    $requirement = fetch_one(
-        'SELECT * FROM activity_requirements WHERE requirement_id = ? AND activity_id = ?',
-        [$requirementId, $activityId]
-    );
-    if ($requirement === null) {
-        flash('error', 'That requirement does not belong to this activity.');
-        redirect('requirements/submit.php?activity_id=' . $activityId);
+    $item = null;
+    foreach (student_requirement_items($activityId, (int) ($registration['registration_id'] ?? 0), true) as $candidate) {
+        if ((int) $candidate['requirement_id'] === (int) post('requirement_id')) { $item = $candidate; break; }
     }
-
-    $existing = fetch_one(
-        'SELECT * FROM requirement_submissions WHERE requirement_id = ? AND registration_id = ?',
-        [$requirementId, $registrationId]
-    );
-
-    // A verified submission is settled; re-uploading would quietly undo the
-    // office's decision.
-    if ($existing !== null && $existing['status'] === 'verified') {
-        flash('error', 'That requirement has already been verified and cannot be replaced.');
-        redirect('requirements/submit.php?activity_id=' . $activityId);
-    }
-
+    if ($item === null) { $errorMessage = 'That requirement does not belong to this activity.'; }
     $note = post('note');
-
-    if ((int) $requirement['needs_file'] === 1) {
+    if ($errorMessage === null) {
+        $errorMessage = student_requirement_error($item, $_FILES['document'] ?? null, post('acknowledged') === '1', $note);
+    }
+    if ($errorMessage === null && (int) $item['needs_file'] === 1) {
         $stored = store_upload($_FILES['document'] ?? [], 'requirements');
-
-        if (!$stored['ok']) {
-            flash('error', $stored['error']);
-            redirect('requirements/submit.php?activity_id=' . $activityId);
-        }
-
-        if ($existing !== null) {
-            delete_upload($existing['file_path']);          // replace, don't accumulate
-            query(
-                "UPDATE requirement_submissions
-                    SET file_path = ?, original_name = ?, mime_type = ?, file_size = ?, note = ?,
-                        status = 'pending', verified_by = NULL, verified_at = NULL,
-                        reject_reason = NULL, submitted_at = NOW()
-                  WHERE submission_id = ?",
-                [
-                    $stored['path'], $stored['original'], $stored['mime'], $stored['size'],
-                    $note !== '' ? $note : null, $existing['submission_id'],
-                ]
-            );
-            $submissionId = (int) $existing['submission_id'];
-        } else {
-            query(
-                'INSERT INTO requirement_submissions
-                     (requirement_id, registration_id, file_path, original_name, mime_type, file_size, note)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [
-                    $requirementId, $registrationId, $stored['path'], $stored['original'],
-                    $stored['mime'], $stored['size'], $note !== '' ? $note : null,
-                ]
-            );
-            $submissionId = (int) db()->lastInsertId();
-        }
+        if (!$stored['ok']) { $errorMessage = $stored['error']; }
+    }
+    if ($errorMessage !== null) {
+        db()->rollBack();
     } else {
-        // Acknowledgement-only requirement — no file involved.
-        if ($existing !== null) {
-            query(
-                "UPDATE requirement_submissions
-                    SET note = ?, status = 'pending', verified_by = NULL, verified_at = NULL,
-                        reject_reason = NULL, submitted_at = NOW()
-                  WHERE submission_id = ?",
-                [$note !== '' ? $note : null, $existing['submission_id']]
-            );
-            $submissionId = (int) $existing['submission_id'];
-        } else {
-            query(
-                'INSERT INTO requirement_submissions (requirement_id, registration_id, note)
-                 VALUES (?, ?, ?)',
-                [$requirementId, $registrationId, $note !== '' ? $note : null]
-            );
-            $submissionId = (int) db()->lastInsertId();
-        }
+        $submissionId = save_student_requirement((int) $registration['registration_id'], $item, $stored, $note);
+        $oldPath = $item['file_path'];
+        db()->commit();
     }
-
-    audit_log('create', 'requirement_submission', $submissionId,
-              'Submitted "' . $requirement['name'] . '" for ' . $activity['title']);
-
-    // The office (or the activity's coordinators) decides on it, so it is
-    // told the document arrived rather than finding it by chance later.
-    notify_many_and_email(
-        activity_reviewer_ids($activityId),
-        'requirement',
-        'Document waiting for review',
-        full_name($student) . ' submitted "' . $requirement['name'] . '" for '
-        . $activity['title'] . '.',
-        url('requirements/verify.php?activity_id=' . $activityId)
-    );
-
-    flash('success', '"' . $requirement['name'] . '" submitted. The office will review it shortly.');
-    redirect('requirements/submit.php?activity_id=' . $activityId);
+} catch (Throwable $error) {
+    if (db()->inTransaction()) { db()->rollBack(); }
+    $errorMessage = 'Your document could not be saved. Please try again.';
+    error_log('[CASMS] Requirement submission failed: ' . $error->getMessage());
 }
-
-// =====================================================================
-// Checklist
-// =====================================================================
-$items = fetch_all(
-    'SELECT ar.*,
-            rs.submission_id, rs.file_path, rs.original_name, rs.file_size,
-            rs.status AS submission_status, rs.reject_reason, rs.submitted_at, rs.note
-       FROM activity_requirements ar
-       LEFT JOIN requirement_submissions rs
-              ON rs.requirement_id = ar.requirement_id AND rs.registration_id = ?
-      WHERE ar.activity_id = ?
-      ORDER BY ar.sort_order, ar.requirement_id',
-    [$registrationId, $activityId]
-);
-
-$progress    = requirement_progress($registrationId);
-$maxUploadMb = (int) (max_upload_bytes() / 1024 / 1024);
-
-// Whose turn each requirement is, counted the same way as My requirements.
-$turns = ['student' => 0, 'office' => 0, 'none' => 0];
-foreach ($items as $countItem) {
-    if (!$countItem['is_mandatory']) {
-        continue;
-    }
-    $owner = requirement_state($countItem['submission_status'], $countItem['deadline_at'], (int) $countItem['needs_file'] === 1)['owner'];
-    $turns[$owner]++;
+if ($errorMessage !== null) {
+    if (isset($stored['path'])) { delete_upload($stored['path']); }
+    flash('error', $errorMessage);
+    redirect($backTo);
 }
-
-$pageTitle = 'Documents: ' . $activity['title'];
-require __DIR__ . '/../../includes/layout/header.php';
-?>
-
-<div class="page-head">
-    <div>
-        <a class="crumb" href="<?= url('requirements/mine.php') ?>">&larr; All my requirements</a>
-        <h1><?= e($activity['title']) ?></h1>
-        <p>
-            Required documents &middot;
-            <a href="<?= url('activities/view.php?id=' . $activityId) ?>">Activity details</a>
-            &middot; Registration: <?= status_badge($registration['status'], 'registration') ?>
-        </p>
-    </div>
-</div>
-
-<?php if ($items === []): ?>
-    <div class="empty">
-        <strong>Nothing to submit</strong>
-        This activity does not require any documents.
-        <a class="btn btn-outline" href="<?= url('activities/view.php?id=' . $activityId) ?>">Back to the activity</a>
-    </div>
-<?php else: ?>
-    <?php if ($progress['complete']): ?>
-        <p class="hint mt-0 mb-4">
-            All required documents have been verified. Nothing further is needed from you.
-        </p>
-    <?php else: ?>
-        <?php // What needs the student also opens in the notification pop-up: includes/attention.php. ?>
-        <p class="hint mt-0 mb-4">
-            <?php if ($turns['student'] > 0): ?>
-                <strong><?= $turns['student'] ?></strong> required document<?= $turns['student'] === 1 ? ' needs' : 's need' ?> you.
-            <?php endif; ?>
-            <?php if ($turns['office'] > 0): ?>
-                <strong><?= $turns['office'] ?></strong> <?= $turns['office'] === 1 ? 'is' : 'are' ?> with the office for review.
-            <?php endif; ?>
-            <strong><?= $turns['none'] ?></strong> of <?= $progress['total'] ?> verified.
-        </p>
-    <?php endif; ?>
-
-    <?php foreach ($items as $item): ?>
-        <?php
-        $submissionStatus = $item['submission_status'];           // null when nothing submitted
-        $isSettled        = $submissionStatus === 'verified';
-        $reqId            = (int) $item['requirement_id'];
-        $state            = requirement_state($submissionStatus, $item['deadline_at'], (int) $item['needs_file'] === 1);
-        ?>
-        <section class="card" id="req-<?= $reqId ?>">
-            <div class="item">
-                <div class="item-main">
-                    <?= status_badge($state['key'], 'submission') ?>
-                    <h2 class="item-title">
-                        <?= e($item['name']) ?>
-                        <?php if (!$item['is_mandatory']): ?>
-                            <span class="badge badge-muted">Optional</span>
-                        <?php endif; ?>
-                    </h2>
-
-                    <?php if ($item['description']): ?>
-                        <p><?= e($item['description']) ?></p>
-                    <?php endif; ?>
-
-                    <p class="meta">
-                        Deadline: <?= $item['deadline_at'] ? e(format_datetime($item['deadline_at'])) : 'None' ?>
-                        <?php if ($submissionStatus !== null): ?>
-                            &middot; Submitted <?= e(format_datetime($item['submitted_at'])) ?>
-                        <?php endif; ?>
-                    </p>
-
-                    <?= requirement_steps_html($state['key']) ?>
-                    <?= requirement_next_html($state) ?>
-
-                    <?php if ($submissionStatus !== null): ?>
-
-                        <?php if ($item['file_path']): ?>
-                            <p class="small mt-2">
-                                <a href="<?= url('requirements/download.php?submission_id=' . (int) $item['submission_id']) ?>">
-                                    <?= e($item['original_name']) ?>
-                                </a>
-                                <span class="hint">(<?= e(format_filesize($item['file_size'] === null ? null : (int) $item['file_size'])) ?>)</span>
-                            </p>
-                        <?php endif; ?>
-
-                        <?php if ($submissionStatus === 'rejected' && $item['reject_reason']): ?>
-                            <div class="alert alert-error">
-                                <strong>Reason from the office:</strong> <?= e($item['reject_reason']) ?>
-                            </div>
-                        <?php endif; ?>
-                    <?php endif; ?>
-                </div>
-
-                <div class="item-aside">
-                    <?php if ($isSettled): ?>
-                        <p class="muted small">A verified document is locked and cannot be replaced.</p>
-                    <?php elseif (!$acceptsSubmissions): ?>
-                        <div class="alert alert-warning alert-flush">
-                            <?= e($closedReason) ?>
-                        </div>
-                    <?php else: ?>
-                        <form method="post" enctype="multipart/form-data">
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="activity_id" value="<?= $activityId ?>">
-                            <input type="hidden" name="requirement_id" value="<?= $reqId ?>">
-
-                            <?php if ((int) $item['needs_file'] === 1): ?>
-                                <div class="form-row">
-                                    <label for="document-<?= $reqId ?>">
-                                        <?= $submissionStatus === null ? 'Upload document' : 'Replace document' ?>
-                                    </label>
-                                    <input type="file" id="document-<?= $reqId ?>"
-                                           name="document" required accept=".pdf,.jpg,.jpeg,.png"
-                                           aria-describedby="document-hint-<?= $reqId ?>">
-                                    <div class="hint" id="document-hint-<?= $reqId ?>">PDF, JPG, or PNG, up to <?= $maxUploadMb ?> MB.</div>
-                                </div>
-                            <?php endif; ?>
-
-                            <div class="form-row">
-                                <label for="note-<?= $reqId ?>">Note <span class="optional">(optional)</span></label>
-                                <input type="text" id="note-<?= $reqId ?>" name="note"
-                                       value="<?= e($item['note'] ?? '') ?>" placeholder="Anything the office should know">
-                            </div>
-
-                            <?php // While the office is reviewing, replacing is optional, so the button stays quiet. ?>
-                            <button type="submit" class="btn <?= $state['owner'] === 'student' ? 'btn-primary' : 'btn-outline' ?> btn-block">
-                                <?= $submissionStatus === null
-                                    ? ((int) $item['needs_file'] === 1 ? 'Submit document' : 'Acknowledge')
-                                    : ($state['owner'] === 'student' ? 'Submit again' : 'Replace file') ?>
-                            </button>
-                        </form>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </section>
-    <?php endforeach; ?>
-<?php endif; ?>
-
-<?php require __DIR__ . '/../../includes/layout/footer.php'; ?>
+delete_upload($oldPath);
+audit_log('create', 'requirement_submission', $submissionId, 'Submitted "' . $item['name'] . '" for ' . $activity['title']);
+try {
+    notify_many_and_email(activity_reviewer_ids($activityId), 'requirement', 'Document waiting for review',
+        full_name(current_user()) . ' submitted "' . $item['name'] . '" for ' . $activity['title'] . '.',
+        url('requirements/verify.php?activity_id=' . $activityId));
+} catch (Throwable $error) {
+    error_log('[CASMS] Requirement notification failed: ' . $error->getMessage());
+}
+flash('success', '"' . $item['name'] . '" submitted. The office will review it shortly.');
+redirect($backTo);
