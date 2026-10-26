@@ -134,7 +134,7 @@ require __DIR__ . '/../includes/layout/auth-header.php';
             <input type="email" id="email" name="email" required autofocus
                    value="<?= e(post('email')) ?>" autocomplete="username">
         </div>
-        <button type="submit" class="btn btn-primary btn-block">Send PIN</button>
+        <button type="submit" class="btn btn-primary btn-block" data-loading="Sending PIN…">Send PIN</button>
     </form>
 
     <div class="auth-foot">
