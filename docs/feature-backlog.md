@@ -23,19 +23,19 @@ worked one at a time, in this order.
 | # | Client's words | Status |
 |---|---|---|
 | 9 | Send a notification to the email once the admin approves your account | **Done.** The approval email already existed in code but only went to `mail.log`. Gmail SMTP (`buksucasdevu@gmail.com`, App Password) is now set up locally and on the live site; a live approval email arrived on 26 Oct 2026 |
-| 9a | Follow-up: the password-reset email should give a PIN, not a link | **Merged** (PR #13 and #14). 6-digit PIN, 60 minutes, 5 wrong tries per PIN, IP lockout; live password checklist on the reset screen. Not yet uploaded to the live site, and one wrong-PIN report on the live site is still unexplained |
-| 10 | An indication like "waiting for approval" and "your ID has been approved" | Not started. Open question: is "ID approved" a new step where the office checks the uploaded school ID, or does it mean the account? |
-| 11 | The layout for submitting an ID should be landscape | Not started. Open question: what looked wrong? The school ID form is on My profile (`public/profile.php`, "School ID for borrowing") |
-| 12 | A withdraw button even after the registration is approved | Not started |
-| 13 | A student can still borrow equipment without joining or registering for an activity | Not started. Open question: must borrowing be tied to an approved registration, and for which activity? |
-| 14 | Borrow request and Costume & equipment should have the same layout | Not started |
+| 9a | Follow-up: the password-reset email should give a PIN, not a link | **Live.** PR #13 and #14; checked in a browser on 26 Oct 2026 (PIN text and checklist on the live reset pages). One wrong-PIN report on the live site is still unexplained |
+| 10 | An indication like "waiting for approval" and "your ID has been approved" | **Designed**, not built. The admin approves the school ID uploaded on My profile; email on approval or rejection; no approved ID, no borrowing. See `docs/superpowers/specs/2026-10-26-school-id-approval-design.md` |
+| 11 | The layout for submitting an ID should be landscape | **Designed**, not built. BukSU IDs are portrait, so the upload frames and previews become portrait. See `docs/superpowers/specs/2026-10-26-school-id-approval-design.md` |
+| 12 | A withdraw button even after the registration is approved | **Designed**, not built. A student may withdraw a pending or approved registration until the activity is completed or cancelled; no approval needed. See `docs/superpowers/specs/2026-10-26-withdraw-and-borrowing-changes-design.md` |
+| 13 | A student can still borrow equipment without joining or registering for an activity | **Designed**, not built. A wish, not a bug: students may borrow for something other than an activity (e.g. a PE class). PR #16 already lets them (typed purpose, office reviews). **Open:** the user decided earlier that any coordinator decides those requests; PR #16 sends them to the office. See `docs/superpowers/specs/2026-10-26-withdraw-and-borrowing-changes-design.md` |
+| 14 | Borrow request and Costume & equipment should have the same layout | **Designed**, not built. Pick several items on the catalogue cards, then one popup for dates and purpose. PR #16 added a one-item popup. See `docs/superpowers/specs/2026-10-26-withdraw-and-borrowing-changes-design.md` |
 
 ### Open tasks from items 9 and 9a
 
-- Upload to the live site, at the same paths under `/htdocs`:
-  `includes/config.php`, `includes/layout/auth-header.php`,
-  `public/forgot-password.php`, `public/reset-password.php`,
-  `public/admin/audit.php`.
+- PR #16 (publication approvals, guest programs, join popup, borrowing
+  purpose) was uploaded to the live site by the user on 26 Oct 2026, with
+  `database/update-publication-approvals.sql` run once.
+
 - On the live site, request one reset PIN and use the newest email's PIN, to
   close the wrong-PIN report.
 - Decline or deactivate the live test account "Mailtest Approval"
