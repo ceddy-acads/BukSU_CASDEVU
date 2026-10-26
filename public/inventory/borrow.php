@@ -2,8 +2,9 @@
 /**
  * CASMS — Student equipment request
  *
- * Step 1 picks the activity and dates (GET); step 2 picks items (same page,
- * POST). The coordinator of the activity decides.
+ * Item cards open a single-item form; the full page also supports multiple
+ * items. A typed activity/purpose is required. Registered activity links are
+ * optional; the office reviews requests without a registered activity link.
  */
 
 declare(strict_types=1);
@@ -15,7 +16,31 @@ $studentId  = current_user_id();
 $activities = student_borrow_activities($studentId);
 // Fresh row: current_user() is cached and may predate the ID columns.
 $hasId      = has_id_photos(fetch_one('SELECT id_front_path, id_back_path FROM users WHERE user_id = ?', [$studentId]) ?? []);
-$canRequest = $activities !== [] && $hasId;
+$canRequest = $hasId;
+
+if (is_post()) {
+    csrf_verify();
+    if (!$hasId) {
+        abort_page(403, 'Add both sides of your school ID before borrowing.');
+    }
+}
+
+$itemIn = is_post() ? post('item_id') : get('item_id');
+$selectedItem = null;
+if ($itemIn !== '') {
+    if (!ctype_digit($itemIn)) {
+        abort_page(404, 'That item is not available for student requests.');
+    }
+    $selectedItem = fetch_one(
+        "SELECT item_id, name, item_code, size, unit FROM inventory_items
+          WHERE item_id = ? AND student_requestable = 1
+            AND status NOT IN ('damaged','under_maintenance','unavailable')",
+        [(int) $itemIn]
+    );
+    if ($selectedItem === null) {
+        abort_page(404, 'That item is not available for student requests.');
+    }
+}
 
 $items = $canRequest ? fetch_all(
     "SELECT i.item_id, i.item_code, i.name, i.size, i.unit, ic.name AS category
@@ -36,6 +61,8 @@ $activityIn  = $read('activity_id');
 $neededFrom  = $read('needed_from');
 $neededUntil = $read('needed_until');
 $purpose     = $read('purpose');
+$purposeError = $purpose === '' ? 'Enter the activity or purpose you will use the items for.'
+    : (mb_strlen($purpose) > 500 ? 'Activity / purpose must be 500 characters or fewer.' : '');
 
 $activityId = null;
 foreach ($activities as $a) {
@@ -45,11 +72,9 @@ foreach ($activities as $a) {
 }
 
 if ($canRequest && is_post()) {
-    csrf_verify();
-
     // Tampering, not a typo: the form only offers approved activities and requestable items.
-    if ($activityId === null) {
-        abort_page(403, 'You can borrow equipment only for an activity you are approved in.');
+    if ($activityIn !== '' && $activityId === null) {
+        abort_page(403, 'Choose a registered activity you are approved in, or leave the registered activity unlinked.');
     }
 
     $lines        = [];
@@ -61,7 +86,8 @@ if ($canRequest && is_post()) {
             }
             $quantity = (int) $quantityRaw;
             if ($quantity > 0) {
-                if (!in_array($itemIdRaw, $itemIds, true)) {
+                if (!in_array($itemIdRaw, $itemIds, true)
+                    || ($selectedItem !== null && $itemIdRaw !== (int) $selectedItem['item_id'])) {
                     abort_page(403, 'That item cannot be requested.');
                 }
                 $lines[] = ['item_id' => $itemIdRaw, 'quantity' => $quantity];
@@ -76,8 +102,8 @@ if ($canRequest && is_post()) {
     } elseif ($untilTs <= $fromTs) {
         $errors[] = '"Will return by" must be after "Needed from".';
     }
-    if (mb_strlen($purpose) > 500) {
-        $errors[] = 'Purpose must be 500 characters or fewer.';
+    if ($purposeError !== '') {
+        $errors[] = $purposeError;
     }
     if ($lines === []) {
         $errors[] = 'Select at least one item and a quantity.';
@@ -95,7 +121,7 @@ if ($canRequest && is_post()) {
             query(
                 'INSERT INTO reservations (activity_id, requested_by, purpose, needed_from, needed_until, student_request, proposed_until)
                  VALUES (?, ?, ?, ?, ?, 1, ?)',
-                [$activityId, $studentId, $purpose !== '' ? $purpose : null, $from, $until, $until]
+                [$activityId, $studentId, $purpose, $from, $until, $until]
             );
             $reservationId = (int) db()->lastInsertId();
 
@@ -109,34 +135,41 @@ if ($canRequest && is_post()) {
         } catch (Throwable $e) {
             db()->rollBack();
             error_log('[CASMS] Student borrow request failed: ' . $e->getMessage());
-            flash('error', 'The request could not be saved. Please try again.');
-            redirect('inventory/borrow.php');
+            $errors[] = 'The request could not be saved. Please try again.';
         }
 
-        audit_log('create', 'reservation', $reservationId,
-                  'Student requested ' . count($lines) . ' item(s) for activity ' . $activityId);
+        if ($errors === []) {
+            audit_log('create', 'reservation', $reservationId,
+                      'Student requested ' . count($lines) . ' item(s)'
+                      . ($activityId === null ? ' with a typed activity/purpose, for office review' : ' for activity ' . $activityId));
 
-        notify_many(
-            activity_reviewer_ids($activityId),
-            'reservation',
-            'New equipment request',
-            full_name(current_user()) . ' requested ' . count($lines) . ' item(s).',
-            url('inventory/reservations.php?status=pending')
-        );
+            notify_many(
+                $activityId === null ? office_reviewer_ids() : activity_reviewer_ids($activityId),
+                'reservation',
+                'New equipment request',
+                full_name(current_user()) . ' requested ' . count($lines) . ' item(s).',
+                url('inventory/reservations.php?status=pending')
+            );
 
-        clear_old_input();
-        flash('success', 'Request sent. Your coordinator will review it.');
-        redirect('inventory/reservations.php');
+            clear_old_input();
+            flash('success', $activityId === null ? 'Request sent. The office will review it.' : 'Request sent. Your activity reviewers will review it.');
+            redirect('inventory/reservations.php');
+        }
     }
 }
 
 // Step 2 shows once the dates are usable (GET) or after a failed POST.
 $fromTs   = $neededFrom === '' ? false : strtotime($neededFrom);
 $untilTs  = $neededUntil === '' ? false : strtotime($neededUntil);
-$showStep2 = $canRequest && get('change') === '' && $activityId !== null && $fromTs !== false && $untilTs !== false && $untilTs > $fromTs;
-$datesError = $canRequest && !is_post() && $neededFrom !== '' && $neededUntil !== '' && !$showStep2 && get('change') === ''
-    ? ($activityId === null ? 'Choose one of your activities.' : '"Will return by" must be after "Needed from".')
+$showStep2 = $selectedItem === null && $canRequest && get('change') === '' && $purposeError === '' && ($activityIn === '' || $activityId !== null) && $fromTs !== false && $untilTs !== false && $untilTs > $fromTs;
+$datesError = $selectedItem === null && $canRequest && !is_post() && $neededFrom !== '' && $neededUntil !== '' && get('change') === ''
+    && (($activityIn !== '' && $activityId === null) || $fromTs === false || $untilTs === false || $untilTs <= $fromTs)
+    ? ($activityIn !== '' && $activityId === null ? 'Choose one of your registered activities, or leave it unlinked.' : '"Will return by" must be after "Needed from".')
     : '';
+if ($selectedItem === null && $canRequest && !is_post() && get('change') === ''
+    && $neededFrom !== '' && $neededUntil !== '' && $purposeError !== '') {
+    $errors[] = $purposeError;
+}
 
 $qtyIn = is_post() && is_array($_POST['quantity'] ?? null) ? $_POST['quantity'] : [];
 
@@ -148,10 +181,11 @@ require __DIR__ . '/../../includes/layout/header.php';
     <div>
         <a class="crumb" href="<?= url('inventory/index.php') ?>">&larr; Back to inventory</a>
         <h1>Borrow equipment</h1>
-        <p>Ask your coordinator to release equipment for an activity you're in.</p>
+        <p>Tell us which activity or purpose you need the costumes or equipment for.</p>
     </div>
 </div>
 
+<div id="borrow-form-wrap">
 <?php if ($errors !== []): ?>
     <div class="alert alert-error">
         <?php foreach ($errors as $error): ?><div><?= e($error) ?></div><?php endforeach; ?>
@@ -171,15 +205,7 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 <?php endif; ?>
 
-<?php if ($activities === []): ?>
-    <div class="empty">
-        <strong>No activity to borrow for</strong>
-        You can borrow equipment only for an activity you're approved in.
-        <div class="btn-row">
-            <a class="btn btn-outline" href="<?= url('activities/index.php') ?>">Activities</a>
-        </div>
-    </div>
-<?php elseif (!$hasId): ?>
+<?php if (!$hasId): ?>
     <div class="empty">
         <strong>School ID needed</strong>
         Add both sides of your school ID before borrowing.
@@ -190,14 +216,34 @@ require __DIR__ . '/../../includes/layout/header.php';
 <?php else: ?>
 
 <?php if (!$showStep2): ?>
-<form method="get" novalidate>
-    <section class="card">
+<form method="<?= $selectedItem === null ? 'get' : 'post' ?>" novalidate>
+    <?php if ($selectedItem !== null): ?>
+        <?= csrf_field() ?>
+        <input type="hidden" name="item_id" value="<?= (int) $selectedItem['item_id'] ?>">
+        <h2><?= e($selectedItem['name']) ?></h2>
+        <p class="hint">Code <?= e($selectedItem['item_code']) ?><?php if ($selectedItem['size']): ?> &middot; Size <?= e($selectedItem['size']) ?><?php endif; ?></p>
+        <div class="form-row">
+            <label for="borrow-quantity">Quantity <span class="req">*</span></label>
+            <input id="borrow-quantity" type="number" min="1" required
+                   name="quantity[<?= (int) $selectedItem['item_id'] ?>]"
+                   value="<?= e(is_post() ? (is_scalar($qtyIn[$selectedItem['item_id']] ?? null) ? (string) $qtyIn[$selectedItem['item_id']] : '') : '1') ?>">
+            <p class="hint">Availability for your dates is checked when you send the request.</p>
+        </div>
+    <?php endif; ?>
+    <section<?= $selectedItem === null ? ' class="card"' : '' ?>>
         <div class="card-head"><h2>When and what for</h2></div>
 
         <div class="form-row">
-            <label for="activity_id">Activity <span class="req">*</span></label>
-            <select id="activity_id" name="activity_id" required>
-                <option value="">Choose an activity</option>
+            <label for="purpose">Activity / purpose <span class="req">*</span></label>
+            <textarea id="purpose" name="purpose" maxlength="500" required aria-describedby="purpose-hint"
+                      placeholder="e.g. Intramurals practice or a class presentation"><?= e($purpose) ?></textarea>
+            <p class="hint" id="purpose-hint">Type the activity or purpose for these items, even if it is not listed in the system.</p>
+        </div>
+
+        <div class="form-row">
+            <label for="activity_id">Link a registered activity <span class="optional">(optional)</span></label>
+            <select id="activity_id" name="activity_id">
+                <option value="">Not linked — office review</option>
                 <?php foreach ($activities as $activity): ?>
                     <option value="<?= (int) $activity['activity_id'] ?>"
                         <?= $activityIn === (string) $activity['activity_id'] ? 'selected' : '' ?>>
@@ -205,6 +251,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                     </option>
                 <?php endforeach; ?>
             </select>
+            <p class="hint">Link an activity you are approved in for coordinator review, or leave it unlinked for office review.</p>
         </div>
 
         <div class="form-grid form-grid-2">
@@ -220,20 +267,14 @@ require __DIR__ . '/../../includes/layout/header.php';
             </div>
         </div>
 
-        <div class="form-row">
-            <label for="purpose">Purpose <span class="optional">(optional)</span></label>
-            <textarea id="purpose" name="purpose" maxlength="500"
-                      placeholder="What the items will be used for"><?= e($purpose) ?></textarea>
-        </div>
-
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Choose items</button>
+            <button type="submit" class="btn btn-primary" <?= $selectedItem !== null ? 'data-loading="Saving…"' : '' ?>><?= $selectedItem === null ? 'Choose items' : 'Send request' ?></button>
         </div>
     </section>
 </form>
 <?php else: ?>
 <?php
-$activityTitle = '';
+$activityTitle = 'Not linked — office review';
 foreach ($activities as $a) {
     if ((int) $a['activity_id'] === $activityId) {
         $activityTitle = (string) $a['title'];
@@ -247,13 +288,13 @@ $changeQuery = http_build_query([
 <section class="card">
     <div class="card-head">
         <h2>When and what for</h2>
-        <a class="btn btn-outline btn-sm" href="<?= url('inventory/borrow.php?' . $changeQuery) ?>">Change dates</a>
+        <a class="btn btn-outline btn-sm" href="<?= url('inventory/borrow.php?' . $changeQuery) ?>">Change details</a>
     </div>
     <dl class="detail-list">
-        <dt>Activity</dt><dd><?= e($activityTitle) ?></dd>
+        <dt>Registered activity</dt><dd><?= e($activityTitle) ?></dd>
         <dt>Needed from</dt><dd><?= e(format_datetime($fromTs !== false ? date('Y-m-d H:i:s', $fromTs) : '')) ?></dd>
         <dt>Will return by</dt><dd><?= e(format_datetime($untilTs !== false ? date('Y-m-d H:i:s', $untilTs) : '')) ?></dd>
-        <?php if ($purpose !== ''): ?><dt>Purpose</dt><dd><?= e($purpose) ?></dd><?php endif; ?>
+        <dt>Activity / purpose</dt><dd><?= e($purpose) ?></dd>
     </dl>
 </section>
 <?php endif; ?>
@@ -268,7 +309,7 @@ $changeQuery = http_build_query([
     <?php $fromSql = date('Y-m-d H:i:s', $fromTs); $untilSql = date('Y-m-d H:i:s', $untilTs); ?>
     <form method="post" novalidate>
         <?= csrf_field() ?>
-        <input type="hidden" name="activity_id" value="<?= (int) $activityId ?>">
+        <input type="hidden" name="activity_id" value="<?= $activityId === null ? '' : (int) $activityId ?>">
         <input type="hidden" name="needed_from" value="<?= e($neededFrom) ?>">
         <input type="hidden" name="needed_until" value="<?= e($neededUntil) ?>">
         <input type="hidden" name="purpose" value="<?= e($purpose) ?>">
@@ -276,7 +317,7 @@ $changeQuery = http_build_query([
         <section class="card card-flush">
             <div class="card-head">
                 <h2>Items</h2>
-                <p class="hint">These numbers can change before your coordinator approves.</p>
+                <p class="hint">These numbers can change before your request is approved.</p>
             </div>
 
             <div class="table-wrap">
@@ -327,5 +368,6 @@ $changeQuery = http_build_query([
 
 <?php endif; ?>
 
+</div>
 <?php
 require __DIR__ . '/../../includes/layout/footer.php';

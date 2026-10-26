@@ -133,7 +133,7 @@ function portal_close_html(): string
 
     return '
         </div>
-        <p class="portal-legal">' . portal_escape($office) . ', ' . portal_escape($university) . ' <button type="button" class="portal-slides-toggle" data-portal-slides-toggle aria-pressed="false" hidden>Pause background photos</button></p>
+        <p class="portal-legal">' . portal_escape($office) . ', ' . portal_escape($university) . '</p>
     </main>
 </div>
 ';

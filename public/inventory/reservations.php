@@ -292,7 +292,7 @@ require __DIR__ . '/../../includes/layout/header.php';
         <div class="empty">
             <?php if ($isStudent): ?>
                 <strong>No equipment requests yet</strong>
-                Requests you make to borrow equipment for an activity you are approved for appear here.
+                Your requests to borrow equipment, including the activity or purpose you entered, appear here.
                 <div class="btn-row">
                     <a class="btn btn-primary" href="<?= url('inventory/borrow.php') ?>">Borrow equipment</a>
                 </div>
@@ -327,6 +327,8 @@ require __DIR__ . '/../../includes/layout/header.php';
                         Requested by <?= e(full_name($reservation)) ?>
                         <?php if ($reservation['activity_title']): ?>
                             &middot; for <?= e($reservation['activity_title']) ?>
+                        <?php elseif ((int) $reservation['student_request'] === 1): ?>
+                            &middot; Not linked to a registered activity
                         <?php endif; ?>
                     </p>
                     <?php if ((int) $reservation['student_request'] === 1 && $reservation['proposed_until']): ?>
@@ -340,7 +342,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                         </p>
                     <?php endif; ?>
                     <?php if ($reservation['purpose']): ?>
-                        <p class="item-body"><?= e($reservation['purpose']) ?></p>
+                        <p class="item-body"><?php if ((int) $reservation['student_request'] === 1): ?><strong>Activity / purpose:</strong> <?php endif; ?><?= e($reservation['purpose']) ?></p>
                     <?php endif; ?>
 
                     <?php if ($reservation['review_remarks']): ?>

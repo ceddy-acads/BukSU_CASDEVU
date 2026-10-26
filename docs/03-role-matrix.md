@@ -17,9 +17,10 @@ registration, requirements, inventory, participant lists or reports.
 |--------|:-----:|:-------:|:-----------:|:-----:|:-----:|
 | View published activities | ✔ | ✔ | ✔ | ✔ | ✔ |
 | View draft activities | ✘ | ✘ | ◐ own | ✔ | ✔ |
-| Create activity | ✘ | ✘ | ✘ | ✔ | ✔ |
-| Edit activity | ✘ | ✘ | ◐ assigned only | ✔ | ✔ |
-| Change activity status | ✘ | ✘ | ◐ assigned only | ✔ | ✔ |
+| Create activity | ✘ | ✘ | ◐ submits pending; automatically assigned | ✔ | ✔ |
+| Edit activity details / eligibility | ✘ | ✘ | ◐ own pending or rejected submissions only | ✔ | ✔ |
+| Change published activity status | ✘ | ✘ | ✘ | ✔ | ✔ |
+| Approve / reject a coordinator activity | ✘ | ✘ | ✘ | ✘ | ✔ |
 | Delete activity | ✘ | ✘ | ✘ | ✘ | ✔ |
 | Assign coordinators | ✘ | ✘ | ✘ | ✔ | ✔ |
 
@@ -58,7 +59,7 @@ Read highlight reports also works signed out (public page); a Guest account cann
 | Action | Guest | Student | Coordinator | Staff | Admin |
 |--------|:-----:|:-------:|:-----------:|:-----:|:-----:|
 | View catalog and availability | ✘ | ✔ | ✔ | ✔ | ✔ |
-| Request a reservation | ✘ | ◐ only for an activity where their registration is approved | ✔ | ✔ | ✔ |
+| Request a reservation | ✘ | ✔ with school ID photos and a required typed activity/purpose; linking a registered activity is optional and requires approved registration | ✔ | ✔ | ✔ |
 | Approve / reject reservation | ✘ | ✘ | ◐ only student requests for assigned activities | ✔ | ✔ |
 | Record release (borrowing) | ✘ | ✘ | ✘ | ✔ | ✔ |
 | Record return | ✘ | ✘ | ✘ | ✔ | ✔ |
@@ -73,7 +74,10 @@ Read highlight reports also works signed out (public page); a Guest account cann
 | Action | Guest | Student | Coordinator | Staff | Admin |
 |--------|:-----:|:-------:|:-----------:|:-----:|:-----:|
 | Read announcements | ✔ | ✔ | ✔ | ✔ | ✔ |
-| Publish announcement | ✘ | ✘ | ◐ own activity | ✔ | ✔ |
+| Save announcement drafts / submit for approval | ✘ | ✘ | ◐ own posts for assigned activities | ✔ | ✔ |
+| Publish announcement directly | ✘ | ✘ | ✘ | ✔ own office workflow | ✔ |
+| Approve / reject coordinator announcements | ✘ | ✘ | ✘ | ✘ | ✔ |
+| Edit published announcements | ✘ | ✘ | ✘ | ✔ | ✔ |
 | Delete any announcement | ✘ | ✘ | ✘ | ✘ | ✔ |
 | Receive notifications | ◐ account notices only | ✔ | ✔ | ✔ | ✔ |
 
@@ -92,14 +96,19 @@ Read highlight reports also works signed out (public page); a Guest account cann
 | Action | Guest | Student | Coordinator | Staff | Admin |
 |--------|:-----:|:-------:|:-----------:|:-----:|:-----:|
 | Submit an invitation (public form, no account needed) | ✔ | ✔ | ✔ | ✔ | ✔ |
-| View posted invitations on the calendar and in detail | ✘ | ✘ | ✔ | ✔ | ✔ |
-| View pending or rejected invitations | ✘ | ✘ | ✘ | ✔ | ✔ |
-| Approve / reject / discard / cancel | ✘ | ✘ | ✘ | ✔ | ✔ |
+| View posted invitations on the calendar and in detail | ◐ own account-linked programs only | ✘ | ✔ | ✔ | ✔ |
+| View pending or rejected invitations | ◐ own account-linked programs only | ✘ | ✘ | ✔ | ✔ |
+| Approve / reject / discard / cancel public invitations | ✘ | ✘ | ✘ | ✔ | ✔ |
+| Approve / reject / discard / cancel guest programs | ✘ | ✘ | ✘ | ✘ | ✔ |
+| Track submitted guest programs | ◐ own only | ✘ | ✘ | ✘ | ✔ |
 
-The submission form is public: anyone, signed in or not, may send an
-invitation. Everything after that is an explicit allow-list in
-`includes/invitations.php`. A role that is not named there sees nothing, so a
-new role must be added to it deliberately.
+The submission form remains public. Signed-in guests submit account-linked
+programs using their account email. Guests can track their own submissions
+and see their own approved programs on the calendar; other guests' programs
+remain private. Approval emails track sent, logged, or failed delivery and
+can be retried without repeating the decision. Public invitations retain the
+existing office workflow. Coordinator participants, requirements, attendance,
+and equipment duties remain available after activity publication.
 
 ## Administration
 

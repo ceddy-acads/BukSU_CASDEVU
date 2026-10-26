@@ -396,6 +396,13 @@ function status_badge(string $status, string $domain = ''): string
 function status_meta(string $status, string $domain = ''): array
 {
     static $map = [
+        'approval' => [
+            'draft' => ['muted', 'Draft'],
+            'pending' => ['warning', 'Pending approval'],
+            'approved' => ['success', 'Approved'],
+            'rejected' => ['danger', 'Rejected'],
+            'cancelled' => ['muted', 'Cancelled'],
+        ],
         'activity' => [
             'draft'     => ['muted',   'Draft'],
             'upcoming'  => ['info',    'Upcoming'],
@@ -443,6 +450,8 @@ function status_meta(string $status, string $domain = ''): array
             'suspended' => ['danger',  'Suspended'],
         ],
         'announcement' => [
+            'pending' => ['warning', 'Pending approval'],
+            'rejected' => ['danger', 'Rejected'],
             'draft'     => ['muted',   'Draft'],
             'published' => ['success', 'Published'],
             'archived'  => ['muted',   'Archived'],

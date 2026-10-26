@@ -30,6 +30,9 @@ if ($activity === null) {
     http_response_code(404);
     abort_page(404, 'Activity not found.');
 }
+if (!can_edit_activity_details($activity)) {
+    abort_page(403, 'Only the office may edit eligibility for an approved activity.');
+}
 
 $yearLevels = fetch_all('SELECT year_level_id, label FROM year_levels ORDER BY sort_order');
 $courses    = fetch_all('SELECT course_id, code, name, department FROM courses WHERE is_active = 1 ORDER BY department, name');
@@ -38,6 +41,12 @@ $errors = [];
 
 if (is_post()) {
     csrf_verify();
+    db()->beginTransaction();
+    $locked = fetch_one('SELECT * FROM activities WHERE activity_id = ? FOR UPDATE', [$activityId]);
+    if ($locked === null || !can_edit_activity_details($locked)) {
+        db()->rollBack();
+        abort_page(403, 'This activity was approved while you were editing. Ask the office to change its eligibility.');
+    }
 
     $action = post('action');
 
@@ -106,6 +115,8 @@ if (is_post()) {
 
             audit_log('create', 'eligibility_rule', $ruleId,
                       'Added eligibility rule to ' . $activity['title']);
+            query('UPDATE activities SET review_version = review_version + 1 WHERE activity_id = ?', [$activityId]);
+            db()->commit();
 
             flash('success', 'Eligibility rule added. Only students matching a rule can now register.');
             redirect('activities/eligibility.php?activity_id=' . $activityId);
@@ -130,6 +141,8 @@ if (is_post()) {
         query('DELETE FROM activity_eligibility_rules WHERE rule_id = ?', [$ruleId]);
         audit_log('delete', 'eligibility_rule', $ruleId,
                   'Removed eligibility rule from ' . $activity['title']);
+        query('UPDATE activities SET review_version = review_version + 1 WHERE activity_id = ?', [$activityId]);
+        db()->commit();
 
         $remaining = (int) fetch_value(
             'SELECT COUNT(*) FROM activity_eligibility_rules WHERE activity_id = ?',
@@ -141,6 +154,7 @@ if (is_post()) {
             : 'Rule removed.');
         redirect('activities/eligibility.php?activity_id=' . $activityId);
     }
+    if (db()->inTransaction()) { db()->rollBack(); }
 }
 
 $rules = fetch_all(

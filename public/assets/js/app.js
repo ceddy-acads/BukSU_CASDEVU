@@ -97,7 +97,7 @@
 
     document.addEventListener('submit', function (event) {
         var form = event.target;
-        if (event.defaultPrevented || (form.getAttribute('method') || '').toLowerCase() !== 'post') { return; }
+        if (event.defaultPrevented || form.hasAttribute('data-join-form') || (form.getAttribute('method') || '').toLowerCase() !== 'post') { return; }
 
         var button = event.submitter || form.querySelector('button[type="submit"], button:not([type])');
         if (!button || button.tagName !== 'BUTTON') { return; }
@@ -131,9 +131,9 @@
 
 /* Sign-in photos: <div data-portal-slides> (includes/portal.php) fades to
    the next event photo every few seconds. The other photos load once the
-   page has, so signing in is never slowed. Rotation stops while someone is
-   in the form, while the tab is hidden, when the visitor pauses it, and not
-   at all when the device asks for reduced motion. Without JavaScript the
+   page has, so signing in is never slowed. Rotation continues while someone
+   uses the form, stops while the tab is hidden, and does not run
+   when the device asks for reduced motion. Without JavaScript the
    first photo stays. */
 (function () {
     'use strict';
@@ -143,9 +143,7 @@
     if (slides.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { return; }
 
     var INTERVAL_MS = 7000;
-    var current = 0, timer = null, paused = false, inForm = false;
-    var form = document.querySelector('.portal-main');
-    var toggle = document.querySelector('[data-portal-slides-toggle]');
+    var current = 0, timer = null;
 
     window.addEventListener('load', function () {
         slides.forEach(function (slide) {
@@ -163,32 +161,11 @@
         slides[current].classList.add('is-active');
     }
     function sync() {
-        var run = !paused && !inForm && !document.hidden;
+        var run = !document.hidden;
         if (run && timer === null) { timer = window.setInterval(next, INTERVAL_MS); }
         if (!run && timer !== null) { window.clearInterval(timer); timer = null; }
     }
 
-    if (toggle) {
-        toggle.hidden = false;
-        toggle.addEventListener('click', function () {
-            paused = !paused;
-            toggle.setAttribute('aria-pressed', paused ? 'true' : 'false');
-            toggle.textContent = paused ? 'Play background photos' : 'Pause background photos';
-            sync();
-        });
-    }
-    if (form) {
-        form.addEventListener('focusin', function (event) {
-            if (event.target !== toggle) { inForm = true; sync(); }
-        });
-        form.addEventListener('focusout', function () {
-            window.setTimeout(function () {
-                var active = document.activeElement;
-                inForm = !!active && active !== toggle && form.contains(active);
-                sync();
-            }, 0);
-        });
-    }
     document.addEventListener('visibilitychange', sync);
     sync();
 })();
@@ -955,7 +932,7 @@ window.CASDevU = window.CASDevU || {};
             })
             .then(function (html) {
                 if (!swap(html, url)) { window.location.href = url; return; }
-                var field = body.querySelector('input, select, textarea');
+                var field = body.querySelector('input:not([type="hidden"]), select, textarea');
                 if (field) { field.focus({ preventScroll: true }); }
             })
             .catch(function () { window.location.href = url; });
@@ -976,6 +953,15 @@ window.CASDevU = window.CASDevU || {};
         var form = event.target;
         if (!form || form.tagName !== 'FORM') { return; }
         event.preventDefault();
+        if (form.hasAttribute('data-modal-saving')) { return; }
+        form.setAttribute('data-modal-saving', '');
+        var button = form.querySelector('button[type="submit"]');
+        var label = button ? button.textContent : '';
+        if (button) {
+            button.disabled = true;
+            button.setAttribute('aria-busy', 'true');
+            button.textContent = button.getAttribute('data-loading') || 'Saving…';
+        }
         // getAttribute: a form with <input name="action"> (the item form) shadows form.action.
         var target = form.getAttribute('action');
         fetch(target, {
@@ -987,10 +973,22 @@ window.CASDevU = window.CASDevU || {};
             return response.text();
         }).then(function (html) {
             if (html === null) { return; }
-            if (!swap(html, target)) { form.submit(); return; }
-            var errors = body.querySelector('.alert-error');
+            if (!swap(html, target)) { throw new Error('Missing form'); }
+            var errors = body.querySelector('.alert-error, .alert-warning');
             if (errors) { errors.setAttribute('tabindex', '-1'); errors.focus({ preventScroll: true }); }
-        }).catch(function () { form.submit(); });
+        }).catch(function () {
+            form.removeAttribute('data-modal-saving');
+            if (button) {
+                button.disabled = false;
+                button.removeAttribute('aria-busy');
+                button.textContent = label;
+            }
+            var error = document.createElement('div');
+            error.className = 'alert alert-error';
+            error.setAttribute('role', 'alert');
+            error.textContent = 'We could not confirm the save. Check whether your changes were saved before trying again.';
+            body.prepend(error);
+        });
     });
 })();
 
@@ -1022,5 +1020,107 @@ window.CASDevU = window.CASDevU || {};
         block.classList.add('reveal-armed');
         block.style.transitionDelay = (index % 4) * 70 + 'ms';
         observer.observe(block);
+    });
+})();
+
+/* Activity registration keeps the same form node, including selected files, until success. */
+(function () {
+    'use strict';
+    var dialog = document.getElementById('join-dialog');
+    var trigger = null;
+    if (dialog && dialog.showModal) {
+        document.querySelectorAll('[data-join-open]').forEach(function (link) {
+            link.addEventListener('click', function (event) {
+                event.preventDefault();
+                trigger = link;
+                dialog.showModal();
+            });
+        });
+        dialog.querySelector('[data-join-close]').addEventListener('click', function () { dialog.close(); });
+        dialog.addEventListener('click', function (event) { if (event.target === dialog) { dialog.close(); } });
+        dialog.addEventListener('close', function () { if (trigger) { trigger.focus(); } });
+    }
+    document.querySelectorAll('[data-join-form]').forEach(function (form) {
+        if (!window.fetch || !window.FormData) { return; }
+        var button = form.querySelector('button[type="submit"]');
+        var errors = form.querySelector('[data-join-errors]');
+        var busy = false;
+        function showErrors(messages) {
+            errors.replaceChildren();
+            form.querySelectorAll('[data-join-error]').forEach(function (field) { field.hidden = true; });
+            form.querySelectorAll('[aria-invalid]').forEach(function (field) { field.removeAttribute('aria-invalid'); });
+            Object.keys(messages).forEach(function (key) {
+                var line = document.createElement('p');
+                line.textContent = messages[key];
+                errors.appendChild(line);
+                if (/^\d+$/.test(key)) {
+                    var field = form.querySelector('[data-join-error="' + key + '"]');
+                    if (field) {
+                        field.textContent = messages[key]; field.hidden = false;
+                        var input = document.getElementById('join-document-' + key) || document.getElementById('join-ack-' + key);
+                        if (input) { input.setAttribute('aria-invalid', 'true'); }
+                    }
+                }
+            });
+            errors.hidden = false;
+            errors.focus();
+        }
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            if (busy) { return; }
+            var fileErrors = {};
+            var fileCount = 0;
+            var totalBytes = 0;
+            form.querySelectorAll('input[type="file"]').forEach(function (input) {
+                if (input.files.length) { fileCount++; totalBytes += input.files[0].size; }
+                if (input.files.length && input.files[0].size > Number(input.getAttribute('data-max-bytes'))) {
+                    var id = input.name.match(/\d+/)[0];
+                    fileErrors[id] = 'This file exceeds the per-file upload limit. Choose a smaller file.';
+                }
+            });
+            form.querySelector('[name="file_count"]').value = String(fileCount);
+            if (fileCount > Number(form.getAttribute('data-file-limit'))) {
+                fileErrors.form = 'Too many files in one submission. Remove optional files or contact the office for help.';
+            }
+            var bodyLimit = Number(form.getAttribute('data-body-limit'));
+            if (bodyLimit > 0 && totalBytes >= bodyLimit) {
+                fileErrors.form = 'The combined files exceed the server upload limit. Choose smaller files and try again.';
+            }
+            if (Object.keys(fileErrors).length) { showErrors(fileErrors); return; }
+            busy = true;
+            var label = button.textContent;
+            button.disabled = true;
+            button.textContent = button.getAttribute('data-loading') || 'Submitting…';
+            form.setAttribute('aria-busy', 'true');
+            fetch(form.getAttribute('action'), {
+                method: 'POST', body: new FormData(form), credentials: 'same-origin',
+                headers: { 'Accept': 'application/json' }
+            }).then(function (response) {
+                if (!(response.headers.get('Content-Type') || '').includes('application/json')) {
+                    throw new Error('Your session may have expired. Reload this page, sign in if needed, and try again.');
+                }
+                return response.json();
+            }).then(function (result) {
+                if (result.ok) {
+                    if (dialog && dialog.open) { dialog.close(); }
+                    var destination = new URL(result.redirect, window.location.href);
+                    if (destination.href.split('#')[0] === window.location.href.split('#')[0]) {
+                        // A hash-only navigation keeps the old, unregistered DOM. Refresh it.
+                        window.history.replaceState(null, '', destination.href);
+                        window.location.reload();
+                    } else {
+                        window.location.assign(destination.href);
+                    }
+                    return;
+                }
+                showErrors(result.errors || { form: 'The registration could not be submitted. Please try again.' });
+            }).catch(function (error) {
+                showErrors({ form: error.message === 'Failed to fetch'
+                    ? 'The connection was interrupted. Your selected files are still here. Check My activities before trying again.'
+                    : error.message });
+            }).finally(function () {
+                busy = false; button.disabled = false; button.textContent = label; form.removeAttribute('aria-busy');
+            });
+        });
     });
 })();

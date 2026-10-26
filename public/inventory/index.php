@@ -143,8 +143,8 @@ require __DIR__ . '/../../includes/layout/header.php';
 
 <?php if ($isBrowser): ?>
     <p class="hint mt-0 mb-4">
-        <strong>Need something for an activity?</strong> Ask your activity coordinator or the office.
-        They reserve and release items for you; the counts here update as items go out and come back.
+        <strong>Need to borrow something?</strong> Select an item and tell us the activity or purpose you will use it for.
+        After approval, collect it from the office. Counts update as items go out and come back.
     </p>
 <?php else: ?>
 <div class="stats">
@@ -278,7 +278,15 @@ require __DIR__ . '/../../includes/layout/header.php';
                             &middot; Size <?= e($item['size']) ?>
                         <?php endif; ?>
                     </p>
-                    <h3><?= e($item['name']) ?></h3>
+                    <h3>
+                        <?php if ($isBrowser && (int) $item['student_requestable'] && !$outOfService): ?>
+                            <a class="catalog-request" href="<?= url('inventory/borrow.php?item_id=' . (int) $item['item_id']) ?>"
+                               data-modal data-modal-title="Request to borrow" data-modal-wrap="#borrow-form-wrap"
+                               aria-label="Request to borrow <?= e($item['name']) ?>"><?= e($item['name']) ?></a>
+                        <?php else: ?>
+                            <?= e($item['name']) ?>
+                        <?php endif; ?>
+                    </h3>
 
                     <?php if ($outOfService): ?>
                         <p class="catalog-avail text-danger">
@@ -291,6 +299,9 @@ require __DIR__ . '/../../includes/layout/header.php';
                     <?php endif; ?>
 
                     <?php if ($isBrowser): ?>
+                        <?php if ((int) $item['student_requestable'] && !$outOfService): ?>
+                            <p class="small">Select to request this item</p>
+                        <?php endif; ?>
                         <?php if ($item['description']): ?>
                             <p class="small muted"><?= e(mb_strimwidth((string) $item['description'], 0, 140, '…')) ?></p>
                         <?php endif; ?>

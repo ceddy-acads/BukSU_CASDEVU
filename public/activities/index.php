@@ -22,6 +22,10 @@ $params     = [];
 if (!is_office_staff() && current_role() !== 'coordinator') {
     $conditions[] = "a.status <> 'draft'";
 }
+if (current_role() === 'coordinator') {
+    $conditions[] = "(a.status <> 'draft' OR a.activity_id IN (SELECT activity_id FROM activity_coordinators WHERE user_id = ?))";
+    $params[] = current_user_id();
+}
 
 if ($keyword !== '') {
     $conditions[] = '(a.title LIKE ? OR a.description LIKE ?)';
@@ -59,7 +63,7 @@ $offset = ($page - 1) * PER_PAGE;
 // LIMIT/OFFSET are integers computed above, never raw input.
 $activities = fetch_all(
     "SELECT a.activity_id, a.title, a.slug, a.description, a.start_at, a.end_at, a.status,
-            a.max_participants, a.registration_opens_at, a.registration_closes_at,
+            a.max_participants, a.registration_opens_at, a.registration_closes_at, a.approval_status,
             c.name AS category, c.color_hex,
             v.name AS venue,
             (SELECT COUNT(*) FROM registrations r
@@ -106,7 +110,7 @@ require __DIR__ . '/../../includes/layout/header.php';
         <h1>Activities</h1>
         <p data-live-region="summary"><?= $total ?> activit<?= $total === 1 ? 'y' : 'ies' ?> found. Open one to see details and register.</p>
     </div>
-    <?php if (is_office_staff()): ?>
+    <?php if (has_role('staff', 'admin', 'coordinator')): ?>
         <div class="btn-row">
             <a class="btn btn-gold" href="<?= url('activities/manage.php') ?>"
                data-modal data-modal-title="New activity" data-modal-wrap="#activity-form-wrap">New activity</a>
@@ -212,7 +216,9 @@ require __DIR__ . '/../../includes/layout/header.php';
                             <p class="meta activity-card-reg"><?= e($regLine) ?></p>
                         <?php endif; ?>
                         <div class="activity-card-status">
-                            <?= status_badge($activity['status'], 'activity') ?>
+                            <?= $activity['approval_status'] !== 'approved'
+                                ? status_badge($activity['approval_status'], 'approval')
+                                : status_badge($activity['status'], 'activity') ?>
                             <?php if ($activity['my_status'] !== null): ?>
                                 <span class="my-status">You: <?= status_badge($activity['my_status'], 'registration') ?></span>
                             <?php endif; ?>

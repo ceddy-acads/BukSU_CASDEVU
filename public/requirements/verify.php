@@ -59,7 +59,7 @@ if (is_post()) {
             (int) $submission['student_id'], 'requirement',
             'Requirement verified',
             $submission['requirement_name'] . ' for ' . $activity['title'] . ' has been accepted.',
-            url('requirements/submit.php?activity_id=' . $activityId)
+            url('activities/view.php?id=' . $activityId . '#my-requirements')
         );
         flash('success', 'Verified "' . $submission['requirement_name'] . '" for ' . $studentName . '.');
     } elseif ($action === 'reject') {
@@ -81,7 +81,7 @@ if (is_post()) {
             (int) $submission['student_id'], 'requirement',
             'Requirement needs correction',
             $submission['requirement_name'] . ': ' . $reason,
-            url('requirements/submit.php?activity_id=' . $activityId)
+            url('activities/view.php?id=' . $activityId . '#my-requirements')
         );
         flash('success', 'Rejected and the student has been notified.');
     }

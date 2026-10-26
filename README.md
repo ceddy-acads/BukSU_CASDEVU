@@ -129,7 +129,28 @@ http://localhost/casms/public/login.php
 Every demo account, grouped by role, with a quick-start login per role and
 suggested things to try, is listed in `docs/test-accounts.pdf`.
 
-**5b. Optional — turn on real email (password reset, reminders)**
+**Publication approvals (existing installations)**
+
+Back up the database, then apply `database/update-publication-approvals.sql`
+once before serving this version. Clean installs already include the columns
+in `database/schema.sql`; never reimport that destructive clean-install file
+over an existing database. Existing activities and announcements keep their
+current visibility.
+
+Coordinator activities and announcements now require administrator approval.
+Announcements provide Published, Draft bin, Pending approval, and Rejected
+views. Approved activity details and published announcements are edited by
+the office; coordinators continue managing participants and requirements.
+The coordinator dashboard statistic is labelled **Borrowed Items**.
+
+Guests use Calendar → Add program / My programs. Programs are account-linked,
+visible only to their submitting guest and authorized office/coordinator roles,
+and require administrator approval. Staff can still decide public invitations.
+Approval sends a decision email to the guest's account email. Logged or failed
+mail is shown honestly and can be retried from the program detail screen.
+Verify real SMTP inbox delivery separately; local mail logs are not delivery.
+
+**5b. Optional — turn on real email (password reset, reminders, program decisions)**
 
 See [Email delivery](#email-delivery) below. Without it, messages are written
 to `storage/logs/mail.log` instead of being sent.
@@ -647,12 +668,12 @@ statements that the system fails them:
 5. **A restore cannot be undone.** `admin/backup.php` takes a safety copy of
    the current data first and requires the filename to be typed, but the
    replacement itself is immediate and irreversible
-6. **Students cannot borrow equipment directly.** They browse the catalog and
-   live availability under **Costumes & equipment**; requesting a reservation
-   is restricted to coordinators and office staff, as specified in
-   `docs/03-role-matrix.md`. This is a documented decision, recorded as open
-   assumption A-3 in `docs/01-requirements-spec.md`, pending confirmation with
-   the office
+6. **Student borrowing requires approval.** Under **Costumes & equipment**,
+   students select an eligible item card to open a request popup, or use
+   **Borrow equipment** for multiple items. Both school ID photos are required.
+   Students must type the activity or purpose for the items. Linking a registered
+   activity is optional: unlinked requests go to the office; linked requests go
+   to the activity reviewers. The office records physical release and return.
 7. **Email needs an SMTP account.** Until `includes/config.local.php` has one,
    reset PINs and reminders go to `storage/logs/mail.log`. Links in emails
    point at the host the site was opened with (`localhost` on a single
