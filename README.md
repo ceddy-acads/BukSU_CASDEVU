@@ -176,7 +176,8 @@ needed to rename the office or raise the file ceiling.
 | `MAIL_NOTIFICATIONS_ENABLED` | `true` | Whether reminders are emailed as well as shown in-app |
 | `LOGIN_MAX_ATTEMPTS` | `8` | Failed sign-ins per IP address before a lockout |
 | `LOGIN_LOCKOUT_MINUTES` | `15` | How long that lockout lasts |
-| `PASSWORD_RESET_TTL_MINUTES` | `60` | Lifetime of a reset link |
+| `PASSWORD_RESET_TTL_MINUTES` | `60` | Lifetime of an emailed reset PIN |
+| `PASSWORD_RESET_PIN_ATTEMPTS` | `5` | Wrong tries before a reset PIN stops working (wrong PINs per IP address also count toward `LOGIN_MAX_ATTEMPTS`) |
 | `MAX_UPLOAD_BYTES` | 5 MB | Default largest accepted requirement file or item photo; **Settings** overrides it |
 | `MYSQL_BIN_PATH` | `C:/xampp/mysql/bin` | Folder holding `mysqldump` and `mysql`, used by Backup (Linux: usually `/usr/bin`) |
 
@@ -208,7 +209,7 @@ reminders can still be demonstrated end to end. The SMTP client is built in
 TLS certificate using PHP's `openssl.cafile`.
 
 Links inside emails are built from the address the site was opened with. On a
-single XAMPP machine that is `localhost`, so a reset link only opens on that
+single XAMPP machine that is `localhost`, so a link in a reminder only opens on that
 same computer; deploy under a real hostname for links that work anywhere.
 
 ---
@@ -653,7 +654,7 @@ statements that the system fails them:
    assumption A-3 in `docs/01-requirements-spec.md`, pending confirmation with
    the office
 7. **Email needs an SMTP account.** Until `includes/config.local.php` has one,
-   reset links and reminders go to `storage/logs/mail.log`. Links in emails
+   reset PINs and reminders go to `storage/logs/mail.log`. Links in emails
    point at the host the site was opened with (`localhost` on a single
    machine)
 8. **The expired-form page returns HTTP 500 under Apache.** The code sends
