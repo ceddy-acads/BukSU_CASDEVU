@@ -112,7 +112,7 @@ function audit_action_badge(string $action): string
         'delete', 'reject'        => 'badge-danger',
         'approve'                 => 'badge-success',
         'login'                   => 'badge-muted',
-        'login_failed'            => 'badge-danger',
+        'login_failed', 'reset_pin_failed' => 'badge-danger',
         'logout'                  => 'badge-muted',
         'view'                    => 'badge-muted',
         default                   => 'badge-muted',

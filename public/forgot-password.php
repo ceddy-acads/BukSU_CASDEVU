@@ -2,8 +2,10 @@
 /**
  * CASMS — Request a password reset (FR-1.7)
  *
- * The response never reveals whether an address is registered: a stranger
- * must not be able to use this page to discover who holds an account.
+ * The account holder gets a 6-digit PIN by email (no link) and types it on
+ * reset-password.php. The response never reveals whether an address is
+ * registered: a stranger must not be able to use this page to discover who
+ * holds an account.
  */
 
 declare(strict_types=1);
@@ -31,7 +33,7 @@ if (is_post()) {
             [$email]
         );
 
-        // Only an active account gets a link, but the page says the same
+        // Only an active account gets a PIN, but the page says the same
         // thing either way.
         if ($user !== null && $user['status'] === 'active') {
             // Cap requests per account so this cannot be used to flood an inbox.
@@ -43,24 +45,22 @@ if (is_post()) {
             );
 
             if ($recent < PASSWORD_RESET_MAX_PER_HOUR) {
-                // Any earlier link for this account stops working now.
+                // Any earlier PIN for this account stops working now.
                 query(
                     "UPDATE auth_tokens SET used_at = NOW()
                       WHERE user_id = ? AND type = 'password_reset' AND used_at IS NULL",
                     [$user['user_id']]
                 );
 
-                // The raw token goes in the email; only its hash is stored, so
-                // a leaked database row cannot be replayed as a reset link.
-                $rawToken = bin2hex(random_bytes(32));
+                // The PIN goes in the email; only a salted hash is stored, so a
+                // leaked database row does not give the PIN away.
+                $pin = str_pad((string) random_int(0, 999999), 6, "0", STR_PAD_LEFT);
 
                 query(
                     "INSERT INTO auth_tokens (user_id, type, token_hash, expires_at)
                      VALUES (?, 'password_reset', ?, DATE_ADD(NOW(), INTERVAL ? MINUTE))",
-                    [$user['user_id'], hash('sha256', $rawToken), PASSWORD_RESET_TTL_MINUTES]
+                    [$user['user_id'], password_hash($pin, PASSWORD_DEFAULT), PASSWORD_RESET_TTL_MINUTES]
                 );
-
-                $link = absolute_url(url('reset-password.php?token=' . $rawToken));
 
                 send_mail(
                     (string) $user['email'],
@@ -68,10 +68,11 @@ if (is_post()) {
                     'Hi ' . $user['first_name'] . ',' . PHP_EOL . PHP_EOL
                     . 'Someone asked to reset the password for your ' . APP_NAME . ' account at the '
                     . office_name() . ', ' . university_name() . '.' . PHP_EOL . PHP_EOL
-                    . 'Open this link to choose a new password:' . PHP_EOL . PHP_EOL
-                    . '  ' . $link . PHP_EOL . PHP_EOL
-                    . 'The link works once and expires in '
-                    . PASSWORD_RESET_TTL_MINUTES . ' minutes.' . PHP_EOL . PHP_EOL
+                    . 'Your PIN to reset your password:' . PHP_EOL . PHP_EOL
+                    . '  ' . $pin . PHP_EOL . PHP_EOL
+                    . 'Type it on the Reset password page, where you asked for it. It works once '
+                    . 'and expires in ' . PASSWORD_RESET_TTL_MINUTES . ' minutes. Do not share it: '
+                    . 'the office will never ask for it.' . PHP_EOL . PHP_EOL
                     . 'If this was not you, ignore this message. Your password '
                     . 'stays as it is.' . PHP_EOL . PHP_EOL
                     . office_name() . PHP_EOL . university_name()
@@ -90,6 +91,13 @@ if (is_post()) {
         }
 
         $sent = true;
+
+        // Straight on to the PIN form, with the address filled in. Set for any
+        // address, so the next page gives nothing away either.
+        if (email_delivers()) {
+            $_SESSION['reset_email'] = $email;
+            redirect('reset-password.php');
+        }
     }
 }
 $pageTitle = 'Reset your password';
@@ -105,7 +113,7 @@ require __DIR__ . '/../includes/layout/auth-header.php';
 <?php if ($sent && !email_delivers()): ?>
     <?php // Email is not set up: say so, rather than promise a message that never comes. ?>
     <div class="alert alert-info" role="status">
-        Email is not switched on for this system yet, so a reset link cannot
+        Email is not switched on for this system yet, so a reset PIN cannot
         reach your inbox.
     </div>
     <p class="muted">
@@ -113,21 +121,10 @@ require __DIR__ . '/../includes/layout/auth-header.php';
         They will give you a temporary one to sign in with, which you can then
         change under My profile.
     </p>
-<?php elseif ($sent): ?>
-    <div class="alert alert-success" role="status">
-        If that email address belongs to an active account, a reset link
-        is on its way. It works once and expires in
-        <?= PASSWORD_RESET_TTL_MINUTES ?> minutes.
-    </div>
-    <p class="muted">
-        Nothing arrived? Check your spam folder and that you typed the address
-        you registered with, or contact the office<?= e(office_contact_hint()) ?>.
-    </p>
-    <a class="btn btn-primary btn-block" href="<?= url('login.php') ?>">Back to sign in</a>
 <?php else: ?>
     <p class="muted">
         Enter the email address you registered with and we will send you
-        a link to choose a new password.
+        a 6-digit PIN to choose a new password.
     </p>
 
     <form method="post" novalidate>
@@ -137,10 +134,11 @@ require __DIR__ . '/../includes/layout/auth-header.php';
             <input type="email" id="email" name="email" required autofocus
                    value="<?= e(post('email')) ?>" autocomplete="username">
         </div>
-        <button type="submit" class="btn btn-primary btn-block">Send reset link</button>
+        <button type="submit" class="btn btn-primary btn-block">Send PIN</button>
     </form>
 
     <div class="auth-foot">
+        <p>Already have a PIN? <a href="<?= url('reset-password.php') ?>">Enter it</a></p>
         <p>Remembered it? <a href="<?= url('login.php') ?>">Sign in</a></p>
     </div>
 <?php endif; ?>

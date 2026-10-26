@@ -143,6 +143,7 @@ define('MAIL_NOTIFICATIONS_ENABLED', true);
 // ------------------------------------------------------------ Password reset
 define('PASSWORD_RESET_TTL_MINUTES', 60);
 define('PASSWORD_RESET_MAX_PER_HOUR', 5);      // per account, to stop mail flooding
+define('PASSWORD_RESET_PIN_ATTEMPTS', 5);      // wrong PINs before the PIN stops working
 
 // ------------------------------------------------------------------ Backups
 // mysqldump / mysql live beside each other in the XAMPP install.
