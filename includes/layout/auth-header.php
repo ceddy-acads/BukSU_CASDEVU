@@ -18,6 +18,7 @@ declare(strict_types=1);
     <meta name="theme-color" content="#10284d">
     <title><?= e($pageTitle) ?> · <?= e(APP_NAME) ?></title>
     <link rel="stylesheet" href="<?= asset('css/style.css') ?>">
+    <script src="<?= asset('js/app.js') ?>" defer></script>
 </head>
 <body>
 <main class="auth-wrap">
