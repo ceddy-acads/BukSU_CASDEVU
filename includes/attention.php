@@ -164,7 +164,7 @@ function attention_items(): array
         // Same set as the documents page (requirements/mine.php): completed
         // activities no longer ask for anything.
         $missing = (int) fetch_value(
-            "SELECT COUNT(*) FROM v_missing_requirements m
+            "SELECT COUNT(*) FROM (" . missing_requirements_sql() . ") m
                JOIN activities a ON a.activity_id = m.activity_id
               WHERE m.user_id = ? AND a.status <> 'completed'",
             [$userId]

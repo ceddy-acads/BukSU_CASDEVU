@@ -636,6 +636,8 @@ GROUP BY a.activity_id, a.title, ac.name, a.status, a.start_at;
 -- still in play count: a rejected or withdrawn registration, or a cancelled
 -- activity, can no longer take an upload, so it must not show as missing.
 -- Existing installs get this definition from database/update-views.sql.
+-- The app itself reads missing_requirements_sql() in includes/participation.php
+-- (free hosts refuse CREATE VIEW); keep the two in step.
 CREATE OR REPLACE VIEW v_missing_requirements AS
 SELECT
     r.registration_id,
