@@ -33,6 +33,9 @@ function db(): PDO
             // Use real prepared statements, not PDO's client-side emulation.
             PDO::ATTR_EMULATE_PREPARES   => false,
         ]);
+        // NOW() and stored times follow PHP's clock (Asia/Manila), not the database
+        // server's: a shared host may run hours behind, which shifts deadlines.
+        $pdo->exec("SET time_zone = '" . date('P') . "'");
     } catch (PDOException $e) {
         // Never leak credentials or SQL to the browser (NFR + security checklist).
         error_log('[CASMS] Database connection failed: ' . $e->getMessage());
