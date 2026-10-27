@@ -24,6 +24,10 @@ $errors = [];
 
 if (is_post()) {
     csrf_verify();
+    query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+    db()->beginTransaction();
+    $GLOBALS['live_transaction'] = true;
+    fetch_one('SELECT activity_id FROM activities WHERE activity_id = ? FOR UPDATE', [$activityId]);
     $action = post('action');
 
     // ---------------------------------------------------------- Add / edit
@@ -142,6 +146,7 @@ if (is_post()) {
     }
 }
 
+live_end_transaction(true);
 $requirements = fetch_all(
     "SELECT ar.*,
             (SELECT COUNT(*) FROM requirement_submissions rs

@@ -28,9 +28,10 @@ if (is_post()) {
 
     $action       = post('action');
     $submissionId = (int) post('submission_id');
+    live_lock_revision('requirement_submissions', $submissionId, $activityId);
 
     $submission = fetch_one(
-        'SELECT rs.*, ar.name AS requirement_name, r.user_id AS student_id,
+        'SELECT rs.*, ar.name AS requirement_name, ar.needs_file, r.user_id AS student_id,
                 u.first_name, u.last_name
            FROM requirement_submissions rs
            JOIN activity_requirements ar ON ar.requirement_id = rs.requirement_id
@@ -45,6 +46,16 @@ if (is_post()) {
     }
 
     $studentName = full_name($submission);
+    if ($action === 'verify' && (int) $submission['needs_file'] === 1 && trim((string) $submission['file_path']) === '') {
+        flash('error', 'A document must be uploaded before this requirement can be verified.');
+        redirect('requirements/verify.php?activity_id=' . $activityId);
+    }
+
+    if (($action === 'verify' && $submission['status'] === 'verified')
+        || ($action === 'reject' && $submission['status'] === 'rejected')) {
+        flash('info', 'This submission already has that decision.');
+        redirect('requirements/verify.php?activity_id=' . $activityId);
+    }
 
     if ($action === 'verify') {
         query(
@@ -205,7 +216,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 <?php else: ?>
     <section class="card card-flush">
         <div class="table-wrap">
-            <table class="data" data-sortable>
+            <table class="data table-stack requirement-review-table" data-sortable>
                 <thead>
                     <tr>
                         <th data-sort="text">Student</th><th data-sort="text">Requirement</th><th>Document</th>
@@ -215,8 +226,8 @@ require __DIR__ . '/../../includes/layout/header.php';
                 <tbody>
                 <?php foreach ($submissions as $submission): ?>
                     <?php $rowName = full_name($submission, true); ?>
-                    <tr>
-                        <td>
+                    <tr data-refresh-key="requirement_submissions:<?= (int) $submission['submission_id'] ?>">
+                        <td data-label="Student">
                             <strong><?= e($rowName) ?></strong>
                             <div class="hint">
                                 <?= $submission['student_number'] ? e($submission['student_number']) : 'No student number' ?>
@@ -224,13 +235,13 @@ require __DIR__ . '/../../includes/layout/header.php';
                                 <?= $submission['year_level_label'] ? ' ' . e($submission['year_level_label']) : '' ?>
                             </div>
                         </td>
-                        <td>
+                        <td data-label="Requirement">
                             <?= e($submission['requirement_name']) ?>
                             <?php if ($submission['note']): ?>
                                 <div class="hint">Note: <?= e($submission['note']) ?></div>
                             <?php endif; ?>
                         </td>
-                        <td>
+                        <td data-label="Document">
                             <?php if ($submission['file_path']): ?>
                                 <a href="<?= url('requirements/download.php?submission_id=' . (int) $submission['submission_id']) ?>"
                                    target="_blank" rel="noopener">
@@ -241,7 +252,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                                 <span class="muted">Acknowledgement only</span>
                             <?php endif; ?>
                         </td>
-                        <td data-sort-value="<?= (int) strtotime((string) $submission['submitted_at']) ?>">
+                        <td data-label="Submitted" data-sort-value="<?= (int) strtotime((string) $submission['submitted_at']) ?>">
                             <span class="nowrap"><?= e(format_datetime($submission['submitted_at'])) ?></span>
                             <?php if ($submission['deadline_at']
                                       && strtotime((string) $submission['submitted_at'])
@@ -249,13 +260,13 @@ require __DIR__ . '/../../includes/layout/header.php';
                                 <div><span class="badge badge-danger">Late</span></div>
                             <?php endif; ?>
                         </td>
-                        <td>
+                        <td data-label="Status">
                             <?= status_badge($submission['status'], 'submission') ?>
                             <?php if ($submission['reject_reason']): ?>
                                 <div class="hint"><?= e($submission['reject_reason']) ?></div>
                             <?php endif; ?>
                         </td>
-                        <td class="actions">
+                        <td class="actions" data-label="Actions">
                             <div class="btn-row">
                                 <?php if ($submission['status'] !== 'verified'): ?>
                                     <form method="post" class="inline-form">
@@ -264,14 +275,14 @@ require __DIR__ . '/../../includes/layout/header.php';
                                         <input type="hidden" name="activity_id" value="<?= $activityId ?>">
                                         <input type="hidden" name="submission_id" value="<?= (int) $submission['submission_id'] ?>">
                                         <button type="submit" class="btn btn-primary btn-sm"
-                                                aria-label="Verify <?= e($submission['requirement_name']) ?> for <?= e($rowName) ?>">Verify</button>
+                                                data-loading="Saving…" aria-label="Verify <?= e($submission['requirement_name']) ?> for <?= e($rowName) ?>">Verify</button>
                                     </form>
                                 <?php endif; ?>
 
                                 <?php if ($submission['status'] !== 'rejected'): ?>
                                     <button type="button" class="btn btn-outline btn-sm"
                                             aria-label="Reject <?= e($submission['requirement_name']) ?> for <?= e($rowName) ?>"
-                                            onclick="document.getElementById('rej-<?= (int) $submission['submission_id'] ?>').hidden = false; this.hidden = true;">
+                                            onclick="var f = document.getElementById('rej-<?= (int) $submission['submission_id'] ?>'); f.hidden = false; this.hidden = true; f.elements.reject_reason.focus();">
                                         Reject
                                     </button>
                                 <?php endif; ?>
@@ -286,7 +297,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                                         <input type="text" name="reject_reason" required class="input-auto input-sm"
                                                aria-label="What needs correcting for <?= e($rowName) ?>"
                                                placeholder="What needs correcting?">
-                                        <button type="submit" class="btn btn-danger btn-sm">
+                                        <button type="submit" class="btn btn-danger btn-sm" data-loading="Saving…">
                                             Confirm rejection
                                         </button>
                                     </div>

@@ -73,11 +73,21 @@ function office_may_view_id(int $studentId): bool
     return student_has_uncollected_approved($studentId) || student_has_open_loan($studentId);
 }
 
+function student_id_approved(int $studentId, bool $lock = false): bool
+{
+    $row = fetch_one('SELECT id_front_path, id_back_path, id_review_status FROM users WHERE user_id = ?' . ($lock ? ' FOR UPDATE' : ''), [$studentId]);
+    return $row !== null && has_id_photos($row) && $row['id_review_status'] === 'approved';
+}
+
 function can_view_id_photos(int $studentId): bool
 {
     if (current_user_id() === $studentId) {
         return true;
     }
+    if (has_role('admin')) {
+        return true; // Administrators review uploaded IDs before others may see them.
+    }
+    if (!student_id_approved($studentId)) { return false; }
     if (is_office_staff()) {
         return office_may_view_id($studentId);
     }
@@ -162,7 +172,7 @@ function delete_id_photos(int $studentId): void
     }
     delete_upload($row['id_front_path']);
     delete_upload($row['id_back_path']);
-    query('UPDATE users SET id_front_path = NULL, id_back_path = NULL WHERE user_id = ?', [$studentId]);
+    query("UPDATE users SET id_front_path = NULL, id_back_path = NULL, id_review_status = 'missing', id_reviewed_by = NULL, id_reviewed_at = NULL, id_reject_reason = NULL WHERE user_id = ?", [$studentId]);
 }
 
 /** Save a new ID photo path for one side, then delete the file it replaces. */
@@ -172,8 +182,18 @@ function replace_id_photo(int $studentId, string $side, string $newRelativePath)
         throw new InvalidArgumentException('Unknown ID side.');
     }
     $column = 'id_' . $side . '_path';   // whitelisted above
-    $old    = fetch_value("SELECT $column FROM users WHERE user_id = ?", [$studentId]);
-    query("UPDATE users SET $column = ? WHERE user_id = ?", [$newRelativePath, $studentId]);
+    db()->beginTransaction();
+    try {
+        $row = fetch_one('SELECT * FROM users WHERE user_id = ? FOR UPDATE', [$studentId]);
+        $old = $row[$column] ?? null;
+        query("UPDATE users SET $column = ?, id_review_status = 'missing', id_reviewed_by = NULL, id_reviewed_at = NULL, id_reject_reason = NULL WHERE user_id = ?", [$newRelativePath, $studentId]);
+        query("UPDATE users SET id_review_status = 'pending' WHERE user_id = ? AND NULLIF(TRIM(id_front_path), '') IS NOT NULL AND NULLIF(TRIM(id_back_path), '') IS NOT NULL", [$studentId]);
+        db()->commit();
+    } catch (Throwable $error) {
+        if (db()->inTransaction()) { db()->rollBack(); }
+        delete_upload($newRelativePath);
+        throw $error;
+    }
     if (is_string($old) && $old !== $newRelativePath) {
         delete_upload($old);
     }

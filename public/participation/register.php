@@ -52,6 +52,8 @@ $backTo = 'activities/view.php?id=' . $activityId;
 // Withdraw
 // =====================================================================
 if ($action === 'withdraw') {
+    $ownId = (int) fetch_value('SELECT registration_id FROM registrations WHERE activity_id = ? AND user_id = ?', [$activityId, $student['user_id']]);
+    if ($ownId > 0) { live_lock_revision('registrations', $ownId, $activityId); }
     $registration = fetch_one(
         'SELECT * FROM registrations WHERE activity_id = ? AND user_id = ?',
         [$activityId, $student['user_id']]

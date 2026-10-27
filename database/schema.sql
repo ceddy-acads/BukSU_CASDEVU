@@ -67,6 +67,10 @@ CREATE TABLE users (
     contact_number  VARCHAR(30)  NULL,
     photo_path      VARCHAR(255) NULL,
     id_front_path   VARCHAR(255) NULL,              -- school ID photo, front (borrowing)
+    id_review_status ENUM('missing','pending','approved','rejected') NOT NULL DEFAULT 'missing',
+    id_reviewed_by INT UNSIGNED NULL,
+    id_reviewed_at DATETIME NULL,
+    id_reject_reason VARCHAR(1000) NULL,
     id_back_path    VARCHAR(255) NULL,              -- school ID photo, back
 
     -- Academic placement (students only; NULL for office personnel)

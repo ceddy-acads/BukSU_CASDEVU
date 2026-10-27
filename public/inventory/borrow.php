@@ -15,13 +15,12 @@ require_role(['student']);
 $studentId  = current_user_id();
 $activities = student_borrow_activities($studentId);
 // Fresh row: current_user() is cached and may predate the ID columns.
-$hasId      = has_id_photos(fetch_one('SELECT id_front_path, id_back_path FROM users WHERE user_id = ?', [$studentId]) ?? []);
-$canRequest = $hasId;
+$canRequest = student_id_approved((int) $studentId);
 
 if (is_post()) {
     csrf_verify();
-    if (!$hasId) {
-        abort_page(403, 'Add both sides of your school ID before borrowing.');
+    if (!$canRequest) {
+        abort_page(403, 'Upload both sides of your school ID and wait for administrator approval before borrowing.');
     }
 }
 
@@ -118,6 +117,9 @@ if ($canRequest && is_post()) {
     if ($errors === [] && $conflicts === []) {
         db()->beginTransaction();
         try {
+            if (!student_id_approved((int) $studentId, true)) {
+                throw new RuntimeException('ID approval changed before request creation.');
+            }
             query(
                 'INSERT INTO reservations (activity_id, requested_by, purpose, needed_from, needed_until, student_request, proposed_until)
                  VALUES (?, ?, ?, ?, ?, 1, ?)',
@@ -205,12 +207,12 @@ require __DIR__ . '/../../includes/layout/header.php';
     </div>
 <?php endif; ?>
 
-<?php if (!$hasId): ?>
+<?php if (!$canRequest): ?>
     <div class="empty">
         <strong>School ID needed</strong>
-        Add both sides of your school ID before borrowing.
+        Upload both sides of your school ID and wait for administrator approval before borrowing.
         <div class="btn-row">
-            <a class="btn btn-outline" href="<?= url('profile.php#school-id') ?>">Add school ID</a>
+            <a class="btn btn-outline" href="<?= url('profile.php#school-id') ?>">View school ID status</a>
         </div>
     </div>
 <?php else: ?>

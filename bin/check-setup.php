@@ -48,6 +48,9 @@ extension_loaded('fileinfo')
     ? ok('fileinfo extension loaded (needed for uploads)')
     : fail('The fileinfo extension is not enabled.',
            'In php.ini remove the ";" before "extension=fileinfo", then restart Apache.');
+extension_loaded('dom')
+    ? ok('DOM extension loaded (live status updates)')
+    : fail('The DOM extension is not enabled.', 'Use the PHP DOM/XML extension included with XAMPP, then restart Apache.');
 
 // --------------------------------------------------------- MySQL server
 echo "\nDatabase (" . DB_USER . '@' . DB_HOST . ':' . DB_PORT . ', database "' . DB_NAME . "\")\n";

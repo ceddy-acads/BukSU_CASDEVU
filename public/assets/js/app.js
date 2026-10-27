@@ -97,7 +97,7 @@
 
     document.addEventListener('submit', function (event) {
         var form = event.target;
-        if (event.defaultPrevented || form.hasAttribute('data-join-form') || (form.getAttribute('method') || '').toLowerCase() !== 'post') { return; }
+        if (event.defaultPrevented || form.hasAttribute('data-join-form') || form.hasAttribute('data-live-action') || (form.getAttribute('method') || '').toLowerCase() !== 'post') { return; }
 
         var button = event.submitter || form.querySelector('button[type="submit"], button:not([type])');
         if (!button || button.tagName !== 'BUTTON') { return; }
@@ -508,8 +508,9 @@ window.CASDevU = window.CASDevU || {};
    otherwise the admin confirms with both roles named. */
 (function () {
     'use strict';
-    document.querySelectorAll('form[data-role-change]').forEach(function (form) {
-        form.addEventListener('submit', function (event) {
+    document.addEventListener('submit', function (event) {
+        var form = event.target;
+        if (!form.matches('form[data-role-change]')) { return; }
             var select = form.querySelector('select[name="role_id"]');
             var chosen = select.options[select.selectedIndex].text.trim();
             var current = form.getAttribute('data-current-role');
@@ -517,7 +518,6 @@ window.CASDevU = window.CASDevU || {};
                 !window.confirm('Change ' + form.getAttribute('data-person') + ' from ' + current + ' to ' + chosen + '?')) {
                 event.preventDefault();
             }
-        });
     });
 })();
 
@@ -532,10 +532,13 @@ window.CASDevU = window.CASDevU || {};
     var menu = document.querySelector('details[data-notifications]');
     if (!menu || !window.fetch) { return; }
     var form = menu.querySelector('form[data-notifications-read]');
+    var marking = false;
     var trigger = menu.querySelector('summary');
 
     function markRead() {
-        if (!form) { return; }
+        form = menu.querySelector('form[data-notifications-read]');
+        if (!form || marking) { return; }
+        marking = true;
         var sending = form;
         form = null;                      // once per page
         fetch(sending.action, {
@@ -547,7 +550,7 @@ window.CASDevU = window.CASDevU || {};
             if (count) { count.remove(); }
             trigger.setAttribute('aria-label', 'Notifications');
             sending.remove();
-        }).catch(function () { form = sending; });
+        }).catch(function () { form = sending; }).finally(function () { marking = false; });
     }
 
     menu.addEventListener('toggle', function () {
@@ -1026,22 +1029,27 @@ window.CASDevU = window.CASDevU || {};
 /* Activity registration keeps the same form node, including selected files, until success. */
 (function () {
     'use strict';
+    function initJoin() {
     var dialog = document.getElementById('join-dialog');
-    var trigger = null;
     if (dialog && dialog.showModal) {
-        document.querySelectorAll('[data-join-open]').forEach(function (link) {
+        document.querySelectorAll('[data-join-open]:not([data-join-ready])').forEach(function (link) {
+            link.setAttribute('data-join-ready', '');
             link.addEventListener('click', function (event) {
                 event.preventDefault();
-                trigger = link;
+                dialog._joinTrigger = link;
                 dialog.showModal();
             });
         });
+        if (!dialog.hasAttribute('data-join-ready')) {
+        dialog.setAttribute('data-join-ready', '');
         dialog.querySelector('[data-join-close]').addEventListener('click', function () { dialog.close(); });
         dialog.addEventListener('click', function (event) { if (event.target === dialog) { dialog.close(); } });
-        dialog.addEventListener('close', function () { if (trigger) { trigger.focus(); } });
+        dialog.addEventListener('close', function () { if (dialog._joinTrigger) { dialog._joinTrigger.focus(); } });
+        }
     }
-    document.querySelectorAll('[data-join-form]').forEach(function (form) {
+    document.querySelectorAll('[data-join-form]:not([data-join-ready])').forEach(function (form) {
         if (!window.fetch || !window.FormData) { return; }
+        form.setAttribute('data-join-ready', '');
         var button = form.querySelector('button[type="submit"]');
         var errors = form.querySelector('[data-join-errors]');
         var busy = false;
@@ -1104,6 +1112,12 @@ window.CASDevU = window.CASDevU || {};
                 if (result.ok) {
                     if (dialog && dialog.open) { dialog.close(); }
                     var destination = new URL(result.redirect, window.location.href);
+                    if (window.CASDevU.refresh && destination.href.split('#')[0] === window.location.href.split('#')[0]) {
+                        form.reset();
+                        window.history.replaceState(null, '', destination.href);
+                        window.CASDevU.refresh();
+                        return;
+                    }
                     if (destination.href.split('#')[0] === window.location.href.split('#')[0]) {
                         // A hash-only navigation keeps the old, unregistered DOM. Refresh it.
                         window.history.replaceState(null, '', destination.href);
@@ -1123,4 +1137,7 @@ window.CASDevU = window.CASDevU || {};
             });
         });
     });
+    }
+    window.CASDevU.initJoin = initJoin;
+    initJoin();
 })();

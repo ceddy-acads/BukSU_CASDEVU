@@ -72,7 +72,7 @@ if (is_post()) {
             $errors[] = 'Choose a photo of the front, the back, or both.';
         }
         if ($saved > 0 && $errors === []) {
-            flash('success', 'Your school ID has been saved.');
+            flash('success', 'Your school ID has been saved. Both sides must be uploaded and approved by an administrator before borrowing.');
             redirect('profile.php#school-id');
         }
     }
@@ -410,8 +410,10 @@ require __DIR__ . '/../includes/layout/header.php';
 ?>
 <section class="card profile-sheet id-photos" id="school-id" aria-labelledby="school-id-title">
     <h2 class="profile-panel-title" id="school-id-title">School ID for borrowing</h2>
-    <p class="profile-panel-sub">Upload both sides of your school ID. Only you, the office while you have borrowed items, and the coordinator deciding your request can see it.</p>
+    <p class="profile-panel-sub">Upload both sides of your school ID. An administrator must approve your ID before you can borrow. You can preview your uploads here; other authorized reviewers can see them after approval.</p>
 
+    <p aria-live="polite"><?= status_badge($user['id_review_status'], 'id') ?></p>
+    <?php if ($user['id_reject_reason']): ?><p class="alert alert-danger"><?= e($user['id_reject_reason']) ?> Upload corrected photos for another review.</p><?php endif; ?>
     <div class="id-photos-grid">
         <?php foreach (['front' => $idFront, 'back' => $idBack] as $side => $present): ?>
             <div>

@@ -22,6 +22,7 @@ if (is_post()) {
 
     $action        = post('action');
     $reservationId = (int) post('reservation_id');
+    live_lock_revision('reservations', $reservationId);
 
     $reservation = fetch_one(
         'SELECT r.*, u.first_name, u.last_name
@@ -47,9 +48,18 @@ if (is_post()) {
     }
 
     $lines = fetch_all('SELECT item_id, quantity FROM reservation_items WHERE reservation_id = ?', [$reservationId]);
+    if ($action === 'approve' && $lines !== []) {
+        $itemIds = array_map(static fn(array $line): int => (int) $line['item_id'], $lines);
+        $itemMarks = implode(',', array_fill(0, count($itemIds), '?'));
+        fetch_all("SELECT item_id FROM inventory_items WHERE item_id IN ($itemMarks) ORDER BY item_id FOR UPDATE", $itemIds);
+    }
 
     switch ($action) {
         case 'approve':
+            if ((int) $reservation['student_request'] === 1 && !student_id_approved((int) $reservation['requested_by'], true)) {
+                flash('error', 'An administrator must approve the school ID before this student request can be approved.');
+                break;
+            }
             $returnAt = (string) $reservation['needed_until'];
             if ((int) $reservation['student_request'] === 1 && post('return_at') !== '') {
                 $ts = strtotime(post('return_at'));
@@ -226,11 +236,11 @@ if ($reservations !== []) {
     $ids          = array_map(static fn(array $r): int => (int) $r['reservation_id'], $reservations);
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
     $allLines     = fetch_all(
-        "SELECT ri.reservation_id, ri.quantity, i.name, i.item_code, i.unit
+        "SELECT ri.reservation_id, ri.quantity, i.name, i.item_code, i.unit, i.description
            FROM reservation_items ri
            JOIN inventory_items i ON i.item_id = ri.item_id
           WHERE ri.reservation_id IN ($placeholders)
-          ORDER BY i.name",
+          ORDER BY i.name, i.item_code",
         $ids
     );
     foreach ($allLines as $line) {
@@ -238,13 +248,13 @@ if ($reservations !== []) {
     }
 }
 
-$pageTitle = 'Reservations';
+$pageTitle = $isStudent ? 'My borrow requests' : 'Reservations';
 require __DIR__ . '/../../includes/layout/header.php';
 ?>
 
 <div class="page-head">
     <div>
-        <h1><?= $isStudent ? 'Your equipment requests' : 'Reservations' ?></h1>
+        <h1><?= $isStudent ? 'My borrow requests' : 'Reservations' ?></h1>
         <p><?= $isOffice ? 'All reservation requests' : ($isStudent ? 'Equipment you asked to borrow for your activities' : 'Your requests and student requests for your activities') ?></p>
     </div>
     <div class="btn-row">
@@ -315,9 +325,12 @@ require __DIR__ . '/../../includes/layout/header.php';
         $mayCancel = can_cancel_reservation($reservation);
         $seeId     = (int) $reservation['student_request'] === 1 && can_view_id_photos((int) $reservation['requested_by']);
         ?>
-        <section class="card">
+        <section class="card<?= $isStudent ? ' student-borrow-card' : '' ?>" data-refresh-key="reservations:<?= $rid ?>">
             <div class="item">
                 <div class="item-main">
+                    <?php if ($isStudent): ?>
+                        <?php require __DIR__ . '/../../includes/layout/student-borrow-card.php'; ?>
+                    <?php else: ?>
                     <?= status_badge($reservation['status'], 'reservation') ?>
                     <h2 class="item-title">
                         <?= e(format_datetime($reservation['needed_from'])) ?>
@@ -344,21 +357,21 @@ require __DIR__ . '/../../includes/layout/header.php';
                     <?php if ($reservation['purpose']): ?>
                         <p class="item-body"><?php if ((int) $reservation['student_request'] === 1): ?><strong>Activity / purpose:</strong> <?php endif; ?><?= e($reservation['purpose']) ?></p>
                     <?php endif; ?>
-
+                    <?php endif; ?>
                     <?php if ($reservation['review_remarks']): ?>
                         <div class="alert alert-error">
                             <strong>Reason given:</strong> <?= e($reservation['review_remarks']) ?>
                         </div>
                     <?php endif; ?>
 
-                    <ul class="bullets item-body">
+                    <?php if (!$isStudent): ?><ul class="bullets item-body">
                         <?php foreach ($lines as $line): ?>
                             <li>
                                 <?= (int) $line['quantity'] ?> &times; <?= e($line['name']) ?>
                                 <span class="muted small">(<?= e($line['item_code']) ?>)</span>
                             </li>
                         <?php endforeach; ?>
-                    </ul>
+                    </ul><?php endif; ?>
                 </div>
 
                 <?php if ($mayDecide || $mayCancel || ($reservation['status'] === 'approved' && $isOffice)): ?>

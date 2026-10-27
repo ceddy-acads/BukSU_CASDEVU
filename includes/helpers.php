@@ -47,6 +47,17 @@ function asset(string $path): string
 /** Redirect and stop. Always followed by exit, never by more output. */
 function redirect(string $path): never
 {
+    live_end_transaction(true);
+    if (live_is_action()) {
+        $messages = take_flashes();
+        if (str_starts_with($path, 'login.php')) {
+            live_json(['ok' => false, 'messages' => $messages, 'message' => 'Your session expired. Sign in again to continue.', 'signin' => url('login.php')], 401);
+        }
+        live_json(['ok' => !in_array('error', array_column($messages, 'type'), true), 'messages' => $messages, 'refresh' => url($path)]);
+    }
+    if (live_is_poll()) {
+        live_json(['ok' => false, 'message' => 'Your session or access changed. Sign in again to continue.', 'signin' => url('login.php')], 401);
+    }
     header('Location: ' . url($path));
     exit;
 }
@@ -101,6 +112,7 @@ function flash(string $type, string $message, ?string $copy = null): void
  */
 function take_flashes(): array
 {
+    if (live_is_poll()) { return []; }
     $flashes = $_SESSION['flash'] ?? [];
     unset($_SESSION['flash']);
     return $flashes;
@@ -125,6 +137,7 @@ function old(string $key, string $default = ''): string
 
 function clear_old_input(): void
 {
+    if (live_is_poll()) { return; }
     unset($_SESSION['old_input']);
 }
 
@@ -417,6 +430,12 @@ function status_meta(string $status, string $domain = ''): array
             'rejected'  => ['danger',  'Rejected'],
             'withdrawn' => ['muted',   'Withdrawn'],
             'completed' => ['success', 'Completed'],
+        ],
+        'id' => [
+            'missing' => ['warning', 'Upload both sides'],
+            'pending' => ['warning', 'Pending ID approval'],
+            'approved' => ['success', 'ID approved'],
+            'rejected' => ['danger', 'ID rejected'],
         ],
         'submission' => [
             'missing'   => ['warning', 'Not submitted'],

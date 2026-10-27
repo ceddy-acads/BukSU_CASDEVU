@@ -93,6 +93,10 @@ function status_page_html(string $title, string $lead, string $bodyHtml, string 
  */
 function abort_page(int $code, string $message): never
 {
+    if (function_exists('live_end_transaction')) { live_end_transaction(false); }
+    if (function_exists('live_is_poll') && (live_is_poll() || live_is_action())) {
+        live_json(['ok' => false, 'message' => $message], $code === 419 ? 403 : $code);
+    }
     if (!headers_sent()) {
         http_response_code($code === 419 ? 403 : $code);
         header('Content-Type: text/html; charset=UTF-8');

@@ -100,6 +100,14 @@ if (is_post()) {
             }
         }
 
+        query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+        db()->beginTransaction();
+        $GLOBALS['live_transaction'] = true;
+        if ($borrower['role_name'] === 'student' && !student_id_approved($borrowerId, true)) {
+            flash('error', 'An administrator must approve the school ID before items can be released to this student.');
+            redirect('inventory/borrowings.php');
+        }
+
         query(
             'INSERT INTO borrowings
                  (reservation_id, item_id, borrower_id, quantity, released_by, released_at, expected_return_at)

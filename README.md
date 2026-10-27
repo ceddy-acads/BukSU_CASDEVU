@@ -131,6 +131,17 @@ suggested things to try, is listed in `docs/test-accounts.pdf`.
 
 **Publication approvals (existing installations)**
 
+**Live status updates and approved players:** Published activity pages show
+approved player names to every signed-in role, including guests. Participant
+management and pending applicants retain their existing role restrictions.
+Visible pages check for changes every five seconds; approval actions update
+in place. Unsaved notes and selected files are preserved. A changed record
+shows an explicit option to discard its edits and apply newer information.
+Notifications are marked read only by opening the menu or choosing Mark all
+as read. Background checks pause in hidden tabs and do not extend idle sessions.
+JavaScript-free visits retain normal forms and manual refresh behavior. The
+live renderer uses PHP's DOM extension (included in the XAMPP installation).
+
 Back up the database, then apply `database/update-publication-approvals.sql`
 once before serving this version. Clean installs already include the columns
 in `database/schema.sql`; never reimport that destructive clean-install file
@@ -774,3 +785,17 @@ These are what make the security checklist pass at the end of Week 4.
 | `docs/02-database-design.md` | ERD, table reference, design rationale |
 | `docs/03-role-matrix.md` | Permission matrix and enforcement pattern |
 | `docs/04-build-plan.md` | Week-by-week schedule, security checklist, definition of done |
+
+School ID verification requires `database/update-id-verification.sql` on existing
+installations (included in `schema.sql` for new installs). Existing complete IDs
+enter the admin review queue; replacing either side resets approval. Students
+need an approved ID for new requests, request approval and equipment release.
+Existing loans and reservations are retained. Admins review IDs from Review queue,
+School IDs. Pending IDs are visible only to their owner and reviewing admins;
+approved IDs retain the existing staff/coordinator access restrictions.
+
+Registration approval requires every mandatory activity requirement to be
+verified, including an uploaded file when required. Activities without mandatory
+requirements remain approvable. Guest program approval uses the existing mail
+transport: `log` records messages locally; actual inbox delivery requires SMTP
+settings in the untracked `includes/config.local.php`. Never commit credentials.

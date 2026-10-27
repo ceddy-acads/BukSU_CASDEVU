@@ -42,7 +42,7 @@ function enforce_idle_timeout(): void
         redirect('login.php');
     }
 
-    $_SESSION['last_activity'] = time();
+    if (!live_is_poll()) { $_SESSION['last_activity'] = time(); }
 }
 
 // =====================================================================

@@ -13,6 +13,8 @@ require_once __DIR__ . '/config.php';
 // Installed before anything that can fail, so no error escapes to the browser.
 require_once __DIR__ . '/errors.php';
 register_error_handlers();
+require_once __DIR__ . '/live.php';
+if (PHP_SAPI !== 'cli') { ob_start('live_output'); }
 
 if (PHP_SAPI !== 'cli') {
     // shortcut: reads HTTPS from this server only; behind a proxy that ends TLS
@@ -54,3 +56,4 @@ require_once __DIR__ . '/reminders.php';
 require_once __DIR__ . '/backup.php';
 
 start_session();
+if (live_is_poll()) { require_login(); }

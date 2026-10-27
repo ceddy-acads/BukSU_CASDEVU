@@ -53,6 +53,7 @@ if (is_office_staff()) {
     $lanes['invitations']  = ['Invitations', 'Outside groups invited BukSU students to these programs.'];
 }
 if (has_role('admin')) {
+    $lanes['ids'] = ['School IDs', 'Students uploaded both sides of their school ID for admin approval.'];
     $lanes['activities'] = ['Activities', 'Coordinators submitted these activities for publication approval.'];
     $lanes['announcements'] = ['Announcements', 'Coordinators chose Announce; these posts need publication approval.'];
 }
@@ -143,6 +144,9 @@ require __DIR__ . '/../includes/layout/header.php';
                 <?php endforeach; ?>
                 </tbody></table></div>
             <?php endif; ?>
+        <?php elseif ($lane === 'ids'): ?>
+            <p><?= (int) $counts['ids'] ?> school ID<?= $counts['ids'] === 1 ? '' : 's' ?> waiting for approval.</p>
+            <a class="btn btn-outline" href="<?= url('admin/id-verification.php') ?>">Review school IDs</a>
         <?php elseif ($lane === 'documents'): ?>
             <?php if ($documents === []): ?>
                 <div class="empty">

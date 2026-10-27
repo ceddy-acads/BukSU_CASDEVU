@@ -7,7 +7,8 @@ Legend: **✔** full · **◐** limited (see note) · **✘** none
 
 Guests are people outside the student body, such as parents and outside
 coaches. Activities and the calendar are schedule-only for them: no
-registration, requirements, inventory, participant lists or reports.
+registration, requirements, inventory, participant-management pages or reports.
+Guests may read the names of approved players on published activity pages.
 
 ---
 
@@ -40,7 +41,8 @@ Read highlight reports also works signed out (public page); a Guest account cann
 | Register for an activity | ✘ | ✔ | ✘ | ✘ | ✘ |
 | Withdraw own registration | ✘ | ◐ before approval | ✘ | ✘ | ✘ |
 | View own registration status | ✘ | ✔ | — | — | — |
-| View participant list | ✘ | ✘ | ◐ assigned only | ✔ | ✔ |
+| Read approved-player names on a published activity | ✔ | ✔ | ✔ | ✔ | ✔ |
+| View participant management / pending registrations | ✘ | ✘ | ◐ assigned only | ✔ | ✔ |
 | Approve / reject registration | ✘ | ✘ | ◐ assigned only | ✔ | ✔ |
 | Mark attendance | ✘ | ✘ | ◐ assigned only | ✔ | ✔ |
 
@@ -59,7 +61,7 @@ Read highlight reports also works signed out (public page); a Guest account cann
 | Action | Guest | Student | Coordinator | Staff | Admin |
 |--------|:-----:|:-------:|:-----------:|:-----:|:-----:|
 | View catalog and availability | ✘ | ✔ | ✔ | ✔ | ✔ |
-| Request a reservation | ✘ | ✔ with school ID photos and a required typed activity/purpose; linking a registered activity is optional and requires approved registration | ✔ | ✔ | ✔ |
+| Request a reservation | ✘ | ✔ with an admin-approved school ID and a required typed activity/purpose; linking a registered activity is optional and requires approved registration | ✔ | ✔ | ✔ |
 | Approve / reject reservation | ✘ | ✘ | ◐ only student requests for assigned activities | ✔ | ✔ |
 | Record release (borrowing) | ✘ | ✘ | ✘ | ✔ | ✔ |
 | Record return | ✘ | ✘ | ✘ | ✔ | ✔ |
@@ -67,7 +69,7 @@ Read highlight reports also works signed out (public page); a Guest account cann
 | View loans from student requests | ✘ | ◐ own only | ◐ assigned activities only | ✔ | ✔ |
 | Mark an item office-only | ✘ | ✘ | ✘ | ✔ | ✔ |
 | Upload / replace own ID photos | ✘ | ✔ | ✘ | ✘ | ✘ |
-| View a student's ID photos | ✘ | ◐ own only | ◐ only while that student's request for an assigned activity is pending | ◐ while the student has an approved request not yet collected, or a loan out | ◐ same as staff |
+| View a student's ID photos | ✘ | ◐ own only | ◐ approved ID, while that student's request for an assigned activity is pending | ◐ approved ID, while the student has an approved request not yet collected, or a loan out | ✔ ID review and office duties |
 
 ## Announcements and Notifications
 
@@ -174,3 +176,9 @@ require_activity_access($db, (int) $_GET['activity_id']);
 
 **Rule of thumb:** if a page reads or writes data belonging to a specific
 activity, it needs *both* calls — the role gate and the ownership gate.
+
+Only admins approve or reject school IDs. Pending/rejected IDs are visible only
+to the owner and admins. Staff and assigned coordinators retain their existing
+ID access scopes after approval. All registration reviewers must verify every
+mandatory requirement before approval; activities without mandatory requirements
+remain approvable.
