@@ -212,3 +212,11 @@ reachable on a fresh install.
 
 > Note: the script begins with `DROP DATABASE IF EXISTS casms;`. It is a clean
 > installer, not a migration — do not run it against a database holding real data.
+
+School ID review fields on `users`: `id_review_status`
+(`missing`, `pending`, `approved`, `rejected`), nullable `id_reviewed_by`,
+`id_reviewed_at`, and `id_reject_reason`. Photo replacement clears the decision
+and marks complete pairs pending. `database/update-id-verification.sql` adds
+these fields without removing existing records; existing complete pairs require
+review. Activity registration approval uses the existing requirement/submission
+relations and introduces no additional registration statuses.

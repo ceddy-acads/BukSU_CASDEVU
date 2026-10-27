@@ -86,6 +86,7 @@ if (is_post()) {
 
 if (is_post() && post('action') !== 'add_guest') {
     csrf_verify();
+    live_lock_revision('users', (int) post('user_id'));
 
     $action       = post('action');
     $targetUserId = (int) post('user_id');
@@ -451,7 +452,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                 </thead>
                 <tbody>
                 <?php foreach ($users as $row): ?>
-                    <tr>
+                    <tr data-refresh-key="users:<?= (int) $row['user_id'] ?>">
                         <td data-label="Name">
                             <strong><?= e(full_name($row, true)) ?></strong>
                             <?php // A long address may break after the @ or before a dot, never mid-word. ?>

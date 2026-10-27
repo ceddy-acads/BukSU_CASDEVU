@@ -72,6 +72,14 @@ $approvedCount = (int) fetch_value(
     "SELECT COUNT(*) FROM registrations WHERE activity_id = ? AND status = 'approved'",
     [$activityId]
 );
+$approvedPlayers = $activity['status'] !== 'draft' ? fetch_all(
+    "SELECT u.first_name, u.middle_name, u.last_name
+       FROM registrations r JOIN users u ON u.user_id = r.user_id
+      WHERE r.activity_id = ? AND r.status = 'approved'
+      ORDER BY u.last_name, u.first_name, u.user_id",
+    [$activityId]
+) : [];
+if ($activity['status'] !== 'draft') { $approvedCount = count($approvedPlayers); }
 
 // The signed-in student's own registration, if any.
 $myRegistration = current_role() === 'student'
@@ -210,6 +218,18 @@ if ($isQuickLook): ?>
 
 <div class="split split-aside-first">
     <div>
+        <?php if ($activity['status'] !== 'draft'): ?>
+        <section class="card" id="approved-players">
+            <div class="card-head"><h2 aria-live="polite">Approved players (<?= count($approvedPlayers) ?>)</h2></div>
+            <?php if ($approvedPlayers === []): ?>
+                <div class="empty"><strong>No approved players yet</strong>Students appear here after their registration is approved.</div>
+            <?php else: ?>
+                <ul class="bullets approved-players-list">
+                    <?php foreach ($approvedPlayers as $player): ?><li><?= e(full_name($player)) ?></li><?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        </section>
+        <?php endif; ?>
         <section class="card">
             <div class="card-head"><h2>About this activity</h2></div>
             <?php if ($activity['description']): ?>
@@ -319,6 +339,7 @@ if ($isQuickLook): ?>
                               onsubmit="return confirm('Withdraw your registration for this activity?');">
                             <?= csrf_field() ?>
                             <input type="hidden" name="action" value="withdraw">
+                            <input type="hidden" name="_live_revision" value="<?= e(live_revision($myRegistration)) ?>">
                             <input type="hidden" name="activity_id" value="<?= $activityId ?>">
                             <button type="submit" class="btn btn-outline btn-block">Withdraw registration</button>
                         </form>

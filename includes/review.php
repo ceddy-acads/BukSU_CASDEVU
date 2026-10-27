@@ -87,7 +87,7 @@ function review_counts(): array
         return $cache;
     }
 
-    $counts = ['documents' => 0, 'registrations' => 0, 'reservations' => 0, 'accounts' => 0, 'invitations' => 0, 'activities' => 0, 'announcements' => 0, 'total' => 0];
+    $counts = ['documents' => 0, 'registrations' => 0, 'reservations' => 0, 'accounts' => 0, 'invitations' => 0, 'activities' => 0, 'announcements' => 0, 'ids' => 0, 'total' => 0];
     if (!can_review()) {
         return $cache = $counts;
     }
@@ -121,6 +121,7 @@ function review_counts(): array
         );
     }
     if (has_role('admin')) {
+        $counts['ids'] = (int) fetch_value("SELECT COUNT(*) FROM users WHERE id_review_status = 'pending'");
         $counts['activities'] = (int) fetch_value("SELECT COUNT(*) FROM activities WHERE approval_status = 'pending'");
         $counts['announcements'] = (int) fetch_value("SELECT COUNT(*) FROM announcements WHERE status = 'pending'");
     }

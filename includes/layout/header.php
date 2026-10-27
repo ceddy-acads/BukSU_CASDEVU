@@ -103,6 +103,7 @@ $initials = $user
     <title><?= isset($pageTitle) ? e($pageTitle) . ' · ' : '' ?><?= e(APP_NAME) ?></title>
     <link rel="stylesheet" href="<?= asset('css/style.css') ?>">
     <script src="<?= asset('js/app.js') ?>" defer></script>
+    <script src="<?= asset('js/live.js') ?>" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -240,5 +241,6 @@ $initials = $user
     </header>
 <?php endif; ?>
 <main class="page" id="main" tabindex="-1">
+<?php if (live_is_poll()) { csrf_token(); session_write_close(); } ?>
 <?php require __DIR__ . '/toasts.php'; ?>
 

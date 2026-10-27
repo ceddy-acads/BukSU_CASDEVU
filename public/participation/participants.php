@@ -52,6 +52,7 @@ if (is_post()) {
 
     $action         = post('action');
     $registrationId = (int) post('registration_id');
+    live_lock_revision('registrations', $registrationId, $activityId);
 
     $registration = fetch_one(
         'SELECT r.*, u.first_name, u.last_name, u.user_id
@@ -81,6 +82,10 @@ if (is_post()) {
             break;
 
         case 'approve':
+            if (!requirement_progress($registrationId)['complete']) {
+                flash('error', 'Verify all mandatory requirements, including required uploads, before approving this registration.');
+                break;
+            }
             // Re-check capacity at the moment of approval: several pending
             // registrations may have been queued while slots ran out.
             if ($activity['max_participants'] !== null
@@ -357,7 +362,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                     $progress = $participant['progress'];
                     $rowName  = full_name($participant, true);
                     ?>
-                    <tr>
+                    <tr data-refresh-key="registrations:<?= (int) $participant['registration_id'] ?>">
                         <td data-label="Student">
                             <strong><?= e($rowName) ?></strong>
                             <div class="hint">
@@ -378,8 +383,10 @@ require __DIR__ . '/../../includes/layout/header.php';
                                 <span class="badge badge-success">Complete</span>
                             <?php else: ?>
                                 <span class="badge badge-warning">
-                                    <?= $progress['satisfied'] ?> of <?= $progress['total'] ?> done
-                                </span>
+                                    <?= $progress['satisfied'] ?> of <?= $progress['total'] ?> verified
+                                    </span>
+                                    <a href="<?= url('requirements/verify.php?activity_id=' . $activityId) ?>">Verify requirements before approval</a>
+
                             <?php endif; ?>
                         </td>
                         <td data-label="Status">
@@ -428,7 +435,7 @@ require __DIR__ . '/../../includes/layout/header.php';
                                         <input type="hidden" name="activity_id" value="<?= $activityId ?>">
                                         <input type="hidden" name="registration_id" value="<?= (int) $participant['registration_id'] ?>">
                                         <button type="submit" class="btn btn-primary btn-sm"
-                                                aria-label="Approve <?= e($rowName) ?>">Approve</button>
+                                                aria-label="Approve <?= e($rowName) ?>" <?= !$progress['complete'] ? 'disabled' : '' ?>>Approve</button>
                                     </form>
                                 <?php endif; ?>
 

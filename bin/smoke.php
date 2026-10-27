@@ -523,6 +523,7 @@ $pages = [
     ['path' => 'reports/students.php',            'allow' => ['admin', 'staff', 'coordinator'],
      'params' => ['student' => 'coord_participant'], 'optional' => true, 'soft' => ['coordinator']],
 
+    ['path' => 'admin/id-verification.php', 'allow' => ['admin']],
     ['path' => 'admin/users.php',                 'allow' => ['admin', 'staff']],
     ['path' => 'admin/venues.php',                'allow' => ['admin', 'staff']],
     ['path' => 'admin/categories.php',            'allow' => ['admin']],
@@ -761,6 +762,32 @@ foreach ($pages as $page) {
             }
         } else {
             fail($label . ': ' . $problem);
+        }
+    }
+}
+
+if ($options['only'] === '' || str_contains('activities/', $options['only'])) {
+    section('Live snapshots and approved players');
+    foreach ($jars as $role => $jar) {
+        $snapshot = http_request($options['base'] . '/index.php', $jar, null, $options['timeout'], ['X-CASDevU-Live: poll']);
+        $checks++;
+        $data = json_decode($snapshot['body'], true);
+        if ($snapshot['status'] !== 200 || !is_array($data) || ($data['role'] ?? '') !== $role
+            || empty($data['ok']) || !isset($data['regions']['page']['html'], $data['regions']['notifications']['html'])) {
+            fail('Live snapshot as ' . $role . ': expected authorized page and notification fragments');
+        } else {
+            ok('Live snapshot as ' . $role . ': authorized JSON regions');
+        }
+        if ($ids['activity'] > 0 && db_value($pdo, 'SELECT status FROM activities WHERE activity_id = ?', [$ids['activity']]) !== 'draft') {
+            $page = http_request($options['base'] . '/activities/view.php?id=' . $ids['activity'], $jar, null, $options['timeout']);
+            $checks++;
+            if ($page['status'] !== 200 || !preg_match('/<section[^>]*id="approved-players"[^>]*>(.*?)<\/section>/s', $page['body'], $roster)) {
+                fail('Approved-player list as ' . $role . ': missing read-only roster');
+            } elseif (preg_match('/<(?:form|input)\b|student_number|contact_number|@/i', $roster[1])) {
+                fail('Approved-player list as ' . $role . ': expected names only');
+            } else {
+                ok('Approved-player list as ' . $role . ': read-only names');
+            }
         }
     }
 }

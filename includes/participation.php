@@ -113,7 +113,8 @@ function requirement_progress(int $registrationId): array
              (SELECT COUNT(*) FROM requirement_submissions rs
                 JOIN activity_requirements ar2 ON ar2.requirement_id = rs.requirement_id
                WHERE rs.registration_id = ? AND ar2.is_mandatory = 1
-                 AND rs.status = 'verified') AS satisfied",
+                 AND rs.status = 'verified'
+                 AND (ar2.needs_file = 0 OR NULLIF(TRIM(rs.file_path), '') IS NOT NULL)) AS satisfied",
         [$registrationId, $registrationId]
     );
 

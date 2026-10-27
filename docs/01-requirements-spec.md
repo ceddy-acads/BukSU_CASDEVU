@@ -11,6 +11,17 @@
 
 ### Publication approval workflow (October 2026)
 
+- Every published activity shows an alphabetized, read-only list of approved
+  player names for every signed-in role, including guests. Pending, rejected,
+  withdrawn and completed registrations are excluded; private student details
+  remain restricted to existing management screens.
+- Relevant approval pages, status lists, dashboards, calendars and notification
+  counts update through five-second background checks while visible. Approval,
+  rejection, verification, activation and cancellation actions update in place.
+  Drafts and selected uploads survive incoming changes; stale decisions require
+  reviewing the latest record. Hidden tabs pause updates, and background checks
+  do not prolong idle sessions or mark notifications read.
+
 - Coordinator dashboards label the existing loan statistic **Borrowed Items**.
 - Coordinators create activities as **Pending approval**, automatically assigned
   to themselves. Administrators approve publication or reject with a reason;
@@ -210,3 +221,11 @@ Explicitly not built, and stated as future work in the defense:
 - Integration with the BukSU student information system
 - Mobile applications (the web app is responsive instead)
 - Biometric or QR attendance capture
+
+School ID verification: administrators review complete uploaded IDs before they
+are available to other authorized reviewers. Replacements reset approval. Students
+must have an approved ID for new borrowing requests, approval of pending requests,
+and item release. Existing loans and reservations are retained.
+Registration approval requires all mandatory requirements to be verified, with a
+file present when the requirement needs one. Existing approved registrations are
+retained; activities without mandatory requirements remain approvable.

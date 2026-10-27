@@ -72,7 +72,7 @@ if ($role === 'student') {
             'class' => 'stat-gold', 'href' => 'review.php?lane=registrations'],
         ['label' => 'Requirements to verify', 'value' => review_counts()['documents'],
             'class' => 'stat-gold', 'href' => 'review.php?lane=documents'],
-        ['label' => $role === 'coordinator' ? 'Borrowed Items' : 'Items on loan', 'value' => fetch_value(
+        ['label' => 'Borrowed Items', 'value' => fetch_value(
             'SELECT COUNT(*) FROM borrowings WHERE returned_at IS NULL'),
             'class' => '', 'href' => is_office_staff() ? 'inventory/borrowings.php' : null],
     ];
