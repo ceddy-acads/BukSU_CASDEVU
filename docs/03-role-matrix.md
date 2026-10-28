@@ -123,6 +123,7 @@ and equipment duties remain available after activity publication.
 | Activate pending student accounts | ✘ | ✘ | ✘ | ✔ | ✔ |
 | Activate pending Guest accounts | ✘ | ✘ | ✘ | ✔ | ✔ |
 | Create / edit / deactivate any user | ✘ | ✘ | ✘ | ✘ | ✔ |
+| Delete an account with no activity records | ✘ | ✘ | ✘ | ✘ | ✔ |
 | Change a user's role | ✘ | ✘ | ✘ | ✘ | ✔ |
 | Change a role to or from Guest | ✘ | ✘ | ✘ | ✘ | ✘ |
 | Reset a user's password | ✘ | ✘ | ✘ | ✘ | ✔ |

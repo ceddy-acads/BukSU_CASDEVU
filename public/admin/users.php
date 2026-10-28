@@ -92,7 +92,7 @@ if (is_post() && post('action') !== 'add_guest') {
     $targetUserId = (int) post('user_id');
 
     $target = fetch_one(
-        'SELECT u.user_id, u.first_name, u.last_name, u.status, r.name AS role_name
+        'SELECT u.user_id, u.first_name, u.last_name, u.email, u.photo_path, u.status, r.name AS role_name
            FROM users u JOIN roles r ON r.role_id = u.role_id
           WHERE u.user_id = ?',
         [$targetUserId]
@@ -104,7 +104,9 @@ if (is_post() && post('action') !== 'add_guest') {
 
     // Guard against an administrator locking themselves out.
     if ($targetUserId === current_user_id() && $action !== 'role') {
-        flash('error', 'You cannot change the status of your own account.');
+        flash('error', $action === 'delete'
+            ? 'You cannot delete your own account.'
+            : 'You cannot change the status of your own account.');
         redirect('admin/users.php');
     }
 
@@ -118,7 +120,7 @@ if (is_post() && post('action') !== 'add_guest') {
     // Never leave the system without a way in: refuse to remove the last
     // active administrator, whether by status change or by role change.
     if ($target['role_name'] === 'admin'
-        && in_array($action, ['deactivate', 'suspend', 'role'], true)) {
+        && in_array($action, ['deactivate', 'suspend', 'role', 'delete'], true)) {
         $activeAdmins = (int) fetch_value(
             "SELECT COUNT(*) FROM users u JOIN roles r ON r.role_id = u.role_id
               WHERE r.name = 'admin' AND u.status = 'active'"
@@ -248,6 +250,42 @@ if (is_post() && post('action') !== 'add_guest') {
                    . 'then change it under My profile.', url('profile.php'));
             flash('success', 'Temporary password for ' . full_name($target) . ': ' . $temp
                 . ' — copy it now, it will not be shown again.', $temp);
+            break;
+
+        case 'delete':
+            if (!$isAdmin) {
+                http_response_code(403);
+                abort_page(403, 'Only an administrator may delete an account.');
+            }
+            // Participation and office records outlive the account. Deleting
+            // them would rewrite past reports, so the office deactivates
+            // instead. Only accounts with nothing on record can be removed.
+            $recordTypes = [
+                ['registrations', 'user_id',      'activity registrations'],
+                ['activities',    'created_by',   'activities'],
+                ['announcements', 'posted_by',    'announcements'],
+                ['reservations',  'requested_by', 'equipment reservations'],
+                ['borrowings',    'borrower_id',  'equipment borrowings'],
+                ['invitations',   'submitted_by', 'invitations'],
+            ];
+            $onRecord = [];
+            foreach ($recordTypes as [$table, $column, $label]) {
+                if (fetch_value("SELECT 1 FROM `$table` WHERE `$column` = ? LIMIT 1", [$targetUserId])) {
+                    $onRecord[] = $label;
+                }
+            }
+            if ($onRecord !== []) {
+                flash('error', full_name($target) . ' has ' . implode(', ', $onRecord)
+                    . ' on record. Deleting the account would erase them, so deactivate it instead.');
+                break;
+            }
+            delete_upload($target['photo_path']);
+            delete_id_photos($targetUserId);
+            query('DELETE FROM users WHERE user_id = ?', [$targetUserId]);
+            // The name is kept here because the row it pointed at is gone.
+            audit_log('delete', 'user', $targetUserId,
+                      'Deleted account ' . $target['email'] . ' (' . $target['role_name'] . ')');
+            flash('success', full_name($target) . '\'s account was deleted.');
             break;
 
         default:
@@ -542,6 +580,14 @@ require __DIR__ . '/../../includes/layout/header.php';
                                             <input type="hidden" name="user_id" value="<?= (int) $row['user_id'] ?>">
                                             <button type="submit" class="btn btn-outline btn-sm"
                                                     aria-label="Reset password for <?= e(full_name($row)) ?>">Reset password</button>
+                                        </form>
+                                        <form method="post" class="inline-form"
+                                              onsubmit="return confirm('Delete this account permanently? This cannot be undone. Accounts with activity records cannot be deleted.');">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="user_id" value="<?= (int) $row['user_id'] ?>">
+                                            <button type="submit" class="btn btn-danger btn-sm"
+                                                    aria-label="Delete account for <?= e(full_name($row)) ?>">Delete</button>
                                         </form>
                                     <?php endif; ?>
                                 </div>

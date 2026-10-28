@@ -332,21 +332,38 @@ require __DIR__ . '/../../includes/layout/header.php';
                         <?php require __DIR__ . '/../../includes/layout/student-borrow-card.php'; ?>
                     <?php else: ?>
                     <?= status_badge($reservation['status'], 'reservation') ?>
-                    <h2 class="item-title">
-                        <?= e(format_datetime($reservation['needed_from'])) ?>
-                        to <?= e(format_datetime($reservation['needed_until'])) ?>
-                    </h2>
+                    <h2 class="item-title">Requested by <?= e(full_name($reservation)) ?></h2>
                     <p class="meta">
-                        Requested by <?= e(full_name($reservation)) ?>
-                        <?php if ($reservation['activity_title']): ?>
-                            &middot; for <?= e($reservation['activity_title']) ?>
-                        <?php elseif ((int) $reservation['student_request'] === 1): ?>
-                            &middot; Not linked to a registered activity
-                        <?php endif; ?>
+                        <?= $reservation['activity_title'] ? 'For ' . e($reservation['activity_title']) : 'Not linked to an activity' ?>
                     </p>
-                    <?php if ((int) $reservation['student_request'] === 1 && $reservation['proposed_until']): ?>
-                        <p class="meta">Proposed return: <?= e(format_datetime($reservation['proposed_until'])) ?></p>
-                    <?php endif; ?>
+                    <dl class="detail-list mt-4">
+                        <?php if ((int) $reservation['student_request'] === 1 && $reservation['proposed_until']): ?>
+                            <div><dt>Proposed return</dt><dd><?= e(format_datetime($reservation['proposed_until'])) ?></dd></div>
+                        <?php endif; ?>
+                        <div>
+                            <dt>Duration</dt>
+                            <dd>
+                                <?= e(format_datetime($reservation['needed_from'])) ?> to <?= e(format_datetime($reservation['needed_until'])) ?>
+                                <span class="muted">(<?= e(format_duration((string) $reservation['needed_from'], (string) $reservation['needed_until'])) ?>)</span>
+                            </dd>
+                        </div>
+                        <?php if ($reservation['purpose']): ?>
+                            <div><dt>Description</dt><dd><?= e($reservation['purpose']) ?></dd></div>
+                        <?php endif; ?>
+                        <div>
+                            <dt>Costume &amp; equipment</dt>
+                            <dd>
+                                <ul class="bullets">
+                                    <?php foreach ($lines as $line): ?>
+                                        <li>
+                                            <?= e($line['name']) ?> &times; <?= (int) $line['quantity'] ?>
+                                            <span class="muted small">(<?= e($line['item_code']) ?>)</span>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </dd>
+                        </div>
+                    </dl>
                     <?php if ($seeId): ?>
                         <p class="meta">
                             <a href="<?= url('id-photo.php?user=' . (int) $reservation['requested_by'] . '&side=front') ?>" target="_blank" rel="noopener">View ID (front)</a>
@@ -354,24 +371,12 @@ require __DIR__ . '/../../includes/layout/header.php';
                             <a href="<?= url('id-photo.php?user=' . (int) $reservation['requested_by'] . '&side=back') ?>" target="_blank" rel="noopener">View ID (back)</a>
                         </p>
                     <?php endif; ?>
-                    <?php if ($reservation['purpose']): ?>
-                        <p class="item-body"><?php if ((int) $reservation['student_request'] === 1): ?><strong>Activity / purpose:</strong> <?php endif; ?><?= e($reservation['purpose']) ?></p>
-                    <?php endif; ?>
-                    <?php endif; ?>
                     <?php if ($reservation['review_remarks']): ?>
                         <div class="alert alert-error">
                             <strong>Reason given:</strong> <?= e($reservation['review_remarks']) ?>
                         </div>
                     <?php endif; ?>
-
-                    <?php if (!$isStudent): ?><ul class="bullets item-body">
-                        <?php foreach ($lines as $line): ?>
-                            <li>
-                                <?= (int) $line['quantity'] ?> &times; <?= e($line['name']) ?>
-                                <span class="muted small">(<?= e($line['item_code']) ?>)</span>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul><?php endif; ?>
+                    <?php endif; ?>
                 </div>
 
                 <?php if ($mayDecide || $mayCancel || ($reservation['status'] === 'approved' && $isOffice)): ?>

@@ -1904,7 +1904,9 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
 .portal-actions { display: flex; flex-direction: column; gap: var(--s3); margin-top: var(--s6); }
 .portal-actions .btn { width: 100%; min-height: 48px; font-size: 1rem; font-weight: 600; border-radius: var(--r); }
 .portal-actions .btn-primary:active { background: var(--navy-900); }
-.portal-legal { margin: var(--s5) 0 0; font-size: var(--fs-base); color: var(--ink); text-align: center; }
+/* The panel's translate offset moves it without moving this line, so the gap
+   adds that offset back; otherwise short screens slide the card over it. */
+.portal-legal { margin: calc(var(--s5) + var(--portal-panel-offset, var(--s5))) 0 0; font-size: var(--fs-base); color: var(--ink); text-align: center; }
 
 /* ---- Tablet: a brand band the panel rises into */
 @media (min-width: 640px) {
@@ -2098,7 +2100,7 @@ th[aria-sort="ascending"] .sort-down, th[aria-sort="descending"] .sort-up { disp
     .portal-submit { margin-top: var(--s4); }
     .portal-secondary { margin-top: 0; }
     .portal-panel-head p { margin-top: 0; }
-    .portal-legal { margin-top: var(--s3); }
+    .portal-legal { margin-top: calc(var(--s3) + var(--portal-panel-offset, var(--s5))); }
 }
 
 /* ------------------------------------------------------------ Modal popup */

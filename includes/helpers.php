@@ -378,6 +378,21 @@ function format_date(?string $datetime): string
     return date('d M Y', strtotime($datetime));
 }
 
+/** '2 days 3 hours', '5 hours', '45 minutes': the length of a borrowing period. */
+function format_duration(string $from, string $until): string
+{
+    $minutes = max(0, intdiv((int) strtotime($until) - (int) strtotime($from), 60));
+    $parts = [];
+    foreach (['day' => 1440, 'hour' => 60, 'minute' => 1] as $unit => $size) {
+        $count = intdiv($minutes, $size);
+        $minutes %= $size;
+        if ($count > 0 && count($parts) < 2) {
+            $parts[] = $count . ' ' . $unit . ($count === 1 ? '' : 's');
+        }
+    }
+    return $parts === [] ? 'Less than a minute' : implode(' ', $parts);
+}
+
 /**
  * Render an activity/registration/item status as a coloured badge.
  * Falls back to a neutral badge for any status not listed.
