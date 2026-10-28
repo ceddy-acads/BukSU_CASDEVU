@@ -22,6 +22,8 @@ declare(strict_types=1);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#10284d">
     <title><?= e($pageTitle) ?> · <?= e(APP_NAME) ?></title>
+    <link rel="icon" href="<?= asset('img/favicon-32.png') ?>" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="<?= asset('img/apple-touch-icon.png') ?>">
     <link rel="stylesheet" href="<?= asset('css/style.css') ?>">
     <script src="<?= asset('js/app.js') ?>" defer></script>
 </head>
