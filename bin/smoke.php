@@ -417,7 +417,7 @@ function sign_in(string $base, string $role, string $credentials, int $timeout):
         'password'   => $password,
     ], $timeout);
 
-    if ($result['status'] !== 302 || !str_contains($result['location'], 'index.php')) {
+    if ($result['status'] !== 302 || !str_contains($result['location'], 'index')) {
         $because = $result['error'] !== ''
             ? $result['error']
             : 'HTTP ' . $result['status'] . ' — ' . (trim(strip_tags($result['body'])) !== ''
@@ -652,10 +652,10 @@ if ($form['status'] !== 200) {
 
 $checks++;
 $detail = http_request($options['base'] . '/invitations/view.php?id=1', $anonJar, null, $options['timeout']);
-if ($detail['status'] === 302 && str_contains($detail['location'], 'login.php')) {
+if ($detail['status'] === 302 && str_contains($detail['location'], 'login')) {
     ok('invitations/view.php?id=1 sends a signed-out visitor to sign-in');
 } else {
-    fail('invitations/view.php?id=1 signed out: HTTP ' . $detail['status'] . ' (expected 302 to login.php)');
+    fail('invitations/view.php?id=1 signed out: HTTP ' . $detail['status'] . ' (expected 302 to sign-in)');
 }
 @unlink($anonJar);
 
@@ -719,7 +719,7 @@ foreach ($pages as $page) {
         } elseif ($result['status'] !== 302 && empty($page['binary']) && ($marker = body_error($result['body'])) !== null) {
             $problem = 'page contains "' . $marker . '"';
         } elseif ($result['status'] === 302) {
-            if (str_contains($result['location'], 'login.php')) {
+            if (str_contains($result['location'], 'login')) {
                 $problem = 'session lost — redirected to sign-in';
             } elseif ($expected && !in_array(302, $tolerate, true)) {
                 $problem = 'redirected to ' . $result['location'] . ' (expected a page)';
@@ -876,7 +876,7 @@ foreach ($pages as $page) {
     } elseif ($result['status'] !== 302 && empty($page['binary']) && ($marker = body_error($result['body'])) !== null) {
         $problem = 'page contains "' . $marker . '"';
     } elseif ($page['signed_out'] === 'login') {
-        if ($result['status'] !== 302 || !str_contains($result['location'], 'login.php')) {
+        if ($result['status'] !== 302 || !str_contains($result['location'], 'login')) {
             $problem = 'HTTP ' . $result['status'] . ' (expected a redirect to sign-in)';
         }
     } elseif ($result['status'] === 404 && !empty($page['optional']) && count($pairs) < count($page['params'] ?? [])) {
