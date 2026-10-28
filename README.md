@@ -116,7 +116,7 @@ Safe to run twice.
 **4. Open the system**
 
 ```
-http://localhost/casms/public/login.php
+http://localhost/casms/login
 ```
 
 **5. Sign in and change the default password immediately**

@@ -1,14 +1,40 @@
 # Only public/ is meant for the web. When the host cannot point the document
-# root at public/ (free and shared hosting), this file sends visitors there
-# and refuses every other path in the project folder: an allow-list, so a
-# folder or file uploaded by mistake stays private too. includes/ and
-# storage/ also carry their own Deny rules.
+# root at public/ (free and shared hosting), this file serves public/ from the
+# bare path — /login rather than /public/login.php — and refuses every other
+# path in the project folder: an allow-list, so a folder or file uploaded by
+# mistake stays private too. includes/ and storage/ also carry their own
+# Deny rules.
+#
+# A bare path is prefixed with public/ once, then the next pass settles on the
+# real file: <path>.php, <path>/index.php, or the file itself.
 Options -Indexes
+# /activities must not be bounced to /activities/ before the rewrite below can
+# turn it into public/activities/index.php.
+DirectorySlash Off
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    # Built from the request URI, so it works in any install folder.
-    RewriteCond %{REQUEST_URI} ^(.*/)$
-    RewriteRule ^$ %1public/ [R=302,L]
-    RewriteRule !^public(/|$) - [F,L]
+
+    # Nothing outside public/ is ever served.
+    RewriteRule ^(includes|storage|database|docs|bin)(/|$) - [F,L]
+
+    # The path already names a real file — /public/login.php, /public/assets/…
+    # stay reachable, so old bookmarks and bin/smoke.php keep working.
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+
+    # /activities -> public/activities/index.php
+    RewriteCond %{REQUEST_FILENAME}/index.php -f
+    RewriteRule ^(.+?)/?$ $1/index.php [L]
+
+    # /login -> public/login.php
+    RewriteCond %{REQUEST_FILENAME}.php -f
+    RewriteRule ^(.+?)/?$ $1.php [L]
+
+    # First pass: a bare path lives under public/. %{REQUEST_URI} keeps the
+    # original URL, so the second pass is recognised by it and falls through.
+    RewriteCond %{REQUEST_URI} !/public/
+    RewriteRule ^$ public/index.php [L]
+    RewriteCond %{REQUEST_URI} !/public/
+    RewriteRule ^(.+?)/?$ public/$1 [L]
 </IfModule>
