@@ -123,8 +123,8 @@ http://localhost/casms/public/login.php
 
 | Field | Value |
 |-------|-------|
-| Email | `admin@buksu.edu.ph` |
-| Password | `admin123` |
+| Email | `admin@gmail.com` |
+| Password | `admin_casdevu` |
 
 Every demo account, grouped by role, with a quick-start login per role and
 suggested things to try, is listed in `docs/test-accounts.pdf`.
@@ -267,8 +267,8 @@ XAMPP's defaults are for one development machine. Before real users sign in:
    load `demo-data.sql`; it creates accounts with the published password
    `demo1234`. An existing database: run the update scripts in step 2c–2h.
    `update-highlight-reports.sql` must run before the new code is live.
-4. **Change the seeded administrator's password** (`admin@buksu.edu.ph` /
-   `admin123`) on first sign-in.
+4. **Change the seeded administrator's password** (`admin@gmail.com` /
+   `admin_casdevu`) on first sign-in.
 5. **Turn on HTTPS.** Install a certificate, then set `FORCE_HTTPS` to `true`.
    Behind a proxy that ends TLS, leave it off until the app reads
    `X-Forwarded-Proto` (the redirect would loop).
@@ -695,7 +695,7 @@ statements that the system fails them:
 9. **No scheduled task is installed by default.** Deadline reminders only go
    out when the runner is invoked — see setup step 6. The same runner also
    sends return reminders (the day before a student's equipment loan is due)
-10. **Default credentials ship in the repository.** `admin123` for the seeded
+10. **Default credentials ship in the repository.** `admin_casdevu` for the seeded
    administrator and `demo1234` for demo accounts. Change them before the
    system is used with real data
 11. **Paginated tables are not sortable.** Users, the audit log and the staff

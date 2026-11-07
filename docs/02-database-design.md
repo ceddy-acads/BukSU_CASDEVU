@@ -204,8 +204,8 @@ inventory categories, courses, venues, settings, and a default administrator:
 
 | Field | Value |
 |-------|-------|
-| Email | `admin@buksu.edu.ph` |
-| Password | `admin123` |
+| Email | `admin@gmail.com` |
+| Password | `admin_casdevu` |
 
 **Change this password on first login.** It is seeded only so the system is
 reachable on a fresh install.
