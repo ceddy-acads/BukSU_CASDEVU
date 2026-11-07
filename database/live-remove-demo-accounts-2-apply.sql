@@ -5,10 +5,11 @@
 -- without it.
 -- Back up first: phpMyAdmin > Export > Quick > SQL.
 --
--- Deletes each demo account and what it made: activities (with their
--- registrations, requirements and uploads), announcements, reservations,
--- borrowings, guest programs. Real accounts stay. A real loan released by
--- a demo account is handed to admin@gmail.com. Audit history stays, with
+-- Deletes each demo account and what it made: announcements, reservations,
+-- borrowings, guest programs. Real accounts stay. Activities are kept and
+-- handed to admin@gmail.com: on live the office made real ones while
+-- signed in as admin@buksu.edu.ph. So are that account's reservations, and
+-- any real loan a demo account released. Audit history stays, with
 -- the deleted user shown as nobody. Files on disk are not removed.
 --
 -- New administrator: admin@gmail.com / admin_casdevu. Change the password
@@ -35,10 +36,12 @@ SELECT u.user_id FROM users u JOIN tmp_demo_users t ON t.email = u.email;
 -- RESTRICT keys first, so the account delete below can go through.
 DELETE b FROM borrowings b JOIN demo_ids d ON d.user_id = b.borrower_id;
 UPDATE borrowings b JOIN demo_ids d ON d.user_id = b.released_by SET b.released_by = @new_admin;
+UPDATE reservations v JOIN users u ON u.user_id = v.requested_by
+SET v.requested_by = @new_admin WHERE u.email = 'admin@buksu.edu.ph';
+UPDATE activities a JOIN demo_ids d ON d.user_id = a.created_by SET a.created_by = @new_admin;
 DELETE v FROM reservations v JOIN demo_ids d ON d.user_id = v.requested_by;
 DELETE i FROM invitations i JOIN demo_ids d ON d.user_id = i.submitted_by;
 DELETE n FROM announcements n JOIN demo_ids d ON d.user_id = n.posted_by;
-DELETE a FROM activities a JOIN demo_ids d ON d.user_id = a.created_by;
 
 -- Cascades: tokens, notifications, own registrations, coordinator rows, preferences.
 DELETE u FROM users u JOIN demo_ids d ON d.user_id = u.user_id;

@@ -5,8 +5,9 @@
 -- step 2 reads and then drops.
 --
 -- phpMyAdmin: click the database in the sidebar, then Import this file.
--- Read the result grid. If a row under "activity" or "announcement"
--- is real office work, stop: step 2 would delete it.
+-- Read the result grid (tick "Show all"). If a row under "announcement"
+-- is real office work, stop: step 2 would delete it. Rows under
+-- "activity" are kept and handed to admin@gmail.com.
 --
 -- Demo accounts = every account database/demo-data.sql creates, plus the
 -- live check account tmp.live.verify. Accounts not on this list are kept.
@@ -67,19 +68,12 @@ INSERT INTO tmp_demo_users (email) VALUES
 SELECT 'account' AS kind, u.email AS item, r.name AS detail
 FROM users u JOIN roles r ON r.role_id = u.role_id JOIN tmp_demo_users t ON t.email = u.email
 UNION ALL
-SELECT 'activity', a.title, CONCAT('created ', a.created_at, ' by ', t.email)
+SELECT 'activity (kept, moves to admin@gmail.com)', a.title, CONCAT('created ', a.created_at, ' by ', t.email)
 FROM activities a JOIN users u ON u.user_id = a.created_by JOIN tmp_demo_users t ON t.email = u.email
 UNION ALL
 SELECT 'announcement', n.title, CONCAT('posted ', n.created_at, ' by ', t.email)
 FROM announcements n JOIN users u ON u.user_id = n.posted_by JOIN tmp_demo_users t ON t.email = u.email
-UNION ALL
-SELECT 'real registration lost', CONCAT(ru.email, ' in ', a.title), 'activity was made by a demo account'
-FROM registrations g
-JOIN users ru ON ru.user_id = g.user_id
-JOIN activities a ON a.activity_id = g.activity_id
-JOIN users au ON au.user_id = a.created_by
-JOIN tmp_demo_users t ON t.email = au.email
-WHERE ru.email NOT IN (SELECT email FROM tmp_demo_users)
+
 UNION ALL
 SELECT 'kept account', u.email, r.name
 FROM users u JOIN roles r ON r.role_id = u.role_id
