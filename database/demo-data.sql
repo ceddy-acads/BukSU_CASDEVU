@@ -8,8 +8,9 @@
 --   C:\xampp\mysql\bin\mysql.exe -u root casms < database/demo-data.sql
 --
 -- Every account created here uses the password: demo1234
--- The administrator seeded by schema.sql (admin@buksu.edu.ph / admin123)
--- is left untouched.
+-- except the demo administrator admin@buksu.edu.ph / admin123, which
+-- bin/smoke.php signs in with. The administrator seeded by schema.sql
+-- (admin@gmail.com) is left untouched.
 --
 -- Safe to re-run: rows are matched on their unique columns and skipped
 -- rather than duplicated.
@@ -24,6 +25,13 @@ SET NAMES utf8mb4;
 -- =====================================================================
 -- OFFICE PERSONNEL
 -- =====================================================================
+
+-- Demo administrator. Rows below join on this email.
+INSERT IGNORE INTO users (role_id, email, password_hash, first_name, last_name, status)
+SELECT role_id, 'admin@buksu.edu.ph',
+       '$2y$10$wNrwyUgLASdwlHrAOhs6Juk2wyCqeAPaj2qz2dyuYP8./26AApV5O',
+       'System', 'Administrator', 'active'
+FROM roles WHERE name = 'admin';
 
 INSERT IGNORE INTO users (role_id, email, password_hash, first_name, last_name, contact_number, status)
 SELECT r.role_id, v.email,

@@ -98,7 +98,7 @@ if ($server) {
             )->fetchAll(PDO::FETCH_KEY_PAIR);
             $users !== []
                 ? ok('Active accounts: ' . implode(', ', array_map(static fn($r, $n) => "$n $r", array_keys($users), $users)))
-                : fail('There are no active accounts.', 'Import database\\schema.sql, which creates admin@buksu.edu.ph.');
+                : fail('There are no active accounts.', 'Import database\\schema.sql, which creates admin@gmail.com.');
 
             $locked = (int) $server->query(
                 "SELECT COUNT(*) FROM audit_logs WHERE action = 'login_failed'

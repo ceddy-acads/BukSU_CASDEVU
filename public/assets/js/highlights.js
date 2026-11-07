@@ -174,7 +174,8 @@
             drawAround(i);
         }
 
-        function fail() {
+        function fail(error) {
+            console.error('Highlight report could not be opened:', error);
             var alert = document.createElement('div');
             alert.className = 'alert alert-error';
             alert.setAttribute('role', 'alert');

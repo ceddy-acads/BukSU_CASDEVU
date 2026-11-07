@@ -766,10 +766,10 @@ INSERT INTO settings (setting_key, setting_value, description) VALUES
     ('allowed_upload_types',   'pdf,jpg,jpeg,png', 'Accepted requirement file extensions'),
     ('highlight_max_upload_mb', '40', 'Maximum highlight report PDF size');
 
--- Default administrator. Password is 'admin123' - CHANGE ON FIRST LOGIN.
+-- Default administrator. Password is 'admin_casdevu' - CHANGE ON FIRST LOGIN.
 INSERT INTO users (role_id, email, password_hash, first_name, last_name, status)
 SELECT role_id,
-       'admin@buksu.edu.ph',
-       '$2y$10$wNrwyUgLASdwlHrAOhs6Juk2wyCqeAPaj2qz2dyuYP8./26AApV5O',
+       'admin@gmail.com',
+       '$2y$10$5H6sJHyYiwpJXr.gOz79NOZmVlnccgRTd8xaAk6M07xhLBfh./K76',
        'System', 'Administrator', 'active'
 FROM roles WHERE name = 'admin';

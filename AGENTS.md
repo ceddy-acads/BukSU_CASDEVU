@@ -50,8 +50,9 @@ desktop. There is no automated test suite beyond this.
 
 ## Accounts
 
-Demo accounts use password `demo1234`; the seeded administrator is
-`admin@buksu.edu.ph` / `admin123`. Useful ones:
+`schema.sql` seeds one administrator, `admin@gmail.com` / `admin_casdevu`.
+`demo-data.sql` adds the demo administrator `admin@buksu.edu.ph` / `admin123`
+(used by `bin/smoke.php`); every other demo account uses `demo1234`. Useful ones:
 
 | Role | Email |
 |---|---|
