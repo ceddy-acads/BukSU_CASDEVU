@@ -6,9 +6,9 @@
 -- Tables are emptied, never dropped: the system keeps working and fills
 -- them again as real records come in.
 -- Kept: roles, courses, year levels, activity and inventory categories,
--- settings.
--- Deleted: every account except admin@gmail.com, and all venues,
--- inventory items, activities,
+-- venues, settings.
+-- Deleted: every account except admin@gmail.com, and all inventory
+-- items, activities,
 -- registrations, requirements, submissions, announcements, reservations,
 -- borrowings, highlights, guest programs, notifications and the audit log.
 -- Files on disk under storage/uploads are not removed.
@@ -47,7 +47,6 @@ DELETE FROM announcements;
 DELETE FROM invitations;
 DELETE FROM activities;
 DELETE FROM inventory_items;
-DELETE FROM venues;
 DELETE FROM notifications;
 DELETE FROM auth_tokens;
 DELETE FROM user_preferences;
