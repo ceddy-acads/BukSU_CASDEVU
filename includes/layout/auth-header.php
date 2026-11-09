@@ -27,6 +27,9 @@ declare(strict_types=1);
     <div>
         <div class="auth-card<?= !empty($authWide) ? ' wide' : '' ?>">
             <header class="auth-head">
+                <?php if (!is_logged_in()): ?>
+                    <a class="crumb" href="<?= url('login.php') ?>">&larr; Back to sign in</a>
+                <?php endif; ?>
                 <span class="brand-mark"><?= e(APP_NAME) ?></span>
                 <span class="brand-sub"><?= e(APP_TAGLINE) ?></span>
                 <h1><?= e($pageTitle) ?></h1>

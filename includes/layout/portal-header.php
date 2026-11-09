@@ -30,6 +30,10 @@ declare(strict_types=1);
 <body class="portal-body">
 <?= portal_open_html(false, !empty($portalWide)) ?>
             <header class="portal-panel-head">
+                <?php // Every signed-out screen but sign-in itself offers the way back to it. ?>
+                <?php if (!is_logged_in() && basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) !== 'login.php'): ?>
+                    <a class="crumb" href="<?= url('login.php') ?>">&larr; Back to sign in</a>
+                <?php endif; ?>
                 <h1><?= e($pageTitle) ?></h1>
                 <?php if (!empty($authIntro)): ?>
                     <p><?= e($authIntro) ?></p>
