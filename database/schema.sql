@@ -152,11 +152,12 @@ CREATE TABLE activities (
 
     -- Schedule. start_at/end_at drive both the calendar and conflict checking.
     start_at        DATETIME NOT NULL,
-    end_at          DATETIME NOT NULL,
+    end_at          DATETIME NULL,                  -- NULL = no set end; ongoing until closed
     registration_opens_at  DATETIME NULL,
     registration_closes_at DATETIME NULL,
 
     max_participants INT UNSIGNED NULL,             -- NULL = unlimited
+    requires_registration TINYINT(1) NOT NULL DEFAULT 1, -- 0 = open event, no sign-up
 
     status          ENUM('draft','upcoming','ongoing','completed','cancelled','closed')
                         NOT NULL DEFAULT 'draft',

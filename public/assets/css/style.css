@@ -984,6 +984,8 @@ select { cursor: pointer; }
 input[type="checkbox"], input[type="radio"] { width: 18px; height: 18px; accent-color: var(--navy); vertical-align: -3px; margin: 0 var(--s2) 0 0; }
 .check { display: flex; align-items: flex-start; gap: var(--s2); font-weight: 400; font-size: var(--fs-base); cursor: pointer; }
 .check input { margin-top: 2px; }
+/* An open event has no registration window or cap (activities/manage.php). */
+form:has(#requires_registration:not(:checked)) .reg-only { display: none; }
 
 input[type="color"] { width: 56px; height: 42px; padding: 3px; border: 1px solid var(--line-input); border-radius: var(--r-sm); background: var(--surface); cursor: pointer; }
 

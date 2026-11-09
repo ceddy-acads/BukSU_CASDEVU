@@ -86,7 +86,7 @@ $activities = fetch_all(
        JOIN activity_categories c ON c.category_id = a.category_id
        LEFT JOIN venues v         ON v.venue_id    = a.venue_id
        $mineJoin
-      WHERE a.start_at <= ? AND a.end_at >= ?"
+      WHERE a.start_at <= ? AND COALESCE(a.end_at, a.start_at) >= ?"
        . ($conditions === [] ? '' : ' AND ' . implode(' AND ', $conditions)) . "
       ORDER BY a.start_at, a.title",
     array_merge($mineParams, [$lastDay . ' 23:59:59', $firstDay . ' 00:00:00'], $params)
@@ -147,7 +147,8 @@ if (can_view_invitations() && $categoryIn === '') {
 $byDay = [];
 foreach ($calendarEvents as $activity) {
     $startDate = strtotime(date('Y-m-d', strtotime((string) $activity['start_at'])));
-    $endDate   = strtotime(date('Y-m-d', strtotime((string) $activity['end_at'])));
+    // An activity with no set end shows on its start day only.
+    $endDate   = strtotime(date('Y-m-d', strtotime((string) ($activity['end_at'] ?? $activity['start_at']))));
     $spanDays  = (int) round(($endDate - $startDate) / 86400) + 1;
 
     $from = max(strtotime($firstDay), $startDate);
@@ -230,7 +231,7 @@ function calendar_when(array $event): string
         return 'Day ' . $event['day_number'] . ' of ' . $event['span_days'];
     }
     $start = strtotime((string) $event['start_at']);
-    $end   = strtotime((string) $event['end_at']);
+    $end   = strtotime((string) ($event['end_at'] ?? $event['start_at']));
     return date('g:i A', $start) . ($end > $start ? ' – ' . date('g:i A', $end) : '');
 }
 
