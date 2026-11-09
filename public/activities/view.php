@@ -39,6 +39,33 @@ if ($activity['status'] === 'draft' && !can_manage_activity($activityId)) {
     abort_page(403, 'This activity is not yet published.');
 }
 
+// After approval the dates set the status; closing and cancelling are the only manual steps.
+$statusMoves = [
+    'close'  => ['from' => ['upcoming', 'ongoing', 'completed'], 'to' => "'closed'",    'done' => 'Activity closed.'],
+    'cancel' => ['from' => ['upcoming', 'ongoing'],              'to' => "'cancelled'", 'done' => 'Activity cancelled.'],
+    'reopen' => ['from' => ['closed', 'cancelled'],              'to' => activity_schedule_status_sql(), 'done' => 'Activity reopened. Its dates set the status again.'],
+];
+if (is_post() && isset($statusMoves[post('action')])) {
+    csrf_verify();
+    $move = post('action');
+    // Cancelling is an office decision, so only the office undoes it.
+    $officeOnly = $move === 'cancel' || ($move === 'reopen' && $activity['status'] === 'cancelled');
+    if (!can_manage_activity($activityId) || ($officeOnly && !is_office_staff())) {
+        abort_page(403, 'Only the office or an assigned coordinator can change this activity\'s status.');
+    }
+    if ($activity['approval_status'] === 'approved' && in_array($activity['status'], $statusMoves[$move]['from'], true)) {
+        query("UPDATE activities SET status = {$statusMoves[$move]['to']} WHERE activity_id = ? AND status = ?",
+            [$activityId, $activity['status']]);
+        $newStatus = (string) fetch_value('SELECT status FROM activities WHERE activity_id = ?', [$activityId]);
+        audit_log('update', 'activity', $activityId, ucfirst($move) . ': ' . $activity['title'],
+            ['status' => $activity['status']], ['status' => $newStatus]);
+        flash('success', $statusMoves[$move]['done']);
+    } else {
+        flash('error', 'The activity changed while you were looking at it. Please try again.');
+    }
+    redirect('activities/view.php?id=' . $activityId);
+}
+
 $coordinators = fetch_all(
     'SELECT u.first_name, u.last_name, ac.assignment_role
        FROM activity_coordinators ac
@@ -103,6 +130,7 @@ if ($isStudent) {
 }
 $canManage   = can_manage_activity($activityId);
 $canRegister = $isStudent && !$isActiveReg && $eligibility['ok'];
+$openEvent   = (int) $activity['requires_registration'] === 0;
 
 // The fact strip is rendered once: the full page and the quick look share it.
 ob_start();
@@ -138,7 +166,12 @@ $sameDay  = $endTs !== null && date('Y-m-d', $startTs) === date('Y-m-d', $endTs)
             <?php endif; ?>
         </dd>
     </div>
-    <?php if ($isStudent): ?>
+    <?php if ($openEvent): ?>
+        <div>
+            <dt>Registration</dt>
+            <dd>Not needed<span class="fact-sub">Open event: just attend</span></dd>
+        </div>
+    <?php elseif ($isStudent): ?>
         <div>
             <dt>Your registration</dt>
             <dd>
@@ -348,6 +381,8 @@ if ($isQuickLook): ?>
                 <?php elseif ($eligibility['ok']): ?>
                     <p class="card-intro">You can join this activity. The office reviews every registration.</p>
                     <a class="btn btn-primary btn-block" href="<?= e(url('activities/join.php?activity_id=' . $activityId)) ?>" data-join-open>Register for this activity</a>
+                <?php elseif ($openEvent): ?>
+                    <p class="card-intro"><?= e($eligibility['reason']) ?></p>
                 <?php else: ?>
                     <div class="alert alert-warning alert-flush">
                         <?= e($eligibility['reason']) ?>
@@ -365,6 +400,37 @@ if ($isQuickLook): ?>
             $approvalVersion = $activity['review_version'];
             require __DIR__ . '/../../includes/layout/approval.php';
             ?>
+            <?php if ($activity['approval_status'] === 'approved'): ?>
+                <?php
+                $isScheduled = in_array($activity['status'], $statusMoves['close']['from'], true);
+                $canReopen   = $activity['status'] === 'closed' || ($activity['status'] === 'cancelled' && is_office_staff());
+                ?>
+                <section class="card">
+                    <div class="card-head"><h2>Status</h2><?= status_badge($activity['status'], 'activity') ?></div>
+                    <p>
+                        <?php if ($isScheduled): ?>
+                            Set by the dates: upcoming before the start, ongoing during the activity, completed after it ends.
+                        <?php elseif ($activity['status'] === 'closed'): ?>
+                            Closed by hand. Reopen it to let the dates set the status again.
+                        <?php else: ?>
+                            Cancelled by the office.<?= $canReopen ? ' Reopen it to let the dates set the status again.' : '' ?>
+                        <?php endif; ?>
+                    </p>
+                    <?php if ($isScheduled || $canReopen): ?>
+                        <form method="post" class="btn-row">
+                            <?= csrf_field() ?>
+                            <?php if ($isScheduled): ?>
+                                <button class="btn btn-outline btn-sm" name="action" value="close" data-loading="Closing…">Close activity</button>
+                                <?php if (is_office_staff() && in_array($activity['status'], $statusMoves['cancel']['from'], true)): ?>
+                                    <button class="btn btn-outline btn-sm" name="action" value="cancel" data-loading="Cancelling…">Cancel activity</button>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <button class="btn btn-outline btn-sm" name="action" value="reopen" data-loading="Reopening…">Reopen activity</button>
+                            <?php endif; ?>
+                        </form>
+                    <?php endif; ?>
+                </section>
+            <?php endif; ?>
             <?php
             $pendingRegistrations = (int) fetch_value(
                 "SELECT COUNT(*) FROM registrations WHERE activity_id = ? AND status = 'pending'",
@@ -478,6 +544,7 @@ if ($isQuickLook): ?>
                     </div>
                 <?php endif; ?>
 
+                <?php if (!$openEvent): ?>
                 <div>
                     <dt>Participants</dt>
                     <dd>
@@ -487,6 +554,7 @@ if ($isQuickLook): ?>
                         <?php endif; ?>
                     </dd>
                 </div>
+                <?php endif; ?>
 
                 <?php if ($activity['registration_closes_at']): ?>
                     <div>

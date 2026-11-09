@@ -63,7 +63,7 @@ $offset = ($page - 1) * PER_PAGE;
 // LIMIT/OFFSET are integers computed above, never raw input.
 $activities = fetch_all(
     "SELECT a.activity_id, a.title, a.slug, a.description, a.start_at, a.end_at, a.status,
-            a.max_participants, a.registration_opens_at, a.registration_closes_at, a.approval_status,
+            a.max_participants, a.registration_opens_at, a.registration_closes_at, a.approval_status, a.requires_registration,
             c.name AS category, c.color_hex,
             v.name AS venue,
             (SELECT COUNT(*) FROM registrations r
@@ -199,7 +199,9 @@ require __DIR__ . '/../../includes/layout/header.php';
                         <?php
                         // The registration window, by the same dates can_register() checks (UX audit F9).
                         $regLine = null;
-                        if (in_array($activity['status'], ['upcoming', 'ongoing'], true)) {
+                        if ((int) $activity['requires_registration'] === 0) {
+                            $regLine = 'Open event: no registration';
+                        } elseif (in_array($activity['status'], ['upcoming', 'ongoing'], true)) {
                             $opens  = $activity['registration_opens_at'] ? strtotime((string) $activity['registration_opens_at']) : null;
                             $closes = $activity['registration_closes_at'] ? strtotime((string) $activity['registration_closes_at']) : null;
                             // Non-breaking spaces: a narrow card wraps before the date, never inside it.

@@ -556,14 +556,13 @@ redesign; they are now.
 | Priority | Implemented | Total |
 |----------|-------------|-------|
 | **MUST** | **39** | 39 |
-| **SHOULD** | **14** | 16 |
+| **SHOULD** | **15** | 16 |
 | **COULD** | 2 full, 1 partial | 3 |
 
-**Not implemented (2)**
+**Not implemented (1)**
 
 | Requirement | Priority | Status |
 |-------------|----------|--------|
-| FR-2.5 — activity status moves from `upcoming` to `ongoing` to `completed` automatically | SHOULD | **Not implemented.** Status is changed by hand on the activity form. No scheduled job updates it |
 | FR-7.5 — staff see the venue and equipment needed for an activity in one view | SHOULD | **Not implemented.** Venue is on the activity page and equipment on the reservations page; there is no combined screen |
 
 **Partially implemented (1)**

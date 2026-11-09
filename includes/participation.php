@@ -90,6 +90,10 @@ function can_register(array $activity, array $student): array
         return ['ok' => false, 'reason' => 'Only students can register for activities.'];
     }
 
+    if ((int) ($activity['requires_registration'] ?? 1) === 0) {
+        return ['ok' => false, 'reason' => 'No registration needed. This is an open event: just attend.'];
+    }
+
     // Already in the list — the UNIQUE key would reject a second row anyway.
     $existing = fetch_one(
         'SELECT status FROM registrations WHERE activity_id = ? AND user_id = ?',

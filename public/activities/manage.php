@@ -19,7 +19,6 @@ if ($isEdit) {
 }
 
 $categories = fetch_all('SELECT category_id, name FROM activity_categories WHERE is_active = 1 ORDER BY name');
-$statuses   = ['draft', 'upcoming', 'ongoing', 'completed', 'cancelled', 'closed'];
 
 $activity = null;
 if ($isEdit) {
@@ -33,6 +32,8 @@ if ($isEdit) {
     }
 }
 $isCoordinator = current_role() === 'coordinator';
+// An unticked checkbox is not posted, so a re-shown form reads the POST itself.
+$requiresReg = is_post() ? post('requires_registration') === '1' : (int) ($activity['requires_registration'] ?? 1) === 1;
 
 // Only active venues may be chosen. An activity already pointing at an archived
 // venue keeps it in the list, marked, so editing something else does not
@@ -103,9 +104,9 @@ if (is_post()) {
     $regOpens       = post('registration_opens_at');
     $regCloses      = post('registration_closes_at');
     $maxIn          = post('max_participants');
-    $statusIn       = post('status');
-    if ($isCoordinator || ($isEdit && $activity['approval_status'] !== 'approved')) {
-        $statusIn = 'draft';
+
+    if (!$requiresReg) {
+        $regOpens = $regCloses = $maxIn = '';
     }
 
     // ------------------------------------------------------------ Validation
@@ -126,9 +127,9 @@ if (is_post()) {
             }
         }
     }
-    if ($startAt === '' || $endAt === '') {
-        $errors[] = 'Start and end date/time are required.';
-    } elseif (strtotime($endAt) < strtotime($startAt)) {
+    if ($startAt === '') {
+        $errors[] = 'The start date/time is required.';
+    } elseif ($endAt !== '' && strtotime($endAt) < strtotime($startAt)) {
         $errors[] = 'The end date/time cannot be earlier than the start.';
     }
     if ($regOpens !== '' && $regCloses !== '' && strtotime($regCloses) < strtotime($regOpens)) {
@@ -136,9 +137,6 @@ if (is_post()) {
     }
     if ($maxIn !== '' && (!ctype_digit($maxIn) || (int) $maxIn < 1)) {
         $errors[] = 'Maximum participants must be a positive whole number, or left blank for unlimited.';
-    }
-    if (!in_array($statusIn, $statuses, true)) {
-        $errors[] = 'Please choose a valid status.';
     }
 
     // The venue must exist and be active — unless it is the one this activity
@@ -166,9 +164,9 @@ if (is_post()) {
               WHERE venue_id = ?
                 AND activity_id <> ?
                 AND status NOT IN ('cancelled','completed','draft')
-                AND start_at < ? AND end_at > ?
+                AND start_at < ? AND COALESCE(end_at, start_at) > ?
               LIMIT 1",
-            [(int) $venueIdIn, $activityId ?? 0, $endAt, $startAt]
+            [(int) $venueIdIn, $activityId ?? 0, $endAt !== '' ? $endAt : $startAt, $startAt]
         );
         if ($clash) {
             $venueWarning = 'Note: "' . $clash['title'] . '" is already scheduled at this venue during that time.';
@@ -194,20 +192,22 @@ if (is_post()) {
                 'UPDATE activities
                     SET category_id = ?, venue_id = ?, title = ?, description = ?, eligibility = ?,
                         instructions = ?, start_at = ?, end_at = ?, registration_opens_at = ?,
-                        registration_closes_at = ?, max_participants = ?, status = ?, review_version = review_version + 1
+                        registration_closes_at = ?, max_participants = ?, requires_registration = ?, review_version = review_version + 1
                   WHERE activity_id = ?',
                 [
                     $categoryId, $venueId, $title,
                     $description !== ''  ? $description  : null,
                     $eligibility !== ''  ? $eligibility  : null,
                     $instructions !== '' ? $instructions : null,
-                    $startAt, $endAt,
+                    $startAt, $endAt !== '' ? $endAt : null,
                     $regOpens  !== '' ? $regOpens  : null,
                     $regCloses !== '' ? $regCloses : null,
-                    $maxCount, $statusIn, $activityId,
+                    $maxCount, $requiresReg ? 1 : 0, $activityId,
                 ]
             );
-            if ($isCoordinator) {
+            // Status is not edited here: approval starts it, the dates move it, and
+            // closing or cancelling happens on the activity page.
+            if ($activity['approval_status'] !== 'approved') {
                 query("UPDATE activities SET approval_status = 'pending', reviewed_by = NULL,
                            reviewed_at = NULL, rejection_reason = NULL WHERE activity_id = ?", [$activityId]);
                 if ($activity['approval_status'] === 'rejected') {
@@ -216,7 +216,7 @@ if (is_post()) {
             }
 
             audit_log('update', 'activity', $activityId, 'Updated activity: ' . $title,
-                      $activity, ['title' => $title, 'status' => $statusIn]);
+                      $activity, ['title' => $title]);
             db()->commit();
 
             flash('success', 'Activity updated.' . ($venueWarning ? ' ' . $venueWarning : ''));
@@ -229,43 +229,32 @@ if (is_post()) {
             'INSERT INTO activities
                  (category_id, venue_id, title, slug, description, eligibility, instructions,
                   start_at, end_at, registration_opens_at, registration_closes_at,
-                  max_participants, status, created_by)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                  max_participants, requires_registration, status, approval_status, created_by)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 $categoryId, $venueId, $title, make_slug($title),
                 $description !== ''  ? $description  : null,
                 $eligibility !== ''  ? $eligibility  : null,
                 $instructions !== '' ? $instructions : null,
-                $startAt, $endAt,
+                $startAt, $endAt !== '' ? $endAt : null,
                 $regOpens  !== '' ? $regOpens  : null,
                 $regCloses !== '' ? $regCloses : null,
-                $maxCount, $statusIn, current_user_id(),
+                $maxCount, $requiresReg ? 1 : 0, 'draft', 'pending', current_user_id(),
             ]
         );
 
         $newId = (int) db()->lastInsertId();
+        // Every new activity is a draft until an administrator approves it.
+        notify_publication_review($title, 'activities/view.php?id=' . $newId);
         if ($isCoordinator) {
-            query("UPDATE activities SET approval_status = 'pending' WHERE activity_id = ?", [$newId]);
             query('INSERT INTO activity_coordinators (activity_id, user_id, assignment_role, assigned_by) VALUES (?, ?, ?, ?)',
                 [$newId, current_user_id(), 'Coordinator', current_user_id()]);
-            notify_publication_review($title, 'activities/view.php?id=' . $newId);
         }
         audit_log('create', 'activity', $newId, 'Created activity: ' . $title);
         db()->commit();
 
-        // Announce it to students the moment it goes live (FR-3.3).
-        if ($statusIn === 'upcoming') {
-            notify_many(
-                all_active_student_ids(),
-                'activity',
-                'New activity: ' . $title,
-                'Registration details are now available.',
-                url('activities/view.php?id=' . $newId)
-            );
-        }
-
         clear_old_input();
-        flash('success', ($isCoordinator ? 'Activity submitted. Pending approval by an administrator.' : 'Activity created.') . ($venueWarning ? ' ' . $venueWarning : ''));
+        flash('success', (has_role('admin') ? 'Activity saved as a draft. Approve it on this page to publish it.' : 'Activity submitted. It goes live when an administrator approves it.') . ($venueWarning ? ' ' . $venueWarning : ''));
         redirect('activities/view.php?id=' . $newId);
     }
 
@@ -297,13 +286,13 @@ require __DIR__ . '/../../includes/layout/header.php';
     <div>
         <a class="crumb" href="<?= $isEdit ? url('activities/view.php?id=' . $activityId) : url('activities/index.php') ?>">&larr; <?= $isEdit ? 'Back to activity' : 'Back to activities' ?></a>
         <h1><?= $isEdit ? 'Edit activity' : 'New activity' ?></h1>
-        <p><?= $isEdit ? e($activity['title']) : ($isCoordinator ? 'Submit a culture, arts, or sports activity for approval.' : 'Publish a culture, arts, or sports activity.') ?></p>
+        <p><?= $isEdit ? e($activity['title']) : 'Submit a culture, arts, or sports activity for approval.' ?></p>
     </div>
 </div>
 
 <div id="activity-form-wrap">
-<?php if ($isCoordinator): ?>
-    <p class="alert alert-info">Submitting this activity sends it to an administrator for approval. It stays unpublished until approved.</p>
+<?php if (!$isEdit || $isCoordinator): ?>
+    <p class="alert alert-info">A new activity starts as a draft and stays hidden from students until an administrator approves it. After that its status follows its dates: upcoming, ongoing, then completed.</p>
 <?php endif; ?>
 <?php if ($errors !== []): ?>
     <div class="alert alert-error" role="alert">
@@ -338,21 +327,6 @@ require __DIR__ . '/../../includes/layout/header.php';
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <?php if (!$isCoordinator && (!$isEdit || $activity['approval_status'] === 'approved')): ?>
-                <div class="form-row">
-                    <label for="status">Status <span class="req">*</span></label>
-                    <select id="status" name="status" required>
-                        <?php
-                        $currentStatus = field('status', $activity) ?: 'draft';
-                        foreach ($statuses as $statusOption): ?>
-                            <option value="<?= e($statusOption) ?>" <?= $currentStatus === $statusOption ? 'selected' : '' ?>>
-                                <?= e(ucfirst($statusOption)) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <p class="hint">Drafts are hidden from students.</p>
-                </div>
-                <?php endif; ?>
             </div>
 
             <div class="form-row">
@@ -371,9 +345,10 @@ require __DIR__ . '/../../includes/layout/header.php';
                            value="<?= e(field('start_at', $activity, true)) ?>" required>
                 </div>
                 <div class="form-row">
-                    <label for="end_at">Ends <span class="req">*</span></label>
+                    <label for="end_at">Ends <span class="optional">(optional)</span></label>
                     <input type="datetime-local" id="end_at" name="end_at"
-                           value="<?= e(field('end_at', $activity, true)) ?>" required>
+                           value="<?= e(field('end_at', $activity, true)) ?>">
+                    <p class="hint">Leave blank when there is no set end. It then stays ongoing until someone closes it.</p>
                 </div>
             </div>
 
@@ -405,7 +380,15 @@ require __DIR__ . '/../../includes/layout/header.php';
         <div class="form-section">
             <h3>Registration and participation</h3>
 
-            <div class="form-grid form-grid-3">
+            <div class="form-row">
+                <label class="check">
+                    <input type="checkbox" id="requires_registration" name="requires_registration" value="1" <?= $requiresReg ? 'checked' : '' ?>>
+                    Students register for this activity
+                </label>
+                <p class="hint">Untick for an open event that anyone may attend without signing up.</p>
+            </div>
+
+            <div class="form-grid form-grid-3 reg-only">
                 <div class="form-row">
                     <label for="registration_opens_at">Registration opens <span class="optional">(optional)</span></label>
                     <input type="datetime-local" id="registration_opens_at" name="registration_opens_at"
@@ -439,7 +422,7 @@ require __DIR__ . '/../../includes/layout/header.php';
 
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">
-                <?= $isCoordinator ? ($isEdit ? 'Save and submit for approval' : 'Submit for approval') : ($isEdit ? 'Save changes' : 'Create activity') ?>
+                <?= $isEdit ? ($isCoordinator ? 'Save and submit for approval' : 'Save changes') : (has_role('admin') ? 'Save as draft' : 'Submit for approval') ?>
             </button>
             <a class="btn btn-outline"
                href="<?= $isEdit ? url('activities/view.php?id=' . $activityId) : url('activities/index.php') ?>">
@@ -462,8 +445,8 @@ require __DIR__ . '/../../includes/layout/header.php';
             Deleting removes the activity permanently, together with its
             <strong><?= $registrationCount ?></strong> registration<?= $registrationCount === 1 ? '' : 's' ?>,
             its requirements, and every document students submitted for it.
-            To take an activity down without losing the records, set its status
-            to <em>Cancelled</em> instead.
+            To take an activity down without losing the records, close or cancel
+            it on the activity page instead.
         </p>
         <form method="post"
               onsubmit="return confirm('Delete this activity and all <?= $registrationCount ?> registration(s) permanently? This cannot be undone.');">

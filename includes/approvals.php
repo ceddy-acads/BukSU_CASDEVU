@@ -16,6 +16,31 @@ function can_edit_announcement(array $announcement): bool
         && in_array($announcement['status'], ['draft', 'pending', 'rejected'], true));
 }
 
+/** An approved activity's status from its dates (FR-2.5). Uses the database clock, as db.php sets its time zone. */
+function activity_schedule_status_sql(): string
+{
+    return "CASE WHEN NOW() < start_at THEN 'upcoming' WHEN end_at IS NULL OR NOW() <= end_at THEN 'ongoing' ELSE 'completed' END";
+}
+
+/**
+ * Move approved activities along upcoming → ongoing → completed as their dates pass.
+ * Draft, closed and cancelled are left alone: approval, closing and cancelling are decisions.
+ */
+function sync_activity_statuses(): void
+{
+    // shortcut: runs from page loads at most once a minute per session, so a status can
+    // lag up to a minute; use a cron job instead if the site ever gets one.
+    if (($_SESSION['activity_status_sync'] ?? 0) > time() - 60) {
+        return;
+    }
+    $_SESSION['activity_status_sync'] = time();
+    $auto = activity_schedule_status_sql();
+    query("UPDATE activities SET status = $auto
+            WHERE approval_status = 'approved'
+              AND status IN ('upcoming', 'ongoing', 'completed')
+              AND status <> $auto");
+}
+
 /** Inform only administrators when content needs their decision. */
 function notify_publication_review(string $title, string $link): void
 {
@@ -44,9 +69,10 @@ function decide_publication(string $kind, int $id, string $decision, string $rea
     }
     $approved = $decision === 'approve';
     if ($isActivity) {
-        query("UPDATE activities SET approval_status = ?, status = ?, reviewed_by = ?,
-                   reviewed_at = NOW(), rejection_reason = ? WHERE activity_id = ?",
-            [$approved ? 'approved' : 'rejected', $approved ? 'upcoming' : 'draft',
+        query("UPDATE activities SET approval_status = ?,
+                   status = CASE WHEN ? = 1 THEN " . activity_schedule_status_sql() . " ELSE 'draft' END,
+                   reviewed_by = ?, reviewed_at = NOW(), rejection_reason = ? WHERE activity_id = ?",
+            [$approved ? 'approved' : 'rejected', $approved ? 1 : 0,
              current_user_id(), $approved ? null : $reason, $id]);
     } else {
         // Announcements about a proposed activity must wait until that activity is approved.

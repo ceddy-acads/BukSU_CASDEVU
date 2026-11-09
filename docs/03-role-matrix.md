@@ -18,10 +18,11 @@ Guests may read the names of approved players on published activity pages.
 |--------|:-----:|:-------:|:-----------:|:-----:|:-----:|
 | View published activities | ✔ | ✔ | ✔ | ✔ | ✔ |
 | View draft activities | ✘ | ✘ | ◐ own | ✔ | ✔ |
-| Create activity | ✘ | ✘ | ◐ submits pending; automatically assigned | ✔ | ✔ |
+| Create activity (starts as a draft, pending approval) | ✘ | ✘ | ◐ automatically assigned | ✔ | ✔ |
 | Edit activity details / eligibility | ✘ | ✘ | ◐ own pending or rejected submissions only | ✔ | ✔ |
-| Change published activity status | ✘ | ✘ | ✘ | ✔ | ✔ |
-| Approve / reject a coordinator activity | ✘ | ✘ | ✘ | ✘ | ✔ |
+| Close or reopen a published activity (otherwise its dates set the status) | ✘ | ✘ | ◐ assigned only | ✔ | ✔ |
+| Cancel or reopen a cancelled activity | ✘ | ✘ | ✘ | ✔ | ✔ |
+| Approve / reject a new activity | ✘ | ✘ | ✘ | ✘ | ✔ |
 | Delete activity | ✘ | ✘ | ✘ | ✘ | ✔ |
 | Assign coordinators | ✘ | ✘ | ✘ | ✔ | ✔ |
 

@@ -56,4 +56,5 @@ require_once __DIR__ . '/reminders.php';
 require_once __DIR__ . '/backup.php';
 
 start_session();
+if (PHP_SAPI !== 'cli') { sync_activity_statuses(); }
 if (live_is_poll()) { require_login(); }

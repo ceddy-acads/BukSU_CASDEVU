@@ -147,5 +147,5 @@ except a colour or width that comes from data.
 | Registration/requirement workflow | `includes/participation.php` |
 
 Known gaps worth remembering: email is wired for password reset and reminders
-only (`notify_and_email()` has no callers); activity status is changed by hand;
+only (`notify_and_email()` has no callers); activity status follows the dates only after admin approval, synced on page loads (no cron);
 nothing schedules `bin/send-reminders.php` by default.
