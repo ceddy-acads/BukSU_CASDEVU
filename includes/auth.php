@@ -240,7 +240,12 @@ function logout_user(): void
 function require_login(): void
 {
     if (!is_logged_in() || current_user() === null) {
-        flash('error', 'Please sign in to continue.');
+        // Every visit to the site starts at the home page, so an error there
+        // would greet a first-time visitor. Deep links still explain the detour.
+        $home = realpath(dirname(__DIR__) . '/public/index.php');
+        if (realpath((string) ($_SERVER['SCRIPT_FILENAME'] ?? '')) !== $home) {
+            flash('error', 'Please sign in to continue.');
+        }
         redirect('login.php');
     }
 }
