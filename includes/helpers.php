@@ -30,7 +30,20 @@ function out(?string $value): void
 /** Build an application URL from a path relative to the web root. */
 function url(string $path = ''): string
 {
-    return BASE_URL . '/' . ltrim($path, '/');
+    $base = rtrim(BASE_URL, '/');
+    $path = ltrim($path, '/');
+
+    if (CLEAN_URLS) {
+        // /public/login.php -> /login, /activities/index.php?q=x -> /activities/index?q=x
+        if (str_ends_with($base, '/public')) {
+            $base = substr($base, 0, -7);
+        }
+        if (preg_match('~^([^?]*)\.php(\?.*)?$~', $path, $matches) === 1) {
+            $path = $matches[1] . ($matches[2] ?? '');
+        }
+    }
+
+    return $base . '/' . $path;
 }
 
 /**

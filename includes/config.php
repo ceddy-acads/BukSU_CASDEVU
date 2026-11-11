@@ -73,6 +73,13 @@ function detect_base_url(): string
 
 define('BASE_URL', detect_base_url());
 
+/**
+ * Clean URLs — the .htaccess above public/ maps /login onto public/login.php,
+ * so links carry neither the public/ prefix nor the .php suffix. The built-in
+ * server (php -S) never reads a .htaccess, so it keeps the real paths.
+ */
+define('CLEAN_URLS', PHP_SAPI !== 'cli-server');
+
 // ------------------------------------------------------------------- Database
 defined('DB_HOST') || define('DB_HOST', '127.0.0.1');
 defined('DB_PORT') || define('DB_PORT', '3306');

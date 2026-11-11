@@ -25,8 +25,9 @@ Internal identifiers keep the old name `casms` (database, session cookie,
 # Fastest loop: PHP's own server, no Apache needed
 cd public; C:\xampp\php\php.exe -S 127.0.0.1:8080 -t .
 
-# Installed under htdocs instead
-# http://localhost/<folder>/public/login.php
+# Installed under htdocs instead — Apache applies .htaccess, so no public/ and
+# no .php in the URL
+# http://localhost/<folder>/login
 
 # Fresh database
 C:\xampp\mysql\bin\mysql.exe -u root < database\schema.sql
